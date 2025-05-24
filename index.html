@@ -41,11 +41,36 @@
 				transform: translateY(-2px);
 			}
 			.status-light {
-				width: 12px;
-				height: 12px;
+				width: 16px;
+				height: 16px;
 				border-radius: 50%;
 				display: inline-block;
 				margin-right: 4px;
+				opacity: 0.3; /* Standard ist gedimmt */
+				transition: all 0.3s ease;
+			}
+			.status-light.active {
+				opacity: 1; /* Aktiver Status ist hell */
+				box-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+				transform: scale(1.1);
+			}
+			/* Einfache horizontale Status-Anzeige */
+			.status-container {
+				display: flex;
+				align-items: center;
+				gap: 6px;
+			}
+			/* Status-Beschriftungen für die Ampeln */
+			.status-indicator {
+				display: flex;
+				align-items: center;
+				margin-bottom: 5px;
+			}
+			.status-indicator span {
+				font-size: 10px;
+				margin-left: 2px;
+				color: white;
+				opacity: 0.7;
 			}
 			.tow-status {
 				display: inline-block;
@@ -69,8 +94,9 @@
 			/* Angepasste Ausrichtung für Infobereiche */
 			.info-grid {
 				display: grid;
-				grid-template-columns: auto 1fr;
+				grid-template-columns: auto auto;
 				gap: 0.5rem;
+				align-items: center;
 			}
 			.info-label {
 				text-align: right;
@@ -78,9 +104,12 @@
 				color: #4f5d75;
 				white-space: nowrap;
 				padding-right: 5px;
+				width: fit-content;
+				min-width: min-content;
 			}
 			.info-value {
 				color: #ef8354;
+				white-space: nowrap;
 			}
 			/* Notizfeld soll flexibel wachsen */
 			.notes-container {
@@ -95,6 +124,25 @@
 				flex-grow: 1;
 				resize: none;
 				min-height: 40px;
+			}
+			/* Stil für die Aircraft ID */
+			.aircraft-id {
+				text-align: center;
+				font-weight: bold;
+				font-size: 1.25rem;
+				padding: 0.5rem;
+				margin-bottom: 0.75rem;
+				border-bottom: 2px solid #BFC0C0;
+				background-color: transparent;
+				width: 100%;
+				color: #2D3142;
+			}
+			.aircraft-id::placeholder {
+				color: #9CA3AF;
+			}
+			.aircraft-id:focus {
+				outline: none;
+				border-bottom-color: #EF8354;
 			}
 			/* Modi-Styles */
 			.edit-mode .view-only {
@@ -208,19 +256,10 @@
 							<!-- Header mit Statusleiste -->
 							<div
 								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-								<div class="flex space-x-1">
-									<span
-										class="status-light bg-status-green"
-										data-cell="1"
-										data-status="arrival"></span>
-									<span
-										class="status-light bg-status-yellow"
-										data-cell="1"
-										data-status="present"></span>
-									<span
-										class="status-light bg-status-red"
-										data-cell="1"
-										data-status="departure"></span>
+								<div class="status-container">
+									<span class="status-light bg-status-green" data-cell="1" data-status="ready"></span>
+									<span class="status-light bg-status-yellow" data-cell="1" data-status="maintenance"></span>
+									<span class="status-light bg-status-red" data-cell="1" data-status="aog"></span>
 								</div>
 								<div class="flex items-center">
 									<span class="text-xs text-white font-medium mr-2"
@@ -244,7 +283,7 @@
 									type="text"
 									id="aircraft-1"
 									placeholder="Aircraft ID"
-									class="text-xl font-bold text-center text-industrial-dark border-b-2 border-industrial-light p-2 mb-3" />
+									class="aircraft-id" />
 
 								<!-- Einheitliche Ausrichtung für Infos -->
 								<div class="info-grid mb-3">
@@ -277,11 +316,10 @@
 								<div class="mt-auto">
 									<select
 										id="status-1"
-										class="w-full p-2 bg-industrial-light text-industrial-dark rounded">
-										<option value="maintenance">Maintenance</option>
+										class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
 										<option value="ready">Ready</option>
-										<option value="boarding">Boarding</option>
-										<option value="delay">Delayed</option>
+										<option value="maintenance">Maintenance</option>
+										<option value="aog">AOG</option>
 									</select>
 								</div>
 							</div>
@@ -292,19 +330,10 @@
 							class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
 							<div
 								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-								<div class="flex space-x-1">
-									<span
-										class="status-light bg-status-green"
-										data-cell="2"
-										data-status="arrival"></span>
-									<span
-										class="status-light bg-status-yellow"
-										data-cell="2"
-										data-status="present"></span>
-									<span
-										class="status-light bg-status-red"
-										data-cell="2"
-										data-status="departure"></span>
+								<div class="status-container">
+									<span class="status-light bg-status-green" data-cell="2" data-status="ready"></span>
+									<span class="status-light bg-status-yellow" data-cell="2" data-status="maintenance"></span>
+									<span class="status-light bg-status-red" data-cell="2" data-status="aog"></span>
 								</div>
 								<div class="flex items-center">
 									<span class="text-xs text-white font-medium mr-2"
@@ -327,7 +356,7 @@
 									type="text"
 									id="aircraft-2"
 									placeholder="Aircraft ID"
-									class="text-xl font-bold text-center text-industrial-dark border-b-2 border-industrial-light p-2 mb-3" />
+									class="aircraft-id" />
 
 								<!-- Einheitliche Ausrichtung für Infos -->
 								<div class="info-grid mb-3">
@@ -360,11 +389,10 @@
 								<div class="mt-auto">
 									<select
 										id="status-2"
-										class="w-full p-2 bg-industrial-light text-industrial-dark rounded">
-										<option value="maintenance">Maintenance</option>
+										class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
 										<option value="ready">Ready</option>
-										<option value="boarding">Boarding</option>
-										<option value="delay">Delayed</option>
+										<option value="maintenance">Maintenance</option>
+										<option value="aog">AOG</option>
 									</select>
 								</div>
 							</div>
@@ -375,19 +403,10 @@
 							class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
 							<div
 								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-								<div class="flex space-x-1">
-									<span
-										class="status-light bg-status-green"
-										data-cell="3"
-										data-status="arrival"></span>
-									<span
-										class="status-light bg-status-yellow"
-										data-cell="3"
-										data-status="present"></span>
-									<span
-										class="status-light bg-status-red"
-										data-cell="3"
-										data-status="departure"></span>
+								<div class="status-container">
+									<span class="status-light bg-status-green" data-cell="3" data-status="ready"></span>
+									<span class="status-light bg-status-yellow" data-cell="3" data-status="maintenance"></span>
+									<span class="status-light bg-status-red" data-cell="3" data-status="aog"></span>
 								</div>
 								<div class="flex items-center">
 									<span class="text-xs text-white font-medium mr-2"
@@ -410,7 +429,7 @@
 									type="text"
 									id="aircraft-3"
 									placeholder="Aircraft ID"
-									class="text-xl font-bold text-center text-industrial-dark border-b-2 border-industrial-light p-2 mb-3" />
+									class="aircraft-id" />
 
 								<!-- Einheitliche Ausrichtung für Infos -->
 								<div class="info-grid mb-3">
@@ -443,11 +462,10 @@
 								<div class="mt-auto">
 									<select
 										id="status-3"
-										class="w-full p-2 bg-industrial-light text-industrial-dark rounded">
-										<option value="maintenance">Maintenance</option>
+										class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
 										<option value="ready">Ready</option>
-										<option value="boarding">Boarding</option>
-										<option value="delay">Delayed</option>
+										<option value="maintenance">Maintenance</option>
+										<option value="aog">AOG</option>
 									</select>
 								</div>
 							</div>
@@ -458,19 +476,10 @@
 							class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
 							<div
 								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-								<div class="flex space-x-1">
-									<span
-										class="status-light bg-status-green"
-										data-cell="4"
-										data-status="arrival"></span>
-									<span
-										class="status-light bg-status-yellow"
-										data-cell="4"
-										data-status="present"></span>
-									<span
-										class="status-light bg-status-red"
-										data-cell="4"
-										data-status="departure"></span>
+								<div class="status-container">
+									<span class="status-light bg-status-green" data-cell="4" data-status="ready"></span>
+									<span class="status-light bg-status-yellow" data-cell="4" data-status="maintenance"></span>
+									<span class="status-light bg-status-red" data-cell="4" data-status="aog"></span>
 								</div>
 								<div class="flex items-center">
 									<span class="text-xs text-white font-medium mr-2"
@@ -493,7 +502,7 @@
 									type="text"
 									id="aircraft-4"
 									placeholder="Aircraft ID"
-									class="text-xl font-bold text-center text-industrial-dark border-b-2 border-industrial-light p-2 mb-3" />
+									class="aircraft-id" />
 
 								<!-- Einheitliche Ausrichtung für Infos -->
 								<div class="info-grid mb-3">
@@ -526,11 +535,10 @@
 								<div class="mt-auto">
 									<select
 										id="status-4"
-										class="w-full p-2 bg-industrial-light text-industrial-dark rounded">
-										<option value="maintenance">Maintenance</option>
+										class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
 										<option value="ready">Ready</option>
-										<option value="boarding">Boarding</option>
-										<option value="delay">Delayed</option>
+										<option value="maintenance">Maintenance</option>
+										<option value="aog">AOG</option>
 									</select>
 								</div>
 							</div>
@@ -543,19 +551,10 @@
 							<!-- Header-Bereich wie bei Kachel 1-4 -->
 							<div
 								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-								<div class="flex space-x-1">
-									<span
-										class="status-light bg-status-green"
-										data-cell="5"
-										data-status="arrival"></span>
-									<span
-										class="status-light bg-status-yellow"
-										data-cell="5"
-										data-status="present"></span>
-									<span
-										class="status-light bg-status-red"
-										data-cell="5"
-										data-status="departure"></span>
+								<div class="status-container">
+									<span class="status-light bg-status-green" data-cell="5" data-status="ready"></span>
+									<span class="status-light bg-status-yellow" data-cell="5" data-status="maintenance"></span>
+									<span class="status-light bg-status-red" data-cell="5" data-status="aog"></span>
 								</div>
 								<div class="flex items-center">
 									<span class="text-xs text-white font-medium mr-2"
@@ -579,7 +578,7 @@
 									type="text"
 									id="aircraft-5"
 									placeholder="Aircraft ID"
-									class="text-xl font-bold text-center text-industrial-dark border-b-2 border-industrial-light p-2 mb-3" />
+									class="aircraft-id" />
 
 								<div class="info-grid mb-3">
 									<div class="info-label">Arrival:</div>
@@ -608,11 +607,10 @@
 								<div class="mt-auto">
 									<select
 										id="status-5"
-										class="w-full p-2 bg-industrial-light text-industrial-dark rounded">
-										<option value="maintenance">Maintenance</option>
+										class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
 										<option value="ready">Ready</option>
-										<option value="boarding">Boarding</option>
-										<option value="delay">Delayed</option>
+										<option value="maintenance">Maintenance</option>
+										<option value="aog">AOG</option>
 									</select>
 								</div>
 							</div>
@@ -624,19 +622,10 @@
 							<!-- Header-Bereich -->
 							<div
 								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-								<div class="flex space-x-1">
-									<span
-										class="status-light bg-status-green"
-										data-cell="6"
-										data-status="arrival"></span>
-									<span
-										class="status-light bg-status-yellow"
-										data-cell="6"
-										data-status="present"></span>
-									<span
-										class="status-light bg-status-red"
-										data-cell="6"
-										data-status="departure"></span>
+								<div class="status-container">
+									<span class="status-light bg-status-green" data-cell="6" data-status="ready"></span>
+									<span class="status-light bg-status-yellow" data-cell="6" data-status="maintenance"></span>
+									<span class="status-light bg-status-red" data-cell="6" data-status="aog"></span>
 								</div>
 								<div class="flex items-center">
 									<span class="text-xs text-white font-medium mr-2"
@@ -660,7 +649,7 @@
 									type="text"
 									id="aircraft-6"
 									placeholder="Aircraft ID"
-									class="text-xl font-bold text-center text-industrial-dark border-b-2 border-industrial-light p-2 mb-3" />
+									class="aircraft-id" />
 
 								<div class="info-grid mb-3">
 									<div class="info-label">Arrival:</div>
@@ -669,12 +658,13 @@
 									<div id="departure-time-6" class="info-value">--:--</div>
 									<div class="info-label">Position:</div>
 									<div id="position-6" class="info-value">--</div>
-									<div class="info-label">Schleppstatus:</div>
+									<div class="info-label">Towing Status:</div>
 									<div id="tow-status-6" class="tow-status tow-on-position">
 										On Position
 									</div>
 								</div>
 
+								<!-- Notizen mit flexibler Höhe -->
 								<div class="notes-container">
 									<label
 										class="block text-sm text-industrial-dark font-medium mb-1"
@@ -688,11 +678,10 @@
 								<div class="mt-auto">
 									<select
 										id="status-6"
-										class="w-full p-2 bg-industrial-light text-industrial-dark rounded">
-										<option value="maintenance">Maintenance</option>
+										class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
 										<option value="ready">Ready</option>
-										<option value="boarding">Boarding</option>
-										<option value="delay">Delayed</option>
+										<option value="maintenance">Maintenance</option>
+										<option value="aog">AOG</option>
 									</select>
 								</div>
 							</div>
@@ -704,19 +693,10 @@
 							<!-- Header-Bereich -->
 							<div
 								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-								<div class="flex space-x-1">
-									<span
-										class="status-light bg-status-green"
-										data-cell="7"
-										data-status="arrival"></span>
-									<span
-										class="status-light bg-status-yellow"
-										data-cell="7"
-										data-status="present"></span>
-									<span
-										class="status-light bg-status-red"
-										data-cell="7"
-										data-status="departure"></span>
+								<div class="status-container">
+									<span class="status-light bg-status-green" data-cell="7" data-status="ready"></span>
+									<span class="status-light bg-status-yellow" data-cell="7" data-status="maintenance"></span>
+									<span class="status-light bg-status-red" data-cell="7" data-status="aog"></span>
 								</div>
 								<div class="flex items-center">
 									<span class="text-xs text-white font-medium mr-2"
@@ -740,7 +720,7 @@
 									type="text"
 									id="aircraft-7"
 									placeholder="Aircraft ID"
-									class="text-xl font-bold text-center text-industrial-dark border-b-2 border-industrial-light p-2 mb-3" />
+									class="aircraft-id" />
 
 								<div class="info-grid mb-3">
 									<div class="info-label">Arrival:</div>
@@ -749,7 +729,7 @@
 									<div id="departure-time-7" class="info-value">--:--</div>
 									<div class="info-label">Position:</div>
 									<div id="position-7" class="info-value">--</div>
-									<div class="info-label">Schleppstatus:</div>
+									<div class="info-label">Towing Status:</div>
 									<div id="tow-status-7" class="tow-status tow-initiated">
 										Initiated
 									</div>
@@ -768,11 +748,10 @@
 								<div class="mt-auto">
 									<select
 										id="status-7"
-										class="w-full p-2 bg-industrial-light text-industrial-dark rounded">
-										<option value="maintenance">Maintenance</option>
+										class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
 										<option value="ready">Ready</option>
-										<option value="boarding">Boarding</option>
-										<option value="delay">Delayed</option>
+										<option value="maintenance">Maintenance</option>
+										<option value="aog">AOG</option>
 									</select>
 								</div>
 							</div>
@@ -784,19 +763,10 @@
 							<!-- Header-Bereich -->
 							<div
 								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-								<div class="flex space-x-1">
-									<span
-										class="status-light bg-status-green"
-										data-cell="8"
-										data-status="arrival"></span>
-									<span
-										class="status-light bg-status-yellow"
-										data-cell="8"
-										data-status="present"></span>
-									<span
-										class="status-light bg-status-red"
-										data-cell="8"
-										data-status="departure"></span>
+								<div class="status-container">
+									<span class="status-light bg-status-green" data-cell="8" data-status="ready"></span>
+									<span class="status-light bg-status-yellow" data-cell="8" data-status="maintenance"></span>
+									<span class="status-light bg-status-red" data-cell="8" data-status="aog"></span>
 								</div>
 								<div class="flex items-center">
 									<span class="text-xs text-white font-medium mr-2"
@@ -820,7 +790,7 @@
 									type="text"
 									id="aircraft-8"
 									placeholder="Aircraft ID"
-									class="text-xl font-bold text-center text-industrial-dark border-b-2 border-industrial-light p-2 mb-3" />
+									class="aircraft-id" />
 
 								<div class="info-grid mb-3">
 									<div class="info-label">Arrival:</div>
@@ -829,7 +799,7 @@
 									<div id="departure-time-8" class="info-value">--:--</div>
 									<div class="info-label">Position:</div>
 									<div id="position-8" class="info-value">--</div>
-									<div class="info-label">Schleppstatus:</div>
+									<div class="info-label">Towing Status:</div>
 									<div id="tow-status-8" class="tow-status tow-ongoing">
 										In Progress
 									</div>
@@ -848,11 +818,10 @@
 								<div class="mt-auto">
 									<select
 										id="status-8"
-										class="w-full p-2 bg-industrial-light text-industrial-dark rounded">
-										<option value="maintenance">Maintenance</option>
+										class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
 										<option value="ready">Ready</option>
-										<option value="boarding">Boarding</option>
-										<option value="delay">Delayed</option>
+										<option value="maintenance">Maintenance</option>
+										<option value="aog">AOG</option>
 									</select>
 								</div>
 							</div>
@@ -1013,6 +982,29 @@
 		<!-- Zusätzliches Script für UI-Interaktionen -->
 		<script>
 			document.addEventListener("DOMContentLoaded", function () {
+				// Automatischer Dateiname aus Datum/Zeit generieren
+				function generateTimestamp() {
+					const now = new Date();
+					const year = now.getFullYear();
+					const month = String(now.getMonth() + 1).padStart(2, "0");
+					const day = String(now.getDate()).padStart(2, "0");
+					const hours = String(now.getHours()).padStart(2, "0");
+					const minutes = String(now.getMinutes()).padStart(2, "0");
+					const seconds = String(now.getSeconds()).padStart(2, "0");
+					
+					return `HangarPlan_${year}-${month}-${day}_${hours}-${minutes}-${seconds}`;
+				}
+				
+				// Projektname mit aktuellem Zeitstempel vorausfüllen
+				document.getElementById('projectName').value = generateTimestamp();
+				
+				// Bei Klick auf "Save" auch einen neuen Zeitstempel generieren
+				document.getElementById('saveBtn').addEventListener('click', function() {
+					if (!document.getElementById('projectName').value.trim()) {
+						document.getElementById('projectName').value = generateTimestamp();
+					}
+				});
+
 				// Bearbeitungs-/Anzeigemodus Toggle
 				const modeToggle = document.getElementById('modeToggle');
 				const body = document.body;
@@ -1052,7 +1044,7 @@
 						});
 					});
 
-				// Schleppstatus-Handling (vereinfacht, da später automatisch aktualisiert wird)
+				// Schleppstatus-Handling
 				const towStates = ["initiated", "ongoing", "on-position"];
 				const towClasses = ["tow-initiated", "tow-ongoing", "tow-on-position"];
 				const towTexts = ["Initiated", "In Progress", "On Position"];
@@ -1096,6 +1088,41 @@
                 document.getElementById('emailOkBtn').addEventListener('click', function() {
                     document.getElementById('emailSentModal').classList.add('hidden');
                 });
+
+				// Status-Änderungen verfolgen und Ampeln aktualisieren
+				document.querySelectorAll('.status-selector').forEach(select => {
+					// Initiale Statusberechnung beim Laden
+					updateStatusLights(select);
+					
+					// Event-Listener für Statusänderungen
+					select.addEventListener('change', function() {
+						updateStatusLights(this);
+					});
+				});
+				
+				// Funktion um die Statuslichter zu aktualisieren
+				function updateStatusLights(selectElement) {
+					const cellId = selectElement.id.split('-')[1]; // Extrahiert z.B. "1" aus "status-1"
+					const selectedStatus = selectElement.value;
+					
+					// Alle Lichter dieser Zelle deaktivieren
+					document.querySelectorAll(`[data-cell="${cellId}"]`).forEach(light => {
+						light.classList.remove('active');
+					});
+					
+					// Das entsprechende Licht aktivieren
+					const activeLight = document.querySelector(`[data-cell="${cellId}"][data-status="${selectedStatus}"]`);
+					if (activeLight) {
+						activeLight.classList.add('active');
+					}
+				}
+				
+				// Initialen Status für alle Kacheln setzen
+				document.querySelectorAll('.status-selector').forEach(select => {
+					// Default auf "Ready" setzen
+					select.value = "ready";
+					updateStatusLights(select);
+				});
 			});
 		</script>
 	</body>
