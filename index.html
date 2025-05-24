@@ -5,6 +5,8 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>Hangar Planner - Aircraft Management</title>
 		<script src="https://cdn.tailwindcss.com"></script>
+		<!-- PDF Export Library -->
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 		<script>
 			tailwind.config = {
 				theme: {
@@ -206,6 +208,49 @@
 			}
 			input:checked + .toggle-slider:before {
 				transform: translateX(26px);
+			}
+			
+			/* PDF Export Styles */
+			.pdf-export-container {
+				display: flex;
+				flex-direction: column;
+				gap: 10px;
+			}
+			
+			.pdf-preview {
+				border: 1px solid #BFC0C0;
+				border-radius: 4px;
+				padding: 8px;
+				background-color: rgba(45, 49, 66, 0.1);
+			}
+			
+			@media print {
+				.no-print {
+					display: none !important;
+				}
+				
+				.print-only {
+					display: block !important;
+				}
+				
+				body {
+					width: 100% !important;
+					margin: 0 !important;
+					padding: 0 !important;
+				}
+				
+				.pdf-content {
+					width: 100% !important;
+					page-break-inside: avoid;
+				}
+				
+				.hangar-cell {
+					page-break-inside: avoid;
+				}
+			}
+			
+			.print-only {
+				display: none;
 			}
 		</style>
 	</head>
@@ -899,31 +944,34 @@
 					</div>
 				</div>
 				
-				<!-- Email-Funktion (NEU) -->
+				<!-- PDF Export Funktion (Ersetzt E-Mail) -->
 				<div class="p-4 border-b border-industrial-light">
-					<h3 class="font-medium mb-3 text-lg">Email Hangar Plan</h3>
-					<div class="space-y-3">
+					<h3 class="font-medium mb-3 text-lg">Export Hangar Plan</h3>
+					<div class="pdf-export-container">
 						<div>
-							<label class="block text-sm mb-1">Recipients:</label>
+							<label class="block text-sm mb-1">File name:</label>
 							<input 
 								type="text" 
-								id="emailRecipients" 
-								placeholder="email@example.com, ..." 
+								id="pdfFilename" 
+								value="Hangar_Plan" 
 								class="w-full px-2 py-1 bg-industrial-dark rounded form-control" />
 						</div>
-						<div>
-							<label class="block text-sm mb-1">Subject:</label>
-							<input 
-								type="text" 
-								id="emailSubject" 
-								value="Hangar Plan Update" 
-								class="w-full px-2 py-1 bg-industrial-dark rounded form-control" />
+						<div class="flex flex-col gap-2">
+							<label class="block text-sm">Options:</label>
+							<div class="flex items-center">
+								<input type="checkbox" id="includeNotes" checked class="mr-2">
+								<label for="includeNotes" class="text-sm">Include Notes</label>
+							</div>
+							<div class="flex items-center">
+								<input type="checkbox" id="landscapeMode" checked class="mr-2">
+								<label for="landscapeMode" class="text-sm">Landscape Mode</label>
+							</div>
 						</div>
-						<div class="flex justify-end">
+						<div class="flex justify-end mt-2">
 							<button 
-								id="sendEmailBtn" 
+								id="exportPdfBtn" 
 								class="bg-industrial-accent hover:bg-opacity-80 px-4 py-1 rounded font-medium">
-								Send Email
+								Export PDF
 							</button>
 						</div>
 					</div>
@@ -1068,23 +1116,191 @@
 						});
 					});
                 
-                // E-Mail-Funktion (Simuliert)
-                document.getElementById('sendEmailBtn').addEventListener('click', function() {
-                    const recipients = document.getElementById('emailRecipients').value;
+                // PDF Export Funktion
+                document.getElementById('exportPdfBtn').addEventListener('click', function() {
+                    const filename = document.getElementById('pdfFilename').value || 'Hangar_Plan';
+                    const includeNotes = document.getElementById('includeNotes').checked;
+                    const landscapeMode = document.getElementById('landscapeMode').checked;
                     
-                    if (!recipients) {
-                        alert('Please enter at least one email address');
-                        return;
+                    // Erstelle eine Kopie des hangarGrid für den Export
+                    const originalGrid = document.getElementById('hangarGrid');
+                    const exportContainer = document.createElement('div');
+                    exportContainer.className = 'pdf-content';
+                    
+                    // Füge Titel hinzu
+                    const title = document.createElement('h1');
+                    title.textContent = document.getElementById('projectName').value || 'Hangar Plan';
+                    title.style.fontSize = '24px';
+                    title.style.fontWeight = 'bold';
+                    title.style.marginBottom = '15px';
+                    title.style.textAlign = 'center';
+                    title.style.color = '#2D3142';
+                    exportContainer.appendChild(title);
+                    
+                    // Datum hinzufügen
+                    const dateElement = document.createElement('p');
+                    dateElement.textContent = 'Date: ' + new Date().toLocaleDateString();
+                    dateElement.style.fontSize = '14px';
+                    dateElement.style.marginBottom = '20px';
+                    dateElement.style.textAlign = 'center';
+                    dateElement.style.color = '#4F5D75';
+                    exportContainer.appendChild(dateElement);
+                    
+                    // Grid-Container erstellen mit angepasstem Layout für PDF
+                    const gridContainer = document.createElement('div');
+                    gridContainer.style.display = 'grid';
+                    
+                    // Angepasste Spaltenanzahl je nach Modus und Anzahl der Kacheln
+                    const visibleCells = Array.from(originalGrid.children).filter(cell => !cell.classList.contains('hidden'));
+                    const cellCount = visibleCells.length;
+                    
+                    // Bestimme optimale Spaltenanzahl basierend auf Anzahl der sichtbaren Zellen
+                    let columns;
+                    if (landscapeMode) {
+                        columns = cellCount <= 2 ? cellCount : cellCount <= 4 ? 2 : cellCount <= 6 ? 3 : 4;
+                    } else {
+                        columns = cellCount <= 2 ? cellCount : 2; // Im Hochformat maximal 2 Spalten
                     }
                     
-                    // Hier würde in einer realen Implementierung die E-Mail versendet werden
-                    console.log('Sending email to:', recipients);
+                    gridContainer.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+                    gridContainer.style.gap = '10px';
+                    gridContainer.style.width = '100%';
+                    gridContainer.style.maxWidth = landscapeMode ? '1000px' : '800px';
+                    gridContainer.style.margin = '0 auto';
                     
-                    // Erfolgsmeldung anzeigen
-                    document.getElementById('emailSentModal').classList.remove('hidden');
+                    // Nur sichtbare Kacheln kopieren
+                    visibleCells.forEach(cell => {
+                        const cellClone = cell.cloneNode(true);
+                        cellClone.style.breakInside = 'avoid';
+                        cellClone.style.pageBreakInside = 'avoid';
+                        cellClone.style.width = '100%';
+                        
+                        // Vereinfache und optimiere für PDF
+                        const headerElement = cellClone.querySelector('[class*="bg-industrial-medium"]');
+                        if (headerElement) {
+                            headerElement.style.backgroundColor = '#4F5D75';
+                            headerElement.style.color = 'white';
+                            headerElement.style.padding = '8px';
+                            headerElement.style.borderTopLeftRadius = '8px';
+                            headerElement.style.borderTopRightRadius = '8px';
+                            
+                            // Position-Anzeige optimieren
+                            const positionElement = headerElement.querySelector('[class*="text-xs text-white"]');
+                            if (positionElement) {
+                                positionElement.style.fontSize = '11px';
+                                positionElement.style.whiteSpace = 'nowrap';
+                            }
+                            
+                            // Input-Felder für bessere PDF-Darstellung optimieren
+                            const inputs = headerElement.querySelectorAll('input');
+                            inputs.forEach(input => {
+                                input.style.width = input.classList.contains('w-10') ? '30px' : '90px';
+                                input.style.backgroundColor = '#3A4154';
+                                input.style.padding = '2px 4px';
+                                input.style.fontSize = '11px';
+                            });
+                        }
+                        
+                        // Status Lichter
+                        const statusLights = cellClone.querySelectorAll('.status-light');
+                        statusLights.forEach(light => {
+                            if (!light.classList.contains('active')) {
+                                light.style.display = 'none'; // Nur aktiven Status anzeigen
+                            } else {
+                                light.style.boxShadow = 'none';
+                                light.style.transform = 'none'; // Entferne Skalierung
+                            }
+                        });
+                        
+                        // Aircraft ID optimieren
+                        const aircraftId = cellClone.querySelector('.aircraft-id');
+                        if (aircraftId) {
+                            aircraftId.style.fontSize = '16px';
+                            aircraftId.style.padding = '4px 0';
+                            aircraftId.style.borderBottomWidth = '1px';
+                        }
+                        
+                        // Info-Grid optimieren
+                        const infoGrid = cellClone.querySelector('.info-grid');
+                        if (infoGrid) {
+                            infoGrid.style.fontSize = '12px';
+                            infoGrid.style.gap = '3px';
+                            infoGrid.style.maxWidth = '100%';
+                        }
+                        
+                        // Entferne Notizbereich wenn nicht gewünscht
+                        if (!includeNotes) {
+                            const notesContainer = cellClone.querySelector('.notes-container');
+                            if (notesContainer) notesContainer.remove();
+                        } else {
+                            // Notizen optimieren
+                            const notesContainer = cellClone.querySelector('.notes-container');
+                            if (notesContainer) {
+                                notesContainer.style.minHeight = '40px';
+                                const notesLabel = notesContainer.querySelector('label');
+                                if (notesLabel) notesLabel.style.fontSize = '11px';
+                                const textarea = notesContainer.querySelector('textarea');
+                                if (textarea) {
+                                    textarea.style.fontSize = '11px';
+                                    textarea.style.minHeight = '30px';
+                                }
+                            }
+                        }
+                        
+                        // Entferne Status-Selector aus dem Export
+                        const statusSelector = cellClone.querySelector('select');
+                        if (statusSelector) statusSelector.parentElement.remove();
+                        
+                        // Hauptbereich für PDF optimieren
+                        const mainArea = cellClone.querySelector('.p-4');
+                        if (mainArea) {
+                            mainArea.style.backgroundColor = 'white';
+                            mainArea.style.color = 'black';
+                            mainArea.style.borderBottomLeftRadius = '8px';
+                            mainArea.style.borderBottomRightRadius = '8px';
+                            mainArea.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                            mainArea.style.padding = '8px 10px';
+                        }
+                        
+                        gridContainer.appendChild(cellClone);
+                    });
+                    
+                    exportContainer.appendChild(gridContainer);
+                    
+                    // Styles für den Export
+                    exportContainer.style.padding = '20px';
+                    exportContainer.style.backgroundColor = 'white';
+                    exportContainer.style.width = '100%';
+                    exportContainer.style.margin = '0 auto';
+                    exportContainer.style.maxWidth = landscapeMode ? '1100px' : '900px';
+                    
+                    // Konfiguriere und generiere PDF
+                    const options = {
+                        margin: [10, 10],
+                        filename: `${filename}.pdf`,
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: { 
+                            scale: 2, 
+                            logging: false,
+                            letterRendering: true,
+                            useCORS: true,
+                            allowTaint: true,
+                            width: landscapeMode ? 1100 : 900
+                        },
+                        jsPDF: { 
+                            unit: 'mm', 
+                            format: 'a4', 
+                            orientation: landscapeMode ? 'landscape' : 'portrait',
+                            compress: true,
+                            precision: 2
+                        }
+                    };
+                    
+                    // Erzeuge und downloade PDF
+                    html2pdf().from(exportContainer).set(options).save();
                 });
                 
-                // E-Mail-Erfolgsmeldung schließen
+                // E-Mail-Erfolgsmeldung schließen (behalten für andere Benachrichtigungen)
                 document.getElementById('emailOkBtn').addEventListener('click', function() {
                     document.getElementById('emailSentModal').classList.add('hidden');
                 });
