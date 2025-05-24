@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="de">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Hangarplanner - Flugzeugmanagement</title>
+		<script src="https://cdn.tailwindcss.com"></script>
+		<script>
+			tailwind.config = {
+				theme: {
+					extend: {
+						colors: {
+							industrial: {
+								dark: "#2D3142",
+								medium: "#4F5D75",
+								light: "#BFC0C0",
+								accent: "#EF8354",
+							},
+							status: {
+								green: "#4CAF50",
+								yellow: "#FFC107",
+								red: "#F44336",
+							},
+						},
+					},
+				},
+			};
+		</script>
+		<style>
+			body {
+				overflow: hidden;
+			}
+			.form-control:focus {
+				outline: none;
+				box-shadow: 0 0 0 2px rgba(239, 131, 84, 0.5);
+			}
+			.hangar-cell {
+				transition: all 0.3s ease;
+			}
+			.hangar-cell:hover {
+				transform: translateY(-2px);
+			}
+			.status-light {
+				width: 12px;
+				height: 12px;
+				border-radius: 50%;
+				display: inline-block;
+				margin-right: 4px;
+			}
+			.tow-status {
+				display: inline-block;
+				padding: 3px 8px;
+				border-radius: 4px;
+				font-size: 12px;
+				font-weight: 500;
+			}
+			.tow-initiated {
+				background-color: #ffe0b2;
+				color: #e65100;
+			}
+			.tow-ongoing {
+				background-color: #b3e0ff;
+				color: #0d47a1;
+			}
+			.tow-on-position {
+				background-color: #c8e6c9;
+				color: #2e7d32;
+			}
+			/* Gleichmäßige Ausrichtung für Infobereiche */
+			.info-grid {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 0.5rem;
+			}
+			.info-label {
+				text-align: right;
+				font-weight: 500;
+				color: #4f5d75;
+			}
+			.info-value {
+				color: #ef8354;
+			}
+			/* Notizfeld soll flexibel wachsen */
+			.notes-container {
+				display: flex;
+				flex-direction: column;
+				flex-grow: 1;
+				margin-top: 0.5rem;
+				margin-bottom: 0.75rem;
+				min-height: 60px;
+			}
+			.notes-textarea {
+				flex-grow: 1;
+				resize: none;
+				min-height: 40px;
+			}
+		</style>
+	</head>
+	<body class="bg-industrial-dark text-white font-sans">
+		<div class="flex h-screen">
+			<!-- Hauptbereich mit Hangar-Kacheln -->
+			<div class="flex-grow flex flex-col">
+				<!-- Header mit Titel und Aktionen -->
+				<header
+					class="bg-industrial-medium p-4 shadow-md flex justify-between items-center">
+					<h1 class="text-2xl font-bold tracking-wide">Hangarplanner</h1>
+					<div class="flex space-x-3">
+						<input
+							id="projectName"
+							type="text"
+							placeholder="Projektname"
+							class="bg-industrial-dark text-white px-3 py-1 rounded form-control" />
+						<button
+							id="saveBtn"
+							class="bg-industrial-accent hover:bg-opacity-80 px-4 py-1 rounded font-medium">
+							Speichern
+						</button>
+						<button
+							id="loadBtn"
+							class="bg-industrial-light text-industrial-dark hover:bg-opacity-80 px-4 py-1 rounded font-medium">
+							Laden
+						</button>
+					</div>
+				</header>
+
+				<!-- Hangar-Kacheln Bereich -->
+				<div class="flex-grow bg-industrial-light p-6 overflow-auto">
+					<div id="hangarGrid" class="grid grid-cols-4 gap-4">
+						<!-- 8 Hangar-Kacheln werden hier erstellt -->
+						<!-- Kachel 1 -->
+						<div
+							class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
+							<!-- Header mit Statusleiste -->
+							<div
+								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
+								<div class="flex space-x-1">
+									<span
+										class="status-light bg-status-green"
+										data-cell="1"
+										data-status="arrival"></span>
+									<span
+										class="status-light bg-status-yellow"
+										data-cell="1"
+										data-status="present"></span>
+									<span
+										class="status-light bg-status-red"
+										data-cell="1"
+										data-status="departure"></span>
+								</div>
+								<div class="flex items-center">
+									<span class="text-xs text-white font-medium mr-2"
+										>Position:</span
+									>
+									<input
+										type="text"
+										placeholder="1A"
+										id="hangar-position-1"
+										class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
+								</div>
+								<input
+									type="text"
+									placeholder="Manuelle Eingabe"
+									class="text-xs bg-industrial-dark rounded px-2 py-1 w-32 text-white" />
+							</div>
+
+							<!-- Hauptbereich -->
+							<div class="p-4 flex-grow flex flex-col">
+								<input
+									type="text"
+									id="aircraft-1"
+									placeholder="Flugzeugkennzeichen"
+									class="text-xl font-bold text-center text-industrial-dark border-b-2 border-industrial-light p-2 mb-3" />
+
+								<!-- Einheitliche Ausrichtung für Infos -->
+								<div class="info-grid mb-3">
+									<div class="info-label">Ankunft:</div>
+									<div id="arrival-time-1" class="info-value">--:--</div>
+
+									<div class="info-label">Abflug:</div>
+									<div id="departure-time-1" class="info-value">--:--</div>
+
+									<div class="info-label">Position:</div>
+									<div id="position-1" class="info-value">--</div>
+
+									<div class="info-label">Schleppstatus:</div>
+									<div id="tow-status-1" class="tow-status tow-initiated">
+										Initiiert
+									</div>
+								</div>
+
+								<!-- Notizen mit flexibler Höhe -->
+								<div class="notes-container">
+									<label
+										class="block text-sm text-industrial-dark font-medium mb-1"
+										>Notizen:</label
+									>
+									<textarea
+										id="notes-1"
+										class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
+								</div>
+
+								<div class="mt-auto">
+									<select
+										id="status-1"
+										class="w-full p-2 bg-industrial-light text-industrial-dark rounded">
+										<option value="maintenance">Wartung</option>
+										<option value="ready">Bereit</option>
+										<option value="boarding">Boarding</option>
+										<option value="delay">Verspätung</option>
+									</select>
+								</div>
+							</div>
+						</div>
+
+						<!-- Kachel 2 mit optimiertem Layout -->
+						<div
+							class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
+							<div
+								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
+								<div class="flex space-x-1">
+									<span
+										class="status-light bg-status-green"
+										data-cell="2"
+										data-status="arrival"></span>
+									<span
+										class="status-light bg-status-yellow"
+										data-cell="2"
+										data-status="present"></span>
+									<span
+										class="status-light bg-status-red"
+										data-cell="2"
+										data-status="departure"></span>
+								</div>
+								<div class="flex items-center">
+									<span class="text-xs text-white font-medium mr-2"
+										>Position:</span
+									>
+									<input
+										type="text"
+										placeholder="1B"
+										id="hangar-position-2"
+										class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
+								</div>
+								<input
+									type="text"
+									placeholder="Manuelle Eingabe"
+									class="text-xs bg-industrial-dark rounded px-2 py-1 w-32 text-white" />
+							</div>
+
+							<div class="p-4 flex-grow flex flex-col">
+								<input
+									type="text"
+									id="aircraft-2"
+									placeholder="Flugzeugkennzeichen"
+									class="text-xl font-bold text-center text-industrial-dark border-b-2 border-industrial-light p-2 mb-3" />
+
+								<!-- Einheitliche Ausrichtung für Infos -->
+								<div class="info-grid mb-3">
+									<div class="info-label">Ankunft:</div>
+									<div id="arrival-time-2" class="info-value">--:--</div>
+
+									<div class="info-label">Abflug:</div>
+									<div id="departure-time-2" class="info-value">--:--</div>
+
+									<div class="info-label">Position:</div>
+									<div id="position-2" class="info-value">--</div>
+
+									<div class="info-label">Schleppstatus:</div>
+									<div id="tow-status-2" class="tow-status tow-ongoing">
+										Läuft
+									</div>
+								</div>
+
+								<!-- Notizen mit flexibler Höhe -->
+								<div class="notes-container">
+									<label
+										class="block text-sm text-industrial-dark font-medium mb-1"
+										>Notizen:</label
+									>
+									<textarea
+										id="notes-2"
+										class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
+								</div>
+
+								<div class="mt-auto">
+									<select
+										id="status-2"
+										class="w-full p-2 bg-industrial-light text-industrial-dark rounded">
+										<option value="maintenance">Wartung</option>
+										<option value="ready">Bereit</option>
+										<option value="boarding">Boarding</option>
+										<option value="delay">Verspätung</option>
+									</select>
+								</div>
+							</div>
+						</div>
+
+						<!-- Kachel 3 mit optimiertem Layout -->
+						<div
+							class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
+							<div
+								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
+								<div class="flex space-x-1">
+									<span
+										class="status-light bg-status-green"
+										data-cell="3"
+										data-status="arrival"></span>
+									<span
+										class="status-light bg-status-yellow"
+										data-cell="3"
+										data-status="present"></span>
+									<span
+										class="status-light bg-status-red"
+										data-cell="3"
+										data-status="departure"></span>
+								</div>
+								<div class="flex items-center">
+									<span class="text-xs text-white font-medium mr-2"
+										>Position:</span
+									>
+									<input
+										type="text"
+										placeholder="2A"
+										id="hangar-position-3"
+										class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
+								</div>
+								<input
+									type="text"
+									placeholder="Manuelle Eingabe"
+									class="text-xs bg-industrial-dark rounded px-2 py-1 w-32 text-white" />
+							</div>
+
+							<div class="p-4 flex-grow flex flex-col">
+								<input
+									type="text"
+									id="aircraft-3"
+									placeholder="Flugzeugkennzeichen"
+									class="text-xl font-bold text-center text-industrial-dark border-b-2 border-industrial-light p-2 mb-3" />
+
+								<!-- Einheitliche Ausrichtung für Infos -->
+								<div class="info-grid mb-3">
+									<div class="info-label">Ankunft:</div>
+									<div id="arrival-time-3" class="info-value">--:--</div>
+
+									<div class="info-label">Abflug:</div>
+									<div id="departure-time-3" class="info-value">--:--</div>
+
+									<div class="info-label">Position:</div>
+									<div id="position-3" class="info-value">--</div>
+
+									<div class="info-label">Schleppstatus:</div>
+									<div id="tow-status-3" class="tow-status tow-on-position">
+										Auf Position
+									</div>
+								</div>
+
+								<!-- Notizen mit flexibler Höhe -->
+								<div class="notes-container">
+									<label
+										class="block text-sm text-industrial-dark font-medium mb-1"
+										>Notizen:</label
+									>
+									<textarea
+										id="notes-3"
+										class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
+								</div>
+
+								<div class="mt-auto">
+									<select
+										id="status-3"
+										class="w-full p-2 bg-industrial-light text-industrial-dark rounded">
+										<option value="maintenance">Wartung</option>
+										<option value="ready">Bereit</option>
+										<option value="boarding">Boarding</option>
+										<option value="delay">Verspätung</option>
+									</select>
+								</div>
+							</div>
+						</div>
+
+						<!-- Kachel 4 mit optimiertem Layout + Notizfeld -->
+						<div
+							class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
+							<div
+								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
+								<div class="flex space-x-1">
+									<span
+										class="status-light bg-status-green"
+										data-cell="4"
+										data-status="arrival"></span>
+									<span
+										class="status-light bg-status-yellow"
+										data-cell="4"
+										data-status="present"></span>
+									<span
+										class="status-light bg-status-red"
+										data-cell="4"
+										data-status="departure"></span>
+								</div>
+								<div class="flex items-center">
+									<span class="text-xs text-white font-medium mr-2"
+										>Position:</span
+									>
+									<input
+										type="text"
+										placeholder="2B"
+										id="hangar-position-4"
+										class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
+								</div>
+								<input
+									type="text"
+									placeholder="Manuelle Eingabe"
+									class="text-xs bg-industrial-dark rounded px-2 py-1 w-32 text-white" />
+							</div>
+
+							<div class="p-4 flex-grow flex flex-col">
+								<input
+									type="text"
+									id="aircraft-4"
+									placeholder="Flugzeugkennzeichen"
+									class="text-xl font-bold text-center text-industrial-dark border-b-2 border-industrial-light p-2 mb-3" />
+
+								<!-- Einheitliche Ausrichtung für Infos -->
+								<div class="info-grid mb-3">
+									<div class="info-label">Ankunft:</div>
+									<div id="arrival-time-4" class="info-value">--:--</div>
+
+									<div class="info-label">Abflug:</div>
+									<div id="departure-time-4" class="info-value">--:--</div>
+
+									<div class="info-label">Position:</div>
+									<div id="position-4" class="info-value">--</div>
+
+									<div class="info-label">Schleppstatus:</div>
+									<div id="tow-status-4" class="tow-status tow-initiated">
+										Initiiert
+									</div>
+								</div>
+
+								<!-- Notizen mit flexibler Höhe -->
+								<div class="notes-container">
+									<label
+										class="block text-sm text-industrial-dark font-medium mb-1"
+										>Notizen:</label
+									>
+									<textarea
+										id="notes-4"
+										class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
+								</div>
+
+								<div class="mt-auto">
+									<select
+										id="status-4"
+										class="w-full p-2 bg-industrial-light text-industrial-dark rounded">
+										<option value="maintenance">Wartung</option>
+										<option value="ready">Bereit</option>
+										<option value="boarding">Boarding</option>
+										<option value="delay">Verspätung</option>
+									</select>
+								</div>
+							</div>
+						</div>
+
+						<!-- Kachel 5-8 mit dem gleichen optimierten Layout -->
+						<!-- Kachel 5 -->
+						<div
+							class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
+							<!-- Header-Bereich wie bei Kachel 1-4 -->
+							<div
+								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
+								<div class="flex space-x-1">
+									<span
+										class="status-light bg-status-green"
+										data-cell="5"
+										data-status="arrival"></span>
+									<span
+										class="status-light bg-status-yellow"
+										data-cell="5"
+										data-status="present"></span>
+									<span
+										class="status-light bg-status-red"
+										data-cell="5"
+										data-status="departure"></span>
+								</div>
+								<div class="flex items-center">
+									<span class="text-xs text-white font-medium mr-2"
+										>Position:</span
+									>
+									<input
+										type="text"
+										placeholder="2C"
+										id="hangar-position-5"
+										class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
+								</div>
+								<input
+									type="text"
+									placeholder="Manuelle Eingabe"
+									class="text-xs bg-industrial-dark rounded px-2 py-1 w-32 text-white" />
+							</div>
+
+							<!-- Hauptbereich mit Infos und Notizfeld -->
+							<div class="p-4 flex-grow flex flex-col">
+								<input
+									type="text"
+									id="aircraft-5"
+									placeholder="Flugzeugkennzeichen"
+									class="text-xl font-bold text-center text-industrial-dark border-b-2 border-industrial-light p-2 mb-3" />
+
+								<div class="info-grid mb-3">
+									<div class="info-label">Ankunft:</div>
+									<div id="arrival-time-5" class="info-value">--:--</div>
+									<div class="info-label">Abflug:</div>
+									<div id="departure-time-5" class="info-value">--:--</div>
+									<div class="info-label">Position:</div>
+									<div id="position-5" class="info-value">--</div>
+									<div class="info-label">Schleppstatus:</div>
+									<div id="tow-status-5" class="tow-status tow-ongoing">
+										Läuft
+									</div>
+								</div>
+
+								<!-- Notizfeld hinzugefügt -->
+								<div class="notes-container">
+									<label
+										class="block text-sm text-industrial-dark font-medium mb-1"
+										>Notizen:</label
+									>
+									<textarea
+										id="notes-5"
+										class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
+								</div>
+
+								<div class="mt-auto">
+									<select
+										id="status-5"
+										class="w-full p-2 bg-industrial-light text-industrial-dark rounded">
+										<option value="maintenance">Wartung</option>
+										<option value="ready">Bereit</option>
+										<option value="boarding">Boarding</option>
+										<option value="delay">Verspätung</option>
+									</select>
+								</div>
+							</div>
+						</div>
+
+						<!-- Kachel 6 -->
+						<div
+							class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
+							<!-- Header-Bereich -->
+							<div
+								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
+								<div class="flex space-x-1">
+									<span
+										class="status-light bg-status-green"
+										data-cell="6"
+										data-status="arrival"></span>
+									<span
+										class="status-light bg-status-yellow"
+										data-cell="6"
+										data-status="present"></span>
+									<span
+										class="status-light bg-status-red"
+										data-cell="6"
+										data-status="departure"></span>
+								</div>
+								<div class="flex items-center">
+									<span class="text-xs text-white font-medium mr-2"
+										>Position:</span
+									>
+									<input
+										type="text"
+										placeholder="2D"
+										id="hangar-position-6"
+										class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
+								</div>
+								<input
+									type="text"
+									placeholder="Manuelle Eingabe"
+									class="text-xs bg-industrial-dark rounded px-2 py-1 w-32 text-white" />
+							</div>
+
+							<!-- Hauptbereich -->
+							<div class="p-4 flex-grow flex flex-col">
+								<input
+									type="text"
+									id="aircraft-6"
+									placeholder="Flugzeugkennzeichen"
+									class="text-xl font-bold text-center text-industrial-dark border-b-2 border-industrial-light p-2 mb-3" />
+
+								<div class="info-grid mb-3">
+									<div class="info-label">Ankunft:</div>
+									<div id="arrival-time-6" class="info-value">--:--</div>
+									<div class="info-label">Abflug:</div>
+									<div id="departure-time-6" class="info-value">--:--</div>
+									<div class="info-label">Position:</div>
+									<div id="position-6" class="info-value">--</div>
+									<div class="info-label">Schleppstatus:</div>
+									<div id="tow-status-6" class="tow-status tow-on-position">
+										Auf Position
+									</div>
+								</div>
+
+								<div class="notes-container">
+									<label
+										class="block text-sm text-industrial-dark font-medium mb-1"
+										>Notizen:</label
+									>
+									<textarea
+										id="notes-6"
+										class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
+								</div>
+
+								<div class="mt-auto">
+									<select
+										id="status-6"
+										class="w-full p-2 bg-industrial-light text-industrial-dark rounded">
+										<option value="maintenance">Wartung</option>
+										<option value="ready">Bereit</option>
+										<option value="boarding">Boarding</option>
+										<option value="delay">Verspätung</option>
+									</select>
+								</div>
+							</div>
+						</div>
+
+						<!-- Kachel 7 -->
+						<div
+							class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
+							<!-- Header-Bereich -->
+							<div
+								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
+								<div class="flex space-x-1">
+									<span
+										class="status-light bg-status-green"
+										data-cell="7"
+										data-status="arrival"></span>
+									<span
+										class="status-light bg-status-yellow"
+										data-cell="7"
+										data-status="present"></span>
+									<span
+										class="status-light bg-status-red"
+										data-cell="7"
+										data-status="departure"></span>
+								</div>
+								<div class="flex items-center">
+									<span class="text-xs text-white font-medium mr-2"
+										>Position:</span
+									>
+									<input
+										type="text"
+										placeholder="2E"
+										id="hangar-position-7"
+										class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
+								</div>
+								<input
+									type="text"
+									placeholder="Manuelle Eingabe"
+									class="text-xs bg-industrial-dark rounded px-2 py-1 w-32 text-white" />
+							</div>
+
+							<!-- Hauptbereich -->
+							<div class="p-4 flex-grow flex flex-col">
+								<input
+									type="text"
+									id="aircraft-7"
+									placeholder="Flugzeugkennzeichen"
+									class="text-xl font-bold text-center text-industrial-dark border-b-2 border-industrial-light p-2 mb-3" />
+
+								<div class="info-grid mb-3">
+									<div class="info-label">Ankunft:</div>
+									<div id="arrival-time-7" class="info-value">--:--</div>
+									<div class="info-label">Abflug:</div>
+									<div id="departure-time-7" class="info-value">--:--</div>
+									<div class="info-label">Position:</div>
+									<div id="position-7" class="info-value">--</div>
+									<div class="info-label">Schleppstatus:</div>
+									<div id="tow-status-7" class="tow-status tow-initiated">
+										Initiiert
+									</div>
+								</div>
+
+								<div class="notes-container">
+									<label
+										class="block text-sm text-industrial-dark font-medium mb-1"
+										>Notizen:</label
+									>
+									<textarea
+										id="notes-7"
+										class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
+								</div>
+
+								<div class="mt-auto">
+									<select
+										id="status-7"
+										class="w-full p-2 bg-industrial-light text-industrial-dark rounded">
+										<option value="maintenance">Wartung</option>
+										<option value="ready">Bereit</option>
+										<option value="boarding">Boarding</option>
+										<option value="delay">Verspätung</option>
+									</select>
+								</div>
+							</div>
+						</div>
+
+						<!-- Kachel 8 -->
+						<div
+							class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
+							<!-- Header-Bereich -->
+							<div
+								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
+								<div class="flex space-x-1">
+									<span
+										class="status-light bg-status-green"
+										data-cell="8"
+										data-status="arrival"></span>
+									<span
+										class="status-light bg-status-yellow"
+										data-cell="8"
+										data-status="present"></span>
+									<span
+										class="status-light bg-status-red"
+										data-cell="8"
+										data-status="departure"></span>
+								</div>
+								<div class="flex items-center">
+									<span class="text-xs text-white font-medium mr-2"
+										>Position:</span
+									>
+									<input
+										type="text"
+										placeholder="2F"
+										id="hangar-position-8"
+										class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
+								</div>
+								<input
+									type="text"
+									placeholder="Manuelle Eingabe"
+									class="text-xs bg-industrial-dark rounded px-2 py-1 w-32 text-white" />
+							</div>
+
+							<!-- Hauptbereich -->
+							<div class="p-4 flex-grow flex flex-col">
+								<input
+									type="text"
+									id="aircraft-8"
+									placeholder="Flugzeugkennzeichen"
+									class="text-xl font-bold text-center text-industrial-dark border-b-2 border-industrial-light p-2 mb-3" />
+
+								<div class="info-grid mb-3">
+									<div class="info-label">Ankunft:</div>
+									<div id="arrival-time-8" class="info-value">--:--</div>
+									<div class="info-label">Abflug:</div>
+									<div id="departure-time-8" class="info-value">--:--</div>
+									<div class="info-label">Position:</div>
+									<div id="position-8" class="info-value">--</div>
+									<div class="info-label">Schleppstatus:</div>
+									<div id="tow-status-8" class="tow-status tow-ongoing">
+										Läuft
+									</div>
+								</div>
+
+								<div class="notes-container">
+									<label
+										class="block text-sm text-industrial-dark font-medium mb-1"
+										>Notizen:</label
+									>
+									<textarea
+										id="notes-8"
+										class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
+								</div>
+
+								<div class="mt-auto">
+									<select
+										id="status-8"
+										class="w-full p-2 bg-industrial-light text-industrial-dark rounded">
+										<option value="maintenance">Wartung</option>
+										<option value="ready">Bereit</option>
+										<option value="boarding">Boarding</option>
+										<option value="delay">Verspätung</option>
+									</select>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Rechtes Menü -->
+			<div
+				class="w-72 bg-industrial-medium border-l border-industrial-light flex flex-col">
+				<div class="p-4 bg-industrial-dark">
+					<h2 class="text-xl font-semibold">Flugzeugverwaltung</h2>
+				</div>
+
+				<!-- Neue Sektion: Kachelanzahl -->
+				<div class="p-4 border-b border-industrial-light">
+					<h3 class="font-medium mb-3 text-lg">Anzeigeoptionen</h3>
+					<div class="flex flex-col space-y-2">
+						<label class="text-sm">Anzahl der Kacheln:</label>
+						<div class="flex items-center space-x-2">
+							<input
+								type="number"
+								id="tilesCount"
+								min="1"
+								max="16"
+								value="8"
+								class="w-20 px-2 py-1 bg-industrial-dark rounded form-control" />
+							<button
+								id="updateTilesBtn"
+								class="bg-industrial-accent px-3 py-1 rounded text-white">
+								Aktualisieren
+							</button>
+						</div>
+						<div class="flex items-center space-x-2 mt-2">
+							<label class="text-sm">Layout:</label>
+							<select
+								id="layoutType"
+								class="bg-industrial-dark text-white px-2 py-1 rounded form-control">
+								<option value="1">1 Spalte</option>
+								<option value="2">2 Spalten</option>
+								<option value="3">3 Spalten</option>
+								<option value="4" selected>4 Spalten</option>
+							</select>
+						</div>
+					</div>
+				</div>
+
+				<!-- Flugzeugsuche -->
+				<div class="p-4 border-b border-industrial-light">
+					<h3 class="font-medium mb-3 text-lg">Flugzeug suchen</h3>
+					<div class="flex">
+						<input
+							type="text"
+							id="searchAircraft"
+							placeholder="Kennzeichen eingeben"
+							class="flex-grow px-2 py-1 bg-industrial-dark rounded-l form-control" />
+						<button
+							id="btnSearch"
+							class="bg-industrial-accent px-3 py-1 rounded-r">
+							Suchen
+						</button>
+					</div>
+				</div>
+
+				<!-- Flugzeug-Informationen -->
+				<div class="p-4 border-b border-industrial-light overflow-auto">
+					<h3 class="font-medium mb-3 text-lg">Flugdaten abrufen</h3>
+					<button
+						id="fetchFlightData"
+						class="w-full bg-industrial-accent hover:bg-opacity-80 px-4 py-2 rounded font-medium mb-3">
+						Daten aktualisieren
+					</button>
+					<div id="fetchStatus" class="text-sm text-center">
+						Bereit zum Abrufen von Flugdaten
+					</div>
+				</div>
+
+				<!-- Gespeicherte Projekte -->
+				<div class="p-4 overflow-auto flex-grow">
+					<h3 class="font-medium mb-3 text-lg">Gespeicherte Hangarpläne</h3>
+					<ul id="projectsList" class="space-y-2 text-sm">
+						<!-- Wird dynamisch befüllt -->
+					</ul>
+				</div>
+			</div>
+		</div>
+
+		<!-- Modales Fenster für Laden -->
+		<div
+			id="loadModal"
+			class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+			<div class="bg-industrial-medium rounded-lg p-6 w-96 max-w-full">
+				<h2 class="text-xl font-bold mb-4">Hangarplan laden</h2>
+				<div class="mb-4">
+					<input
+						id="loadProjectName"
+						type="text"
+						placeholder="Projektname eingeben"
+						class="w-full bg-industrial-dark text-white px-3 py-2 rounded form-control" />
+				</div>
+				<div class="flex justify-end space-x-3">
+					<button
+						id="cancelLoad"
+						class="px-4 py-2 bg-industrial-light text-industrial-dark rounded">
+						Abbrechen
+					</button>
+					<button
+						id="confirmLoad"
+						class="px-4 py-2 bg-industrial-accent rounded">
+						Laden
+					</button>
+				</div>
+			</div>
+		</div>
+
+		<script src="js/hangar.js"></script>
+		<!-- Zusätzliches Script für die Kachelanzahl-Aktualisierung -->
+		<script>
+			document.addEventListener("DOMContentLoaded", function () {
+				// Kachelzahl und Layout aktualisieren
+				document
+					.getElementById("updateTilesBtn")
+					.addEventListener("click", function () {
+						const tilesCount =
+							parseInt(document.getElementById("tilesCount").value) || 8;
+						const columns =
+							parseInt(document.getElementById("layoutType").value) || 4;
+
+						// Grid-Layout aktualisieren
+						document.getElementById(
+							"hangarGrid"
+						).className = `grid grid-cols-${columns} gap-4`;
+
+						// Kacheln ein-/ausblenden basierend auf der gewählten Anzahl
+						const cells = document.querySelectorAll(".hangar-cell");
+						cells.forEach((cell, index) => {
+							if (index < tilesCount) {
+								cell.classList.remove("hidden");
+							} else {
+								cell.classList.add("hidden");
+							}
+						});
+					});
+
+				// Schleppstatus-Handling (vereinfacht, da später automatisch aktualisiert wird)
+				const towStates = ["initiated", "ongoing", "on-position"];
+				const towClasses = ["tow-initiated", "tow-ongoing", "tow-on-position"];
+				const towTexts = ["Initiiert", "Läuft", "Auf Position"];
+
+				// Demo-Funktionalität: Bei Klick auf einen Schleppstatus zum nächsten Status wechseln
+				document
+					.querySelectorAll('[id^="tow-status-"]')
+					.forEach((statusElement) => {
+						statusElement.addEventListener("click", function () {
+							// Aktuelle Klasse bestimmen
+							const currentClass = towClasses.find((cls) =>
+								this.classList.contains(cls)
+							);
+							const currentIndex = towClasses.indexOf(currentClass);
+							const nextIndex = (currentIndex + 1) % towClasses.length;
+
+							// Klasse und Text ändern
+							towClasses.forEach((cls) => this.classList.remove(cls));
+							this.classList.add(towClasses[nextIndex]);
+							this.textContent = towTexts[nextIndex];
+						});
+					});
+			});
+		</script>
+	</body>
+</html>
