@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Hangarplanner - Flugzeugmanagement</title>
+		<title>Hangar Planner - Aircraft Management</title>
 		<script src="https://cdn.tailwindcss.com"></script>
 		<script>
 			tailwind.config = {
@@ -66,16 +66,18 @@
 				background-color: #c8e6c9;
 				color: #2e7d32;
 			}
-			/* Gleichmäßige Ausrichtung für Infobereiche */
+			/* Angepasste Ausrichtung für Infobereiche */
 			.info-grid {
 				display: grid;
-				grid-template-columns: 1fr 1fr;
+				grid-template-columns: auto 1fr;
 				gap: 0.5rem;
 			}
 			.info-label {
 				text-align: right;
 				font-weight: 500;
 				color: #4f5d75;
+				white-space: nowrap;
+				padding-right: 5px;
 			}
 			.info-value {
 				color: #ef8354;
@@ -94,31 +96,104 @@
 				resize: none;
 				min-height: 40px;
 			}
+			/* Modi-Styles */
+			.edit-mode .view-only {
+				display: none;
+			}
+			.view-mode .edit-only {
+				display: none;
+			}
+			.view-mode input, .view-mode select, .view-mode textarea {
+				pointer-events: none;
+				border-color: transparent;
+				background-color: transparent;
+			}
+			.view-mode .notes-textarea {
+				background-color: #f9f9f9;
+			}
+			.mode-toggle {
+				display: flex;
+				align-items: center;
+				margin-right: 15px;
+			}
+			.mode-toggle-label {
+				margin-right: 8px;
+				font-size: 0.9rem;
+			}
+			.toggle-switch {
+				position: relative;
+				display: inline-block;
+				width: 50px;
+				height: 24px;
+			}
+			.toggle-switch input {
+				opacity: 0;
+				width: 0;
+				height: 0;
+			}
+			.toggle-slider {
+				position: absolute;
+				cursor: pointer;
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				background-color: #ccc;
+				transition: .4s;
+				border-radius: 34px;
+			}
+			.toggle-slider:before {
+				position: absolute;
+				content: "";
+				height: 16px;
+				width: 16px;
+				left: 4px;
+				bottom: 4px;
+				background-color: white;
+				transition: .4s;
+				border-radius: 50%;
+			}
+			input:checked + .toggle-slider {
+				background-color: #EF8354;
+			}
+			input:checked + .toggle-slider:before {
+				transform: translateX(26px);
+			}
 		</style>
 	</head>
-	<body class="bg-industrial-dark text-white font-sans">
+	<body class="bg-industrial-dark text-white font-sans edit-mode">
 		<div class="flex h-screen">
 			<!-- Hauptbereich mit Hangar-Kacheln -->
 			<div class="flex-grow flex flex-col">
 				<!-- Header mit Titel und Aktionen -->
 				<header
 					class="bg-industrial-medium p-4 shadow-md flex justify-between items-center">
-					<h1 class="text-2xl font-bold tracking-wide">Hangarplanner</h1>
-					<div class="flex space-x-3">
+					<h1 class="text-2xl font-bold tracking-wide">Hangar Planner</h1>
+					<div class="flex items-center">
+						<!-- Mode Toggle Switch -->
+						<div class="mode-toggle">
+							<span class="mode-toggle-label">View</span>
+							<label class="toggle-switch">
+								<input type="checkbox" id="modeToggle" checked>
+								<span class="toggle-slider"></span>
+							</label>
+							<span class="mode-toggle-label">Edit</span>
+						</div>
+						
 						<input
 							id="projectName"
 							type="text"
-							placeholder="Projektname"
-							class="bg-industrial-dark text-white px-3 py-1 rounded form-control" />
+							placeholder="Project Name"
+							class="bg-industrial-dark text-white px-3 py-1 rounded form-control mr-2" />
 						<button
 							id="saveBtn"
-							class="bg-industrial-accent hover:bg-opacity-80 px-4 py-1 rounded font-medium">
-							Speichern
+							class="bg-industrial-accent hover:bg-opacity-80 px-4 py-1 rounded font-medium mr-2">
+							Save
 						</button>
 						<button
 							id="loadBtn"
 							class="bg-industrial-light text-industrial-dark hover:bg-opacity-80 px-4 py-1 rounded font-medium">
-							Laden
+							Load
 						</button>
 					</div>
 				</header>
@@ -159,7 +234,7 @@
 								</div>
 								<input
 									type="text"
-									placeholder="Manuelle Eingabe"
+									placeholder="Manual Input"
 									class="text-xs bg-industrial-dark rounded px-2 py-1 w-32 text-white" />
 							</div>
 
@@ -168,23 +243,23 @@
 								<input
 									type="text"
 									id="aircraft-1"
-									placeholder="Flugzeugkennzeichen"
+									placeholder="Aircraft ID"
 									class="text-xl font-bold text-center text-industrial-dark border-b-2 border-industrial-light p-2 mb-3" />
 
 								<!-- Einheitliche Ausrichtung für Infos -->
 								<div class="info-grid mb-3">
-									<div class="info-label">Ankunft:</div>
+									<div class="info-label">Arrival:</div>
 									<div id="arrival-time-1" class="info-value">--:--</div>
 
-									<div class="info-label">Abflug:</div>
+									<div class="info-label">Departure:</div>
 									<div id="departure-time-1" class="info-value">--:--</div>
 
 									<div class="info-label">Position:</div>
 									<div id="position-1" class="info-value">--</div>
 
-									<div class="info-label">Schleppstatus:</div>
+									<div class="info-label">Towing Status:</div>
 									<div id="tow-status-1" class="tow-status tow-initiated">
-										Initiiert
+										Initiated
 									</div>
 								</div>
 
@@ -192,7 +267,7 @@
 								<div class="notes-container">
 									<label
 										class="block text-sm text-industrial-dark font-medium mb-1"
-										>Notizen:</label
+										>Notes:</label
 									>
 									<textarea
 										id="notes-1"
@@ -203,10 +278,10 @@
 									<select
 										id="status-1"
 										class="w-full p-2 bg-industrial-light text-industrial-dark rounded">
-										<option value="maintenance">Wartung</option>
-										<option value="ready">Bereit</option>
+										<option value="maintenance">Maintenance</option>
+										<option value="ready">Ready</option>
 										<option value="boarding">Boarding</option>
-										<option value="delay">Verspätung</option>
+										<option value="delay">Delayed</option>
 									</select>
 								</div>
 							</div>
@@ -243,7 +318,7 @@
 								</div>
 								<input
 									type="text"
-									placeholder="Manuelle Eingabe"
+									placeholder="Manual Input"
 									class="text-xs bg-industrial-dark rounded px-2 py-1 w-32 text-white" />
 							</div>
 
@@ -251,23 +326,23 @@
 								<input
 									type="text"
 									id="aircraft-2"
-									placeholder="Flugzeugkennzeichen"
+									placeholder="Aircraft ID"
 									class="text-xl font-bold text-center text-industrial-dark border-b-2 border-industrial-light p-2 mb-3" />
 
 								<!-- Einheitliche Ausrichtung für Infos -->
 								<div class="info-grid mb-3">
-									<div class="info-label">Ankunft:</div>
+									<div class="info-label">Arrival:</div>
 									<div id="arrival-time-2" class="info-value">--:--</div>
 
-									<div class="info-label">Abflug:</div>
+									<div class="info-label">Departure:</div>
 									<div id="departure-time-2" class="info-value">--:--</div>
 
 									<div class="info-label">Position:</div>
 									<div id="position-2" class="info-value">--</div>
 
-									<div class="info-label">Schleppstatus:</div>
+									<div class="info-label">Towing Status:</div>
 									<div id="tow-status-2" class="tow-status tow-ongoing">
-										Läuft
+										In Progress
 									</div>
 								</div>
 
@@ -275,7 +350,7 @@
 								<div class="notes-container">
 									<label
 										class="block text-sm text-industrial-dark font-medium mb-1"
-										>Notizen:</label
+										>Notes:</label
 									>
 									<textarea
 										id="notes-2"
@@ -286,10 +361,10 @@
 									<select
 										id="status-2"
 										class="w-full p-2 bg-industrial-light text-industrial-dark rounded">
-										<option value="maintenance">Wartung</option>
-										<option value="ready">Bereit</option>
+										<option value="maintenance">Maintenance</option>
+										<option value="ready">Ready</option>
 										<option value="boarding">Boarding</option>
-										<option value="delay">Verspätung</option>
+										<option value="delay">Delayed</option>
 									</select>
 								</div>
 							</div>
@@ -326,7 +401,7 @@
 								</div>
 								<input
 									type="text"
-									placeholder="Manuelle Eingabe"
+									placeholder="Manual Input"
 									class="text-xs bg-industrial-dark rounded px-2 py-1 w-32 text-white" />
 							</div>
 
@@ -334,23 +409,23 @@
 								<input
 									type="text"
 									id="aircraft-3"
-									placeholder="Flugzeugkennzeichen"
+									placeholder="Aircraft ID"
 									class="text-xl font-bold text-center text-industrial-dark border-b-2 border-industrial-light p-2 mb-3" />
 
 								<!-- Einheitliche Ausrichtung für Infos -->
 								<div class="info-grid mb-3">
-									<div class="info-label">Ankunft:</div>
+									<div class="info-label">Arrival:</div>
 									<div id="arrival-time-3" class="info-value">--:--</div>
 
-									<div class="info-label">Abflug:</div>
+									<div class="info-label">Departure:</div>
 									<div id="departure-time-3" class="info-value">--:--</div>
 
 									<div class="info-label">Position:</div>
 									<div id="position-3" class="info-value">--</div>
 
-									<div class="info-label">Schleppstatus:</div>
+									<div class="info-label">Towing Status:</div>
 									<div id="tow-status-3" class="tow-status tow-on-position">
-										Auf Position
+										On Position
 									</div>
 								</div>
 
@@ -358,7 +433,7 @@
 								<div class="notes-container">
 									<label
 										class="block text-sm text-industrial-dark font-medium mb-1"
-										>Notizen:</label
+										>Notes:</label
 									>
 									<textarea
 										id="notes-3"
@@ -369,10 +444,10 @@
 									<select
 										id="status-3"
 										class="w-full p-2 bg-industrial-light text-industrial-dark rounded">
-										<option value="maintenance">Wartung</option>
-										<option value="ready">Bereit</option>
+										<option value="maintenance">Maintenance</option>
+										<option value="ready">Ready</option>
 										<option value="boarding">Boarding</option>
-										<option value="delay">Verspätung</option>
+										<option value="delay">Delayed</option>
 									</select>
 								</div>
 							</div>
@@ -409,7 +484,7 @@
 								</div>
 								<input
 									type="text"
-									placeholder="Manuelle Eingabe"
+									placeholder="Manual Input"
 									class="text-xs bg-industrial-dark rounded px-2 py-1 w-32 text-white" />
 							</div>
 
@@ -417,23 +492,23 @@
 								<input
 									type="text"
 									id="aircraft-4"
-									placeholder="Flugzeugkennzeichen"
+									placeholder="Aircraft ID"
 									class="text-xl font-bold text-center text-industrial-dark border-b-2 border-industrial-light p-2 mb-3" />
 
 								<!-- Einheitliche Ausrichtung für Infos -->
 								<div class="info-grid mb-3">
-									<div class="info-label">Ankunft:</div>
+									<div class="info-label">Arrival:</div>
 									<div id="arrival-time-4" class="info-value">--:--</div>
 
-									<div class="info-label">Abflug:</div>
+									<div class="info-label">Departure:</div>
 									<div id="departure-time-4" class="info-value">--:--</div>
 
 									<div class="info-label">Position:</div>
 									<div id="position-4" class="info-value">--</div>
 
-									<div class="info-label">Schleppstatus:</div>
+									<div class="info-label">Towing Status:</div>
 									<div id="tow-status-4" class="tow-status tow-initiated">
-										Initiiert
+										Initiated
 									</div>
 								</div>
 
@@ -441,7 +516,7 @@
 								<div class="notes-container">
 									<label
 										class="block text-sm text-industrial-dark font-medium mb-1"
-										>Notizen:</label
+										>Notes:</label
 									>
 									<textarea
 										id="notes-4"
@@ -452,10 +527,10 @@
 									<select
 										id="status-4"
 										class="w-full p-2 bg-industrial-light text-industrial-dark rounded">
-										<option value="maintenance">Wartung</option>
-										<option value="ready">Bereit</option>
+										<option value="maintenance">Maintenance</option>
+										<option value="ready">Ready</option>
 										<option value="boarding">Boarding</option>
-										<option value="delay">Verspätung</option>
+										<option value="delay">Delayed</option>
 									</select>
 								</div>
 							</div>
@@ -494,7 +569,7 @@
 								</div>
 								<input
 									type="text"
-									placeholder="Manuelle Eingabe"
+									placeholder="Manual Input"
 									class="text-xs bg-industrial-dark rounded px-2 py-1 w-32 text-white" />
 							</div>
 
@@ -503,19 +578,19 @@
 								<input
 									type="text"
 									id="aircraft-5"
-									placeholder="Flugzeugkennzeichen"
+									placeholder="Aircraft ID"
 									class="text-xl font-bold text-center text-industrial-dark border-b-2 border-industrial-light p-2 mb-3" />
 
 								<div class="info-grid mb-3">
-									<div class="info-label">Ankunft:</div>
+									<div class="info-label">Arrival:</div>
 									<div id="arrival-time-5" class="info-value">--:--</div>
-									<div class="info-label">Abflug:</div>
+									<div class="info-label">Departure:</div>
 									<div id="departure-time-5" class="info-value">--:--</div>
 									<div class="info-label">Position:</div>
 									<div id="position-5" class="info-value">--</div>
-									<div class="info-label">Schleppstatus:</div>
+									<div class="info-label">Towing Status:</div>
 									<div id="tow-status-5" class="tow-status tow-ongoing">
-										Läuft
+										In Progress
 									</div>
 								</div>
 
@@ -523,7 +598,7 @@
 								<div class="notes-container">
 									<label
 										class="block text-sm text-industrial-dark font-medium mb-1"
-										>Notizen:</label
+										>Notes:</label
 									>
 									<textarea
 										id="notes-5"
@@ -534,10 +609,10 @@
 									<select
 										id="status-5"
 										class="w-full p-2 bg-industrial-light text-industrial-dark rounded">
-										<option value="maintenance">Wartung</option>
-										<option value="ready">Bereit</option>
+										<option value="maintenance">Maintenance</option>
+										<option value="ready">Ready</option>
 										<option value="boarding">Boarding</option>
-										<option value="delay">Verspätung</option>
+										<option value="delay">Delayed</option>
 									</select>
 								</div>
 							</div>
@@ -575,7 +650,7 @@
 								</div>
 								<input
 									type="text"
-									placeholder="Manuelle Eingabe"
+									placeholder="Manual Input"
 									class="text-xs bg-industrial-dark rounded px-2 py-1 w-32 text-white" />
 							</div>
 
@@ -584,26 +659,26 @@
 								<input
 									type="text"
 									id="aircraft-6"
-									placeholder="Flugzeugkennzeichen"
+									placeholder="Aircraft ID"
 									class="text-xl font-bold text-center text-industrial-dark border-b-2 border-industrial-light p-2 mb-3" />
 
 								<div class="info-grid mb-3">
-									<div class="info-label">Ankunft:</div>
+									<div class="info-label">Arrival:</div>
 									<div id="arrival-time-6" class="info-value">--:--</div>
-									<div class="info-label">Abflug:</div>
+									<div class="info-label">Departure:</div>
 									<div id="departure-time-6" class="info-value">--:--</div>
 									<div class="info-label">Position:</div>
 									<div id="position-6" class="info-value">--</div>
 									<div class="info-label">Schleppstatus:</div>
 									<div id="tow-status-6" class="tow-status tow-on-position">
-										Auf Position
+										On Position
 									</div>
 								</div>
 
 								<div class="notes-container">
 									<label
 										class="block text-sm text-industrial-dark font-medium mb-1"
-										>Notizen:</label
+										>Notes:</label
 									>
 									<textarea
 										id="notes-6"
@@ -614,10 +689,10 @@
 									<select
 										id="status-6"
 										class="w-full p-2 bg-industrial-light text-industrial-dark rounded">
-										<option value="maintenance">Wartung</option>
-										<option value="ready">Bereit</option>
+										<option value="maintenance">Maintenance</option>
+										<option value="ready">Ready</option>
 										<option value="boarding">Boarding</option>
-										<option value="delay">Verspätung</option>
+										<option value="delay">Delayed</option>
 									</select>
 								</div>
 							</div>
@@ -655,7 +730,7 @@
 								</div>
 								<input
 									type="text"
-									placeholder="Manuelle Eingabe"
+									placeholder="Manual Input"
 									class="text-xs bg-industrial-dark rounded px-2 py-1 w-32 text-white" />
 							</div>
 
@@ -664,26 +739,26 @@
 								<input
 									type="text"
 									id="aircraft-7"
-									placeholder="Flugzeugkennzeichen"
+									placeholder="Aircraft ID"
 									class="text-xl font-bold text-center text-industrial-dark border-b-2 border-industrial-light p-2 mb-3" />
 
 								<div class="info-grid mb-3">
-									<div class="info-label">Ankunft:</div>
+									<div class="info-label">Arrival:</div>
 									<div id="arrival-time-7" class="info-value">--:--</div>
-									<div class="info-label">Abflug:</div>
+									<div class="info-label">Departure:</div>
 									<div id="departure-time-7" class="info-value">--:--</div>
 									<div class="info-label">Position:</div>
 									<div id="position-7" class="info-value">--</div>
 									<div class="info-label">Schleppstatus:</div>
 									<div id="tow-status-7" class="tow-status tow-initiated">
-										Initiiert
+										Initiated
 									</div>
 								</div>
 
 								<div class="notes-container">
 									<label
 										class="block text-sm text-industrial-dark font-medium mb-1"
-										>Notizen:</label
+										>Notes:</label
 									>
 									<textarea
 										id="notes-7"
@@ -694,10 +769,10 @@
 									<select
 										id="status-7"
 										class="w-full p-2 bg-industrial-light text-industrial-dark rounded">
-										<option value="maintenance">Wartung</option>
-										<option value="ready">Bereit</option>
+										<option value="maintenance">Maintenance</option>
+										<option value="ready">Ready</option>
 										<option value="boarding">Boarding</option>
-										<option value="delay">Verspätung</option>
+										<option value="delay">Delayed</option>
 									</select>
 								</div>
 							</div>
@@ -735,7 +810,7 @@
 								</div>
 								<input
 									type="text"
-									placeholder="Manuelle Eingabe"
+									placeholder="Manual Input"
 									class="text-xs bg-industrial-dark rounded px-2 py-1 w-32 text-white" />
 							</div>
 
@@ -744,26 +819,26 @@
 								<input
 									type="text"
 									id="aircraft-8"
-									placeholder="Flugzeugkennzeichen"
+									placeholder="Aircraft ID"
 									class="text-xl font-bold text-center text-industrial-dark border-b-2 border-industrial-light p-2 mb-3" />
 
 								<div class="info-grid mb-3">
-									<div class="info-label">Ankunft:</div>
+									<div class="info-label">Arrival:</div>
 									<div id="arrival-time-8" class="info-value">--:--</div>
-									<div class="info-label">Abflug:</div>
+									<div class="info-label">Departure:</div>
 									<div id="departure-time-8" class="info-value">--:--</div>
 									<div class="info-label">Position:</div>
 									<div id="position-8" class="info-value">--</div>
 									<div class="info-label">Schleppstatus:</div>
 									<div id="tow-status-8" class="tow-status tow-ongoing">
-										Läuft
+										In Progress
 									</div>
 								</div>
 
 								<div class="notes-container">
 									<label
 										class="block text-sm text-industrial-dark font-medium mb-1"
-										>Notizen:</label
+										>Notes:</label
 									>
 									<textarea
 										id="notes-8"
@@ -774,10 +849,10 @@
 									<select
 										id="status-8"
 										class="w-full p-2 bg-industrial-light text-industrial-dark rounded">
-										<option value="maintenance">Wartung</option>
-										<option value="ready">Bereit</option>
+										<option value="maintenance">Maintenance</option>
+										<option value="ready">Ready</option>
 										<option value="boarding">Boarding</option>
-										<option value="delay">Verspätung</option>
+										<option value="delay">Delayed</option>
 									</select>
 								</div>
 							</div>
@@ -787,17 +862,16 @@
 			</div>
 
 			<!-- Rechtes Menü -->
-			<div
-				class="w-72 bg-industrial-medium border-l border-industrial-light flex flex-col">
+			<div class="w-72 bg-industrial-medium border-l border-industrial-light flex flex-col">
 				<div class="p-4 bg-industrial-dark">
-					<h2 class="text-xl font-semibold">Flugzeugverwaltung</h2>
+					<h2 class="text-xl font-semibold">Aircraft Management</h2>
 				</div>
 
-				<!-- Neue Sektion: Kachelanzahl -->
+				<!-- Anzeigeoptionen -->
 				<div class="p-4 border-b border-industrial-light">
-					<h3 class="font-medium mb-3 text-lg">Anzeigeoptionen</h3>
+					<h3 class="font-medium mb-3 text-lg">Display Options</h3>
 					<div class="flex flex-col space-y-2">
-						<label class="text-sm">Anzahl der Kacheln:</label>
+						<label class="text-sm">Number of Tiles:</label>
 						<div class="flex items-center space-x-2">
 							<input
 								type="number"
@@ -809,7 +883,7 @@
 							<button
 								id="updateTilesBtn"
 								class="bg-industrial-accent px-3 py-1 rounded text-white">
-								Aktualisieren
+								Update
 							</button>
 						</div>
 						<div class="flex items-center space-x-2 mt-2">
@@ -817,10 +891,10 @@
 							<select
 								id="layoutType"
 								class="bg-industrial-dark text-white px-2 py-1 rounded form-control">
-								<option value="1">1 Spalte</option>
-								<option value="2">2 Spalten</option>
-								<option value="3">3 Spalten</option>
-								<option value="4" selected>4 Spalten</option>
+								<option value="1">1 Column</option>
+								<option value="2">2 Columns</option>
+								<option value="3">3 Columns</option>
+								<option value="4" selected>4 Columns</option>
 							</select>
 						</div>
 					</div>
@@ -828,37 +902,67 @@
 
 				<!-- Flugzeugsuche -->
 				<div class="p-4 border-b border-industrial-light">
-					<h3 class="font-medium mb-3 text-lg">Flugzeug suchen</h3>
+					<h3 class="font-medium mb-3 text-lg">Search Aircraft</h3>
 					<div class="flex">
 						<input
 							type="text"
 							id="searchAircraft"
-							placeholder="Kennzeichen eingeben"
+							placeholder="Enter Aircraft ID"
 							class="flex-grow px-2 py-1 bg-industrial-dark rounded-l form-control" />
 						<button
 							id="btnSearch"
 							class="bg-industrial-accent px-3 py-1 rounded-r">
-							Suchen
+							Search
 						</button>
 					</div>
 				</div>
 
-				<!-- Flugzeug-Informationen -->
+				<!-- Flugdaten abrufen -->
 				<div class="p-4 border-b border-industrial-light overflow-auto">
-					<h3 class="font-medium mb-3 text-lg">Flugdaten abrufen</h3>
+					<h3 class="font-medium mb-3 text-lg">Retrieve Flight Data</h3>
 					<button
 						id="fetchFlightData"
 						class="w-full bg-industrial-accent hover:bg-opacity-80 px-4 py-2 rounded font-medium mb-3">
-						Daten aktualisieren
+						Update Data
 					</button>
 					<div id="fetchStatus" class="text-sm text-center">
-						Bereit zum Abrufen von Flugdaten
+						Ready to retrieve flight data
+					</div>
+				</div>
+				
+				<!-- Email-Funktion (NEU) -->
+				<div class="p-4 border-b border-industrial-light">
+					<h3 class="font-medium mb-3 text-lg">Email Hangar Plan</h3>
+					<div class="space-y-3">
+						<div>
+							<label class="block text-sm mb-1">Recipients:</label>
+							<input 
+								type="text" 
+								id="emailRecipients" 
+								placeholder="email@example.com, ..." 
+								class="w-full px-2 py-1 bg-industrial-dark rounded form-control" />
+						</div>
+						<div>
+							<label class="block text-sm mb-1">Subject:</label>
+							<input 
+								type="text" 
+								id="emailSubject" 
+								value="Hangar Plan Update" 
+								class="w-full px-2 py-1 bg-industrial-dark rounded form-control" />
+						</div>
+						<div class="flex justify-end">
+							<button 
+								id="sendEmailBtn" 
+								class="bg-industrial-accent hover:bg-opacity-80 px-4 py-1 rounded font-medium">
+								Send Email
+							</button>
+						</div>
 					</div>
 				</div>
 
 				<!-- Gespeicherte Projekte -->
 				<div class="p-4 overflow-auto flex-grow">
-					<h3 class="font-medium mb-3 text-lg">Gespeicherte Hangarpläne</h3>
+					<h3 class="font-medium mb-3 text-lg">Saved Hangar Plans</h3>
 					<ul id="projectsList" class="space-y-2 text-sm">
 						<!-- Wird dynamisch befüllt -->
 					</ul>
@@ -871,33 +975,58 @@
 			id="loadModal"
 			class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
 			<div class="bg-industrial-medium rounded-lg p-6 w-96 max-w-full">
-				<h2 class="text-xl font-bold mb-4">Hangarplan laden</h2>
+				<h2 class="text-xl font-bold mb-4">Load Hangar Plan</h2>
 				<div class="mb-4">
 					<input
 						id="loadProjectName"
 						type="text"
-						placeholder="Projektname eingeben"
+						placeholder="Enter Project Name"
 						class="w-full bg-industrial-dark text-white px-3 py-2 rounded form-control" />
 				</div>
 				<div class="flex justify-end space-x-3">
 					<button
 						id="cancelLoad"
 						class="px-4 py-2 bg-industrial-light text-industrial-dark rounded">
-						Abbrechen
+						Cancel
 					</button>
 					<button
 						id="confirmLoad"
 						class="px-4 py-2 bg-industrial-accent rounded">
-						Laden
+						Load
 					</button>
 				</div>
 			</div>
 		</div>
 
+		<!-- E-Mail-Erfolgsmeldung Modal -->
+		<div id="emailSentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+			<div class="bg-industrial-medium rounded-lg p-6 w-96 max-w-full">
+				<h2 class="text-xl font-bold mb-4">Email Sent</h2>
+				<p class="mb-4">Your hangar plan has been sent successfully.</p>
+				<div class="flex justify-end">
+					<button id="emailOkBtn" class="px-4 py-2 bg-industrial-accent rounded">OK</button>
+				</div>
+			</div>
+		</div>
+
 		<script src="js/hangar.js"></script>
-		<!-- Zusätzliches Script für die Kachelanzahl-Aktualisierung -->
+		<!-- Zusätzliches Script für UI-Interaktionen -->
 		<script>
 			document.addEventListener("DOMContentLoaded", function () {
+				// Bearbeitungs-/Anzeigemodus Toggle
+				const modeToggle = document.getElementById('modeToggle');
+				const body = document.body;
+				
+				modeToggle.addEventListener('change', function() {
+					if (this.checked) {
+						body.classList.remove('view-mode');
+						body.classList.add('edit-mode');
+					} else {
+						body.classList.remove('edit-mode');
+						body.classList.add('view-mode');
+					}
+				});
+
 				// Kachelzahl und Layout aktualisieren
 				document
 					.getElementById("updateTilesBtn")
@@ -926,7 +1055,7 @@
 				// Schleppstatus-Handling (vereinfacht, da später automatisch aktualisiert wird)
 				const towStates = ["initiated", "ongoing", "on-position"];
 				const towClasses = ["tow-initiated", "tow-ongoing", "tow-on-position"];
-				const towTexts = ["Initiiert", "Läuft", "Auf Position"];
+				const towTexts = ["Initiated", "In Progress", "On Position"];
 
 				// Demo-Funktionalität: Bei Klick auf einen Schleppstatus zum nächsten Status wechseln
 				document
@@ -946,6 +1075,27 @@
 							this.textContent = towTexts[nextIndex];
 						});
 					});
+                
+                // E-Mail-Funktion (Simuliert)
+                document.getElementById('sendEmailBtn').addEventListener('click', function() {
+                    const recipients = document.getElementById('emailRecipients').value;
+                    
+                    if (!recipients) {
+                        alert('Please enter at least one email address');
+                        return;
+                    }
+                    
+                    // Hier würde in einer realen Implementierung die E-Mail versendet werden
+                    console.log('Sending email to:', recipients);
+                    
+                    // Erfolgsmeldung anzeigen
+                    document.getElementById('emailSentModal').classList.remove('hidden');
+                });
+                
+                // E-Mail-Erfolgsmeldung schließen
+                document.getElementById('emailOkBtn').addEventListener('click', function() {
+                    document.getElementById('emailSentModal').classList.add('hidden');
+                });
 			});
 		</script>
 	</body>
