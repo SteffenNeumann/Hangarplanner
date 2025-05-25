@@ -134,17 +134,17 @@
 				font-size: 1.25rem;
 				padding: 0.5rem;
 				margin-bottom: 0.75rem;
-				border-bottom: 2px solid #BFC0C0;
+				border-bottom: 2px solid #bfc0c0;
 				background-color: transparent;
 				width: 100%;
-				color: #2D3142;
+				color: #2d3142;
 			}
 			.aircraft-id::placeholder {
-				color: #9CA3AF;
+				color: #9ca3af;
 			}
 			.aircraft-id:focus {
 				outline: none;
-				border-bottom-color: #EF8354;
+				border-bottom-color: #ef8354;
 			}
 			/* Modi-Styles */
 			.edit-mode .view-only {
@@ -153,7 +153,9 @@
 			.view-mode .edit-only {
 				display: none;
 			}
-			.view-mode input, .view-mode select, .view-mode textarea {
+			.view-mode input,
+			.view-mode select,
+			.view-mode textarea {
 				pointer-events: none;
 				border-color: transparent;
 				background-color: transparent;
@@ -189,7 +191,7 @@
 				right: 0;
 				bottom: 0;
 				background-color: #ccc;
-				transition: .4s;
+				transition: 0.4s;
 				border-radius: 34px;
 			}
 			.toggle-slider:before {
@@ -200,55 +202,84 @@
 				left: 4px;
 				bottom: 4px;
 				background-color: white;
-				transition: .4s;
+				transition: 0.4s;
 				border-radius: 50%;
 			}
 			input:checked + .toggle-slider {
-				background-color: #EF8354;
+				background-color: #ef8354;
 			}
 			input:checked + .toggle-slider:before {
 				transform: translateX(26px);
 			}
-			
+
 			/* PDF Export Styles */
 			.pdf-export-container {
 				display: flex;
 				flex-direction: column;
 				gap: 10px;
 			}
-			
+
 			.pdf-preview {
-				border: 1px solid #BFC0C0;
+				border: 1px solid #bfc0c0;
 				border-radius: 4px;
 				padding: 8px;
 				background-color: rgba(45, 49, 66, 0.1);
 			}
+
+			/* Horizontale Trennlinie */
+			.section-divider {
+				width: 100%;
+				height: 2px;
+				background-color: #4f5d75;
+				margin: 20px 0;
+				position: relative;
+			}
 			
+			.section-divider::after {
+				content: "Section Divider";
+				position: absolute;
+				top: -10px;
+				left: 50%;
+				transform: translateX(-50%);
+				background-color: #bfc0c0;
+				padding: 0 10px;
+				font-size: 12px;
+				color: #2d3142;
+			}
+			
+			.section-label {
+				font-size: 16px;
+				font-weight: 500;
+				color: white;
+				margin-bottom: 10px;
+				padding-left: 5px;
+			}
+
 			@media print {
 				.no-print {
 					display: none !important;
 				}
-				
+
 				.print-only {
 					display: block !important;
 				}
-				
+
 				body {
 					width: 100% !important;
 					margin: 0 !important;
 					padding: 0 !important;
 				}
-				
+
 				.pdf-content {
 					width: 100% !important;
 					page-break-inside: avoid;
 				}
-				
+
 				.hangar-cell {
 					page-break-inside: avoid;
 				}
 			}
-			
+
 			.print-only {
 				display: none;
 			}
@@ -267,12 +298,12 @@
 						<div class="mode-toggle">
 							<span class="mode-toggle-label">View</span>
 							<label class="toggle-switch">
-								<input type="checkbox" id="modeToggle" checked>
+								<input type="checkbox" id="modeToggle" checked />
 								<span class="toggle-slider"></span>
 							</label>
 							<span class="mode-toggle-label">Edit</span>
 						</div>
-						
+
 						<input
 							id="projectName"
 							type="text"
@@ -293,8 +324,10 @@
 
 				<!-- Hangar-Kacheln Bereich -->
 				<div class="flex-grow bg-industrial-light p-6 overflow-auto">
+					<!-- Abschnitt 1 Label -->
+					<div class="section-label">Primary Section</div>
 					<div id="hangarGrid" class="grid grid-cols-4 gap-4">
-						<!-- 8 Hangar-Kacheln werden hier erstellt -->
+						<!-- 8 Hangar-Kacheln hier -->
 						<!-- Kachel 1 -->
 						<div
 							class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
@@ -302,9 +335,18 @@
 							<div
 								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
 								<div class="status-container">
-									<span class="status-light bg-status-green" data-cell="1" data-status="ready"></span>
-									<span class="status-light bg-status-yellow" data-cell="1" data-status="maintenance"></span>
-									<span class="status-light bg-status-red" data-cell="1" data-status="aog"></span>
+									<span
+										class="status-light bg-status-green"
+										data-cell="1"
+										data-status="ready"></span>
+									<span
+										class="status-light bg-status-yellow"
+										data-cell="1"
+										data-status="maintenance"></span>
+									<span
+										class="status-light bg-status-red"
+										data-cell="1"
+										data-status="aog"></span>
 								</div>
 								<div class="flex items-center">
 									<span class="text-xs text-white font-medium mr-2"
@@ -376,9 +418,18 @@
 							<div
 								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
 								<div class="status-container">
-									<span class="status-light bg-status-green" data-cell="2" data-status="ready"></span>
-									<span class="status-light bg-status-yellow" data-cell="2" data-status="maintenance"></span>
-									<span class="status-light bg-status-red" data-cell="2" data-status="aog"></span>
+									<span
+										class="status-light bg-status-green"
+										data-cell="2"
+										data-status="ready"></span>
+									<span
+										class="status-light bg-status-yellow"
+										data-cell="2"
+										data-status="maintenance"></span>
+									<span
+										class="status-light bg-status-red"
+										data-cell="2"
+										data-status="aog"></span>
 								</div>
 								<div class="flex items-center">
 									<span class="text-xs text-white font-medium mr-2"
@@ -449,9 +500,18 @@
 							<div
 								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
 								<div class="status-container">
-									<span class="status-light bg-status-green" data-cell="3" data-status="ready"></span>
-									<span class="status-light bg-status-yellow" data-cell="3" data-status="maintenance"></span>
-									<span class="status-light bg-status-red" data-cell="3" data-status="aog"></span>
+									<span
+										class="status-light bg-status-green"
+										data-cell="3"
+										data-status="ready"></span>
+									<span
+										class="status-light bg-status-yellow"
+										data-cell="3"
+										data-status="maintenance"></span>
+									<span
+										class="status-light bg-status-red"
+										data-cell="3"
+										data-status="aog"></span>
 								</div>
 								<div class="flex items-center">
 									<span class="text-xs text-white font-medium mr-2"
@@ -522,9 +582,18 @@
 							<div
 								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
 								<div class="status-container">
-									<span class="status-light bg-status-green" data-cell="4" data-status="ready"></span>
-									<span class="status-light bg-status-yellow" data-cell="4" data-status="maintenance"></span>
-									<span class="status-light bg-status-red" data-cell="4" data-status="aog"></span>
+									<span
+										class="status-light bg-status-green"
+										data-cell="4"
+										data-status="ready"></span>
+									<span
+										class="status-light bg-status-yellow"
+										data-cell="4"
+										data-status="maintenance"></span>
+									<span
+										class="status-light bg-status-red"
+										data-cell="4"
+										data-status="aog"></span>
 								</div>
 								<div class="flex items-center">
 									<span class="text-xs text-white font-medium mr-2"
@@ -597,9 +666,18 @@
 							<div
 								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
 								<div class="status-container">
-									<span class="status-light bg-status-green" data-cell="5" data-status="ready"></span>
-									<span class="status-light bg-status-yellow" data-cell="5" data-status="maintenance"></span>
-									<span class="status-light bg-status-red" data-cell="5" data-status="aog"></span>
+									<span
+										class="status-light bg-status-green"
+										data-cell="5"
+										data-status="ready"></span>
+									<span
+										class="status-light bg-status-yellow"
+										data-cell="5"
+										data-status="maintenance"></span>
+									<span
+										class="status-light bg-status-red"
+										data-cell="5"
+										data-status="aog"></span>
 								</div>
 								<div class="flex items-center">
 									<span class="text-xs text-white font-medium mr-2"
@@ -668,9 +746,18 @@
 							<div
 								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
 								<div class="status-container">
-									<span class="status-light bg-status-green" data-cell="6" data-status="ready"></span>
-									<span class="status-light bg-status-yellow" data-cell="6" data-status="maintenance"></span>
-									<span class="status-light bg-status-red" data-cell="6" data-status="aog"></span>
+									<span
+										class="status-light bg-status-green"
+										data-cell="6"
+										data-status="ready"></span>
+									<span
+										class="status-light bg-status-yellow"
+										data-cell="6"
+										data-status="maintenance"></span>
+									<span
+										class="status-light bg-status-red"
+									data-cell="6"
+										data-status="aog"></span>
 								</div>
 								<div class="flex items-center">
 									<span class="text-xs text-white font-medium mr-2"
@@ -739,9 +826,18 @@
 							<div
 								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
 								<div class="status-container">
-									<span class="status-light bg-status-green" data-cell="7" data-status="ready"></span>
-									<span class="status-light bg-status-yellow" data-cell="7" data-status="maintenance"></span>
-									<span class="status-light bg-status-red" data-cell="7" data-status="aog"></span>
+									<span
+										class="status-light bg-status-green"
+										data-cell="7"
+										data-status="ready"></span>
+									<span
+										class="status-light bg-status-yellow"
+										data-cell="7"
+										data-status="maintenance"></span>
+									<span
+										class="status-light bg-status-red"
+										data-cell="7"
+										data-status="aog"></span>
 								</div>
 								<div class="flex items-center">
 									<span class="text-xs text-white font-medium mr-2"
@@ -809,9 +905,18 @@
 							<div
 								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
 								<div class="status-container">
-									<span class="status-light bg-status-green" data-cell="8" data-status="ready"></span>
-									<span class="status-light bg-status-yellow" data-cell="8" data-status="maintenance"></span>
-									<span class="status-light bg-status-red" data-cell="8" data-status="aog"></span>
+									<span
+										class="status-light bg-status-green"
+										data-cell="8"
+										data-status="ready"></span>
+									<span
+										class="status-light bg-status-yellow"
+										data-cell="8"
+										data-status="maintenance"></span>
+									<span
+										class="status-light bg-status-red"
+										data-cell="8"
+										data-status="aog"></span>
 								</div>
 								<div class="flex items-center">
 									<span class="text-xs text-white font-medium mr-2"
@@ -871,12 +976,198 @@
 								</div>
 							</div>
 						</div>
+
+						<!-- Kachel 9 -->
+						<div class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
+							<div class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
+								<div class="status-container">
+									<span class="status-light bg-status-green" data-cell="9" data-status="ready"></span>
+									<span class="status-light bg-status-yellow" data-cell="9" data-status="maintenance"></span>
+									<span class="status-light bg-status-red" data-cell="9" data-status="aog"></span>
+								</div>
+								<div class="flex items-center">
+									<span class="text-xs text-white font-medium mr-2">Position:</span>
+									<input type="text" placeholder="3A" id="hangar-position-9" class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
+								</div>
+								<input type="text" placeholder="Manual Input" class="text-xs bg-industrial-dark rounded px-2 py-1 w-32 text-white" />
+							</div>
+
+							<div class="p-4 flex-grow flex flex-col">
+								<input type="text" id="aircraft-9" placeholder="Aircraft ID" class="aircraft-id" />
+
+								<div class="info-grid mb-3">
+									<div class="info-label">Arrival:</div>
+									<div id="arrival-time-9" class="info-value">--:--</div>
+									<div class="info-label">Departure:</div>
+									<div id="departure-time-9" class="info-value">--:--</div>
+									<div class="info-label">Position:</div>
+									<div id="position-9" class="info-value">--</div>
+									<div class="info-label">Towing Status:</div>
+									<div id="tow-status-9" class="tow-status tow-initiated">Initiated</div>
+								</div>
+
+								<div class="notes-container">
+									<label class="block text-sm text-industrial-dark font-medium mb-1">Notes:</label>
+									<textarea id="notes-9" class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
+								</div>
+
+								<div class="mt-auto">
+									<select id="status-9" class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
+										<option value="ready">Ready</option>
+										<option value="maintenance">Maintenance</option>
+										<option value="aog">AOG</option>
+									</select>
+								</div>
+							</div>
+						</div>
+
+						<!-- Kachel 10 -->
+						<div class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
+							<div class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
+								<div class="status-container">
+									<span class="status-light bg-status-green" data-cell="10" data-status="ready"></span>
+									<span class="status-light bg-status-yellow" data-cell="10" data-status="maintenance"></span>
+									<span class="status-light bg-status-red" data-cell="10" data-status="aog"></span>
+								</div>
+								<div class="flex items-center">
+									<span class="text-xs text-white font-medium mr-2">Position:</span>
+									<input type="text" placeholder="3B" id="hangar-position-10" class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
+								</div>
+								<input type="text" placeholder="Manual Input" class="text-xs bg-industrial-dark rounded px-2 py-1 w-32 text-white" />
+							</div>
+
+							<div class="p-4 flex-grow flex flex-col">
+								<input type="text" id="aircraft-10" placeholder="Aircraft ID" class="aircraft-id" />
+
+								<div class="info-grid mb-3">
+									<div class="info-label">Arrival:</div>
+									<div id="arrival-time-10" class="info-value">--:--</div>
+									<div class="info-label">Departure:</div>
+									<div id="departure-time-10" class="info-value">--:--</div>
+									<div class="info-label">Position:</div>
+									<div id="position-10" class="info-value">--</div>
+									<div class="info-label">Towing Status:</div>
+									<div id="tow-status-10" class="tow-status tow-ongoing">In Progress</div>
+								</div>
+
+								<div class="notes-container">
+									<label class="block text-sm text-industrial-dark font-medium mb-1">Notes:</label>
+									<textarea id="notes-10" class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
+								</div>
+
+								<div class="mt-auto">
+									<select id="status-10" class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
+										<option value="ready">Ready</option>
+										<option value="maintenance">Maintenance</option>
+										<option value="aog">AOG</option>
+									</select>
+								</div>
+							</div>
+						</div>
+
+						<!-- Kachel 11 -->
+						<div class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
+							<div class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
+								<div class="status-container">
+									<span class="status-light bg-status-green" data-cell="11" data-status="ready"></span>
+									<span class="status-light bg-status-yellow" data-cell="11" data-status="maintenance"></span>
+									<span class="status-light bg-status-red" data-cell="11" data-status="aog"></span>
+								</div>
+								<div class="flex items-center">
+									<span class="text-xs text-white font-medium mr-2">Position:</span>
+									<input type="text" placeholder="3C" id="hangar-position-11" class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
+								</div>
+								<input type="text" placeholder="Manual Input" class="text-xs bg-industrial-dark rounded px-2 py-1 w-32 text-white" />
+							</div>
+
+							<div class="p-4 flex-grow flex flex-col">
+								<input type="text" id="aircraft-11" placeholder="Aircraft ID" class="aircraft-id" />
+
+								<div class="info-grid mb-3">
+									<div class="info-label">Arrival:</div>
+									<div id="arrival-time-11" class="info-value">--:--</div>
+									<div class="info-label">Departure:</div>
+									<div id="departure-time-11" class="info-value">--:--</div>
+									<div class="info-label">Position:</div>
+									<div id="position-11" class="info-value">--</div>
+									<div class="info-label">Towing Status:</div>
+									<div id="tow-status-11" class="tow-status tow-on-position">On Position</div>
+								</div>
+
+								<div class="notes-container">
+									<label class="block text-sm text-industrial-dark font-medium mb-1">Notes:</label>
+									<textarea id="notes-11" class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
+								</div>
+
+								<div class="mt-auto">
+									<select id="status-11" class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
+										<option value="ready">Ready</option>
+										<option value="maintenance">Maintenance</option>
+										<option value="aog">AOG</option>
+									</select>
+								</div>
+							</div>
+						</div>
+
+						<!-- Kachel 12 -->
+						<div class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
+							<div class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
+								<div class="status-container">
+									<span class="status-light bg-status-green" data-cell="12" data-status="ready"></span>
+									<span class="status-light bg-status-yellow" data-cell="12" data-status="maintenance"></span>
+									<span class="status-light bg-status-red" data-cell="12" data-status="aog"></span>
+								</div>
+								<div class="flex items-center">
+									<span class="text-xs text-white font-medium mr-2">Position:</span>
+									<input type="text" placeholder="3D" id="hangar-position-12" class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
+								</div>
+								<input type="text" placeholder="Manual Input" class="text-xs bg-industrial-dark rounded px-2 py-1 w-32 text-white" />
+							</div>
+
+							<div class="p-4 flex-grow flex flex-col">
+								<input type="text" id="aircraft-12" placeholder="Aircraft ID" class="aircraft-id" />
+
+								<div class="info-grid mb-3">
+									<div class="info-label">Arrival:</div>
+									<div id="arrival-time-12" class="info-value">--:--</div>
+									<div class="info-label">Departure:</div>
+									<div id="departure-time-12" class="info-value">--:--</div>
+									<div class="info-label">Position:</div>
+									<div id="position-12" class="info-value">--</div>
+									<div class="info-label">Towing Status:</div>
+									<div id="tow-status-12" class="tow-status tow-initiated">Initiated</div>
+								</div>
+
+								<div class="notes-container">
+									<label class="block text-sm text-industrial-dark font-medium mb-1">Notes:</label>
+									<textarea id="notes-12" class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
+								</div>
+
+								<div class="mt-auto">
+									<select id="status-12" class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
+										<option value="ready">Ready</option>
+										<option value="maintenance">Maintenance</option>
+										<option value="aog">AOG</option>
+									</select>
+								</div>
+							</div>
+						</div>
+					</div>
+					
+					<!-- Horizontale Trennlinie -->
+					<div class="section-divider"></div>
+					
+					<!-- Abschnitt 2 Label -->
+					<div class="section-label">Secondary Section</div>
+					<div id="secondaryHangarGrid" class="grid grid-cols-4 gap-4">
+						<!-- Hier werden dynamisch weitere Kacheln eingefügt -->
 					</div>
 				</div>
 			</div>
 
 			<!-- Rechtes Menü -->
-			<div class="w-72 bg-industrial-medium border-l border-industrial-light flex flex-col">
+			<div
+				class="w-72 bg-industrial-medium border-l border-industrial-light flex flex-col">
 				<div class="p-4 bg-industrial-dark">
 					<h2 class="text-xl font-semibold">Aircraft Management</h2>
 				</div>
@@ -885,13 +1176,13 @@
 				<div class="p-4 border-b border-industrial-light">
 					<h3 class="font-medium mb-3 text-lg">Display Options</h3>
 					<div class="flex flex-col space-y-2">
-						<label class="text-sm">Number of Tiles:</label>
+						<label class="text-sm">Primary Tiles:</label>
 						<div class="flex items-center space-x-2">
 							<input
 								type="number"
 								id="tilesCount"
 								min="1"
-								max="16"
+								max="12"
 								value="8"
 								class="w-20 px-2 py-1 bg-industrial-dark rounded form-control" />
 							<button
@@ -900,6 +1191,23 @@
 								Update
 							</button>
 						</div>
+						
+						<label class="text-sm mt-2">Secondary Tiles:</label>
+						<div class="flex items-center space-x-2">
+							<input
+								type="number"
+								id="secondaryTilesCount"
+								min="0"
+								max="12"
+								value="0"
+								class="w-20 px-2 py-1 bg-industrial-dark rounded form-control" />
+							<button
+								id="updateSecondaryTilesBtn"
+								class="bg-industrial-accent px-3 py-1 rounded text-white">
+								Update
+							</button>
+						</div>
+						
 						<div class="flex items-center space-x-2 mt-2">
 							<label class="text-sm">Layout:</label>
 							<select
@@ -943,33 +1251,39 @@
 						Ready to retrieve flight data
 					</div>
 				</div>
-				
+
 				<!-- PDF Export Funktion (Ersetzt E-Mail) -->
 				<div class="p-4 border-b border-industrial-light">
 					<h3 class="font-medium mb-3 text-lg">Export Hangar Plan</h3>
 					<div class="pdf-export-container">
 						<div>
 							<label class="block text-sm mb-1">File name:</label>
-							<input 
-								type="text" 
-								id="pdfFilename" 
-								value="Hangar_Plan" 
+							<input
+								type="text"
+								id="pdfFilename"
+								value="Hangar_Plan"
 								class="w-full px-2 py-1 bg-industrial-dark rounded form-control" />
 						</div>
 						<div class="flex flex-col gap-2">
 							<label class="block text-sm">Options:</label>
 							<div class="flex items-center">
-								<input type="checkbox" id="includeNotes" checked class="mr-2">
+								<input type="checkbox" id="includeNotes" checked class="mr-2" />
 								<label for="includeNotes" class="text-sm">Include Notes</label>
 							</div>
 							<div class="flex items-center">
-								<input type="checkbox" id="landscapeMode" checked class="mr-2">
-								<label for="landscapeMode" class="text-sm">Landscape Mode</label>
+								<input
+									type="checkbox"
+									id="landscapeMode"
+									checked
+									class="mr-2" />
+								<label for="landscapeMode" class="text-sm"
+									>Landscape Mode</label
+								>
 							</div>
 						</div>
 						<div class="flex justify-end mt-2">
-							<button 
-								id="exportPdfBtn" 
+							<button
+								id="exportPdfBtn"
 								class="bg-industrial-accent hover:bg-opacity-80 px-4 py-1 rounded font-medium">
 								Export PDF
 							</button>
@@ -1016,12 +1330,18 @@
 		</div>
 
 		<!-- E-Mail-Erfolgsmeldung Modal -->
-		<div id="emailSentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+		<div
+			id="emailSentModal"
+			class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
 			<div class="bg-industrial-medium rounded-lg p-6 w-96 max-w-full">
 				<h2 class="text-xl font-bold mb-4">Email Sent</h2>
 				<p class="mb-4">Your hangar plan has been sent successfully.</p>
 				<div class="flex justify-end">
-					<button id="emailOkBtn" class="px-4 py-2 bg-industrial-accent rounded">OK</button>
+					<button
+						id="emailOkBtn"
+						class="px-4 py-2 bg-industrial-accent rounded">
+						OK
+					</button>
 				</div>
 			</div>
 		</div>
@@ -1039,31 +1359,34 @@
 					const hours = String(now.getHours()).padStart(2, "0");
 					const minutes = String(now.getMinutes()).padStart(2, "0");
 					const seconds = String(now.getSeconds()).padStart(2, "0");
-					
+
 					return `HangarPlan_${year}-${month}-${day}_${hours}-${minutes}-${seconds}`;
 				}
-				
+
 				// Projektname mit aktuellem Zeitstempel vorausfüllen
-				document.getElementById('projectName').value = generateTimestamp();
-				
+				document.getElementById("projectName").value = generateTimestamp();
+
 				// Bei Klick auf "Save" auch einen neuen Zeitstempel generieren
-				document.getElementById('saveBtn').addEventListener('click', function() {
-					if (!document.getElementById('projectName').value.trim()) {
-						document.getElementById('projectName').value = generateTimestamp();
-					}
-				});
+				document
+					.getElementById("saveBtn")
+					.addEventListener("click", function () {
+						if (!document.getElementById("projectName").value.trim()) {
+							document.getElementById("projectName").value =
+								generateTimestamp();
+						}
+					});
 
 				// Bearbeitungs-/Anzeigemodus Toggle
-				const modeToggle = document.getElementById('modeToggle');
+				const modeToggle = document.getElementById("modeToggle");
 				const body = document.body;
-				
-				modeToggle.addEventListener('change', function() {
+
+				modeToggle.addEventListener("change", function () {
 					if (this.checked) {
-						body.classList.remove('view-mode');
-						body.classList.add('edit-mode');
+						body.classList.remove("view-mode");
+						body.classList.add("edit-mode");
 					} else {
-						body.classList.remove('edit-mode');
-						body.classList.add('view-mode');
+						body.classList.remove("edit-mode");
+						body.classList.add("view-mode");
 					}
 				});
 
@@ -1082,7 +1405,7 @@
 						).className = `grid grid-cols-${columns} gap-4`;
 
 						// Kacheln ein-/ausblenden basierend auf der gewählten Anzahl
-						const cells = document.querySelectorAll(".hangar-cell");
+						const cells = document.querySelectorAll("#hangarGrid .hangar-cell");
 						cells.forEach((cell, index) => {
 							if (index < tilesCount) {
 								cell.classList.remove("hidden");
@@ -1091,6 +1414,107 @@
 							}
 						});
 					});
+
+				// Sekundäre Kacheln aktualisieren
+				document
+					.getElementById("updateSecondaryTilesBtn")
+					.addEventListener("click", function () {
+						const secondaryTilesCount =
+							parseInt(document.getElementById("secondaryTilesCount").value) || 0;
+						const columns =
+							parseInt(document.getElementById("layoutType").value) || 4;
+
+						// Grid-Layout aktualisieren
+						document.getElementById(
+							"secondaryHangarGrid"
+						).className = `grid grid-cols-${columns} gap-4`;
+							
+						// Bestehende sekundäre Kacheln entfernen
+						const secondaryGrid = document.getElementById("secondaryHangarGrid");
+						secondaryGrid.innerHTML = '';
+						
+						// Neue sekundäre Kacheln erstellen
+						for (let i = 1; i <= secondaryTilesCount; i++) {
+							const cellId = 100 + i; // IDs beginnen bei 101, um Konflikte zu vermeiden
+							
+							const newCell = document.createElement('div');
+							newCell.className = 'hangar-cell bg-white rounded-lg shadow-md flex flex-col';
+							newCell.innerHTML = `
+								<div class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
+									<div class="status-container">
+										<span class="status-light bg-status-green" data-cell="${cellId}" data-status="ready"></span>
+										<span class="status-light bg-status-yellow" data-cell="${cellId}" data-status="maintenance"></span>
+										<span class="status-light bg-status-red" data-cell="${cellId}" data-status="aog"></span>
+									</div>
+									<div class="flex items-center">
+										<span class="text-xs text-white font-medium mr-2">Position:</span>
+										<input type="text" placeholder="S${i}" id="hangar-position-${cellId}" class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
+									</div>
+									<input type="text" placeholder="Manual Input" class="text-xs bg-industrial-dark rounded px-2 py-1 w-32 text-white" />
+								</div>
+
+								<div class="p-4 flex-grow flex flex-col">
+									<input type="text" id="aircraft-${cellId}" placeholder="Aircraft ID" class="aircraft-id" />
+
+									<div class="info-grid mb-3">
+										<div class="info-label">Arrival:</div>
+										<div id="arrival-time-${cellId}" class="info-value">--:--</div>
+										<div class="info-label">Departure:</div>
+										<div id="departure-time-${cellId}" class="info-value">--:--</div>
+										<div class="info-label">Position:</div>
+										<div id="position-${cellId}" class="info-value">--</div>
+										<div class="info-label">Towing Status:</div>
+										<div id="tow-status-${cellId}" class="tow-status tow-initiated">Initiated</div>
+									</div>
+
+									<div class="notes-container">
+										<label class="block text-sm text-industrial-dark font-medium mb-1">Notes:</label>
+										<textarea id="notes-${cellId}" class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
+									</div>
+
+									<div class="mt-auto">
+										<select id="status-${cellId}" class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
+											<option value="ready">Ready</option>
+											<option value="maintenance">Maintenance</option>
+											<option value="aog">AOG</option>
+										</select>
+									</div>
+								</div>
+							`;
+							
+							secondaryGrid.appendChild(newCell);
+						}
+						
+						// Trennlinie einblenden oder ausblenden
+						const divider = document.querySelector('.section-divider');
+						if (secondaryTilesCount > 0) {
+							divider.style.display = 'block';
+							document.querySelector('.section-label:nth-of-type(2)').style.display = 'block';
+						} else {
+							divider.style.display = 'none';
+							document.querySelector('.section-label:nth-of-type(2)').style.display = 'none';
+						}
+						
+						// Statushandler für neue Kacheln initialisieren
+						initStatusHandlers();
+					});
+					
+				// Funktion zum Initialisieren der Status-Handler für alle Kacheln
+				function initStatusHandlers() {
+					document.querySelectorAll(".status-selector").forEach((select) => {
+						// Initialen Status setzen
+						if (!select.dataset.initialized) {
+							select.dataset.initialized = "true";
+							select.value = "ready";
+							updateStatusLights(select);
+							
+							// Event-Listener für Statusänderungen
+							select.addEventListener("change", function() {
+								updateStatusLights(this);
+							});
+						}
+					});
+				}
 
 				// Schleppstatus-Handling
 				const towStates = ["initiated", "ongoing", "on-position"];
@@ -1115,230 +1539,264 @@
 							this.textContent = towTexts[nextIndex];
 						});
 					});
-                
-                // PDF Export Funktion
-                document.getElementById('exportPdfBtn').addEventListener('click', function() {
-                    const filename = document.getElementById('pdfFilename').value || 'Hangar_Plan';
-                    const includeNotes = document.getElementById('includeNotes').checked;
-                    const landscapeMode = document.getElementById('landscapeMode').checked;
-                    
-                    // Erstelle eine Kopie des hangarGrid für den Export
-                    const originalGrid = document.getElementById('hangarGrid');
-                    const exportContainer = document.createElement('div');
-                    exportContainer.className = 'pdf-content';
-                    
-                    // Füge Titel hinzu
-                    const title = document.createElement('h1');
-                    title.textContent = document.getElementById('projectName').value || 'Hangar Plan';
-                    title.style.fontSize = '24px';
-                    title.style.fontWeight = 'bold';
-                    title.style.marginBottom = '15px';
-                    title.style.textAlign = 'center';
-                    title.style.color = '#2D3142';
-                    exportContainer.appendChild(title);
-                    
-                    // Datum hinzufügen
-                    const dateElement = document.createElement('p');
-                    dateElement.textContent = 'Date: ' + new Date().toLocaleDateString();
-                    dateElement.style.fontSize = '14px';
-                    dateElement.style.marginBottom = '20px';
-                    dateElement.style.textAlign = 'center';
-                    dateElement.style.color = '#4F5D75';
-                    exportContainer.appendChild(dateElement);
-                    
-                    // Grid-Container erstellen mit angepasstem Layout für PDF
-                    const gridContainer = document.createElement('div');
-                    gridContainer.style.display = 'grid';
-                    
-                    // Angepasste Spaltenanzahl je nach Modus und Anzahl der Kacheln
-                    const visibleCells = Array.from(originalGrid.children).filter(cell => !cell.classList.contains('hidden'));
-                    const cellCount = visibleCells.length;
-                    
-                    // Bestimme optimale Spaltenanzahl basierend auf Anzahl der sichtbaren Zellen
-                    let columns;
-                    if (landscapeMode) {
-                        columns = cellCount <= 2 ? cellCount : cellCount <= 4 ? 2 : cellCount <= 6 ? 3 : 4;
-                    } else {
-                        columns = cellCount <= 2 ? cellCount : 2; // Im Hochformat maximal 2 Spalten
-                    }
-                    
-                    gridContainer.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
-                    gridContainer.style.gap = '10px';
-                    gridContainer.style.width = '100%';
-                    gridContainer.style.maxWidth = landscapeMode ? '1000px' : '800px';
-                    gridContainer.style.margin = '0 auto';
-                    
-                    // Nur sichtbare Kacheln kopieren
-                    visibleCells.forEach(cell => {
-                        const cellClone = cell.cloneNode(true);
-                        cellClone.style.breakInside = 'avoid';
-                        cellClone.style.pageBreakInside = 'avoid';
-                        cellClone.style.width = '100%';
-                        
-                        // Vereinfache und optimiere für PDF
-                        const headerElement = cellClone.querySelector('[class*="bg-industrial-medium"]');
-                        if (headerElement) {
-                            headerElement.style.backgroundColor = '#4F5D75';
-                            headerElement.style.color = 'white';
-                            headerElement.style.padding = '8px';
-                            headerElement.style.borderTopLeftRadius = '8px';
-                            headerElement.style.borderTopRightRadius = '8px';
-                            
-                            // Position-Anzeige optimieren
-                            const positionElement = headerElement.querySelector('[class*="text-xs text-white"]');
-                            if (positionElement) {
-                                positionElement.style.fontSize = '11px';
-                                positionElement.style.whiteSpace = 'nowrap';
-                            }
-                            
-                            // Input-Felder für bessere PDF-Darstellung optimieren
-                            const inputs = headerElement.querySelectorAll('input');
-                            inputs.forEach(input => {
-                                input.style.width = input.classList.contains('w-10') ? '30px' : '90px';
-                                input.style.backgroundColor = '#3A4154';
-                                input.style.padding = '2px 4px';
-                                input.style.fontSize = '11px';
-                            });
-                        }
-                        
-                        // Status Lichter
-                        const statusLights = cellClone.querySelectorAll('.status-light');
-                        statusLights.forEach(light => {
-                            if (!light.classList.contains('active')) {
-                                light.style.display = 'none'; // Nur aktiven Status anzeigen
-                            } else {
-                                light.style.boxShadow = 'none';
-                                light.style.transform = 'none'; // Entferne Skalierung
-                            }
-                        });
-                        
-                        // Aircraft ID optimieren
-                        const aircraftId = cellClone.querySelector('.aircraft-id');
-                        if (aircraftId) {
-                            aircraftId.style.fontSize = '16px';
-                            aircraftId.style.padding = '4px 0';
-                            aircraftId.style.borderBottomWidth = '1px';
-                        }
-                        
-                        // Info-Grid optimieren
-                        const infoGrid = cellClone.querySelector('.info-grid');
-                        if (infoGrid) {
-                            infoGrid.style.fontSize = '12px';
-                            infoGrid.style.gap = '3px';
-                            infoGrid.style.maxWidth = '100%';
-                        }
-                        
-                        // Entferne Notizbereich wenn nicht gewünscht
-                        if (!includeNotes) {
-                            const notesContainer = cellClone.querySelector('.notes-container');
-                            if (notesContainer) notesContainer.remove();
-                        } else {
-                            // Notizen optimieren
-                            const notesContainer = cellClone.querySelector('.notes-container');
-                            if (notesContainer) {
-                                notesContainer.style.minHeight = '40px';
-                                const notesLabel = notesContainer.querySelector('label');
-                                if (notesLabel) notesLabel.style.fontSize = '11px';
-                                const textarea = notesContainer.querySelector('textarea');
-                                if (textarea) {
-                                    textarea.style.fontSize = '11px';
-                                    textarea.style.minHeight = '30px';
-                                }
-                            }
-                        }
-                        
-                        // Entferne Status-Selector aus dem Export
-                        const statusSelector = cellClone.querySelector('select');
-                        if (statusSelector) statusSelector.parentElement.remove();
-                        
-                        // Hauptbereich für PDF optimieren
-                        const mainArea = cellClone.querySelector('.p-4');
-                        if (mainArea) {
-                            mainArea.style.backgroundColor = 'white';
-                            mainArea.style.color = 'black';
-                            mainArea.style.borderBottomLeftRadius = '8px';
-                            mainArea.style.borderBottomRightRadius = '8px';
-                            mainArea.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-                            mainArea.style.padding = '8px 10px';
-                        }
-                        
-                        gridContainer.appendChild(cellClone);
-                    });
-                    
-                    exportContainer.appendChild(gridContainer);
-                    
-                    // Styles für den Export
-                    exportContainer.style.padding = '20px';
-                    exportContainer.style.backgroundColor = 'white';
-                    exportContainer.style.width = '100%';
-                    exportContainer.style.margin = '0 auto';
-                    exportContainer.style.maxWidth = landscapeMode ? '1100px' : '900px';
-                    
-                    // Konfiguriere und generiere PDF
-                    const options = {
-                        margin: [10, 10],
-                        filename: `${filename}.pdf`,
-                        image: { type: 'jpeg', quality: 0.98 },
-                        html2canvas: { 
-                            scale: 2, 
-                            logging: false,
-                            letterRendering: true,
-                            useCORS: true,
-                            allowTaint: true,
-                            width: landscapeMode ? 1100 : 900
-                        },
-                        jsPDF: { 
-                            unit: 'mm', 
-                            format: 'a4', 
-                            orientation: landscapeMode ? 'landscape' : 'portrait',
-                            compress: true,
-                            precision: 2
-                        }
-                    };
-                    
-                    // Erzeuge und downloade PDF
-                    html2pdf().from(exportContainer).set(options).save();
-                });
-                
-                // E-Mail-Erfolgsmeldung schließen (behalten für andere Benachrichtigungen)
-                document.getElementById('emailOkBtn').addEventListener('click', function() {
-                    document.getElementById('emailSentModal').classList.add('hidden');
-                });
+
+				// PDF Export Funktion
+				document
+					.getElementById("exportPdfBtn")
+					.addEventListener("click", function () {
+						const filename =
+							document.getElementById("pdfFilename").value || "Hangar_Plan";
+						const includeNotes =
+							document.getElementById("includeNotes").checked;
+						const landscapeMode =
+							document.getElementById("landscapeMode").checked;
+
+						// Erstelle eine Kopie des hangarGrid für den Export
+						const originalGrid = document.getElementById("hangarGrid");
+						const exportContainer = document.createElement("div");
+						exportContainer.className = "pdf-content";
+
+						// Füge Titel hinzu
+						const title = document.createElement("h1");
+						title.textContent =
+							document.getElementById("projectName").value || "Hangar Plan";
+						title.style.fontSize = "24px";
+						title.style.fontWeight = "bold";
+						title.style.marginBottom = "15px";
+						title.style.textAlign = "center";
+						title.style.color = "#2D3142";
+						exportContainer.appendChild(title);
+
+						// Datum hinzufügen
+						const dateElement = document.createElement("p");
+						dateElement.textContent =
+							"Date: " + new Date().toLocaleDateString();
+						dateElement.style.fontSize = "14px";
+						dateElement.style.marginBottom = "20px";
+						dateElement.style.textAlign = "center";
+						dateElement.style.color = "#4F5D75";
+						exportContainer.appendChild(dateElement);
+
+						// Grid-Container erstellen mit angepasstem Layout für PDF
+						const gridContainer = document.createElement("div");
+						gridContainer.style.display = "grid";
+
+						// Angepasste Spaltenanzahl je nach Modus und Anzahl der Kacheln
+						const visibleCells = Array.from(originalGrid.children).filter(
+							(cell) => !cell.classList.contains("hidden")
+						);
+						const cellCount = visibleCells.length;
+
+						// Bestimme optimale Spaltenanzahl basierend auf Anzahl der sichtbaren Zellen
+						let columns;
+						if (landscapeMode) {
+							columns =
+								cellCount <= 2
+									? cellCount
+									: cellCount <= 4
+									? 2
+									: cellCount <= 6
+									? 3
+									: 4;
+						} else {
+							columns = cellCount <= 2 ? cellCount : 2; // Im Hochformat maximal 2 Spalten
+						}
+
+						gridContainer.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+						gridContainer.style.gap = "10px";
+						gridContainer.style.width = "100%";
+						gridContainer.style.maxWidth = landscapeMode ? "1000px" : "800px";
+						gridContainer.style.margin = "0 auto";
+
+						// Nur sichtbare Kacheln kopieren
+						visibleCells.forEach((cell) => {
+							const cellClone = cell.cloneNode(true);
+							cellClone.style.breakInside = "avoid";
+							cellClone.style.pageBreakInside = "avoid";
+							cellClone.style.width = "100%";
+
+							// Vereinfache und optimiere für PDF
+							const headerElement = cellClone.querySelector(
+								'[class*="bg-industrial-medium"]'
+							);
+							if (headerElement) {
+								headerElement.style.backgroundColor = "#4F5D75";
+								headerElement.style.color = "white";
+								headerElement.style.padding = "8px";
+								headerElement.style.borderTopLeftRadius = "8px";
+								headerElement.style.borderTopRightRadius = "8px";
+
+								// Position-Anzeige optimieren
+								const positionElement = headerElement.querySelector(
+									'[class*="text-xs text-white"]'
+								);
+								if (positionElement) {
+									positionElement.style.fontSize = "11px";
+									positionElement.style.whiteSpace = "nowrap";
+								}
+
+								// Input-Felder für bessere PDF-Darstellung optimieren
+								const inputs = headerElement.querySelectorAll("input");
+								inputs.forEach((input) => {
+									input.style.width = input.classList.contains("w-10")
+										? "30px"
+										: "90px";
+									input.style.backgroundColor = "#3A4154";
+									input.style.padding = "2px 4px";
+									input.style.fontSize = "11px";
+								});
+							}
+
+							// Status Lichter
+							const statusLights = cellClone.querySelectorAll(".status-light");
+							statusLights.forEach((light) => {
+								if (!light.classList.contains("active")) {
+									light.style.display = "none"; // Nur aktiven Status anzeigen
+								} else {
+									light.style.boxShadow = "none";
+									light.style.transform = "none"; // Entferne Skalierung
+								}
+							});
+
+							// Aircraft ID optimieren
+							const aircraftId = cellClone.querySelector(".aircraft-id");
+							if (aircraftId) {
+								aircraftId.style.fontSize = "16px";
+								aircraftId.style.padding = "4px 0";
+								aircraftId.style.borderBottomWidth = "1px";
+							}
+
+							// Info-Grid optimieren
+							const infoGrid = cellClone.querySelector(".info-grid");
+							if (infoGrid) {
+								infoGrid.style.fontSize = "12px";
+								infoGrid.style.gap = "3px";
+								infoGrid.style.maxWidth = "100%";
+							}
+
+							// Entferne Notizbereich wenn nicht gewünscht
+							if (!includeNotes) {
+								const notesContainer =
+									cellClone.querySelector(".notes-container");
+								if (notesContainer) notesContainer.remove();
+							} else {
+								// Notizen optimieren
+								const notesContainer =
+									cellClone.querySelector(".notes-container");
+								if (notesContainer) {
+									notesContainer.style.minHeight = "40px";
+									const notesLabel = notesContainer.querySelector("label");
+									if (notesLabel) notesLabel.style.fontSize = "11px";
+									const textarea = notesContainer.querySelector("textarea");
+									if (textarea) {
+										textarea.style.fontSize = "11px";
+										textarea.style.minHeight = "30px";
+									}
+								}
+							}
+
+							// Entferne Status-Selector aus dem Export
+							const statusSelector = cellClone.querySelector("select");
+							if (statusSelector) statusSelector.parentElement.remove();
+
+							// Hauptbereich für PDF optimieren
+							const mainArea = cellClone.querySelector(".p-4");
+							if (mainArea) {
+								mainArea.style.backgroundColor = "white";
+								mainArea.style.color = "black";
+								mainArea.style.borderBottomLeftRadius = "8px";
+								mainArea.style.borderBottomRightRadius = "8px";
+								mainArea.style.boxShadow = "0 2px 4px rgba(0,0,0,0.1)";
+								mainArea.style.padding = "8px 10px";
+							}
+
+							gridContainer.appendChild(cellClone);
+						});
+
+						exportContainer.appendChild(gridContainer);
+
+						// Styles für den Export
+						exportContainer.style.padding = "20px";
+						exportContainer.style.backgroundColor = "white";
+						exportContainer.style.width = "100%";
+						exportContainer.style.margin = "0 auto";
+						exportContainer.style.maxWidth = landscapeMode ? "1100px" : "900px";
+
+						// Konfiguriere und generiere PDF
+						const options = {
+							margin: [10, 10],
+							filename: `${filename}.pdf`,
+							image: { type: "jpeg", quality: 0.98 },
+							html2canvas: {
+								scale: 2,
+								logging: false,
+								letterRendering: true,
+								useCORS: true,
+								allowTaint: true,
+								width: landscapeMode ? 1100 : 900,
+							},
+							jsPDF: {
+								unit: "mm",
+								format: "a4",
+								orientation: landscapeMode ? "landscape" : "portrait",
+								compress: true,
+								precision: 2,
+							},
+						};
+
+						// Erzeuge und downloade PDF
+						html2pdf().from(exportContainer).set(options).save();
+					});
+
+				// E-Mail-Erfolgsmeldung schließen (behalten für andere Benachrichtigungen)
+				document
+					.getElementById("emailOkBtn")
+					.addEventListener("click", function () {
+						document.getElementById("emailSentModal").classList.add("hidden");
+					});
 
 				// Status-Änderungen verfolgen und Ampeln aktualisieren
-				document.querySelectorAll('.status-selector').forEach(select => {
+				document.querySelectorAll(".status-selector").forEach((select) => {
 					// Initiale Statusberechnung beim Laden
 					updateStatusLights(select);
-					
+
 					// Event-Listener für Statusänderungen
-					select.addEventListener('change', function() {
+					select.addEventListener("change", function () {
 						updateStatusLights(this);
 					});
 				});
-				
+
 				// Funktion um die Statuslichter zu aktualisieren
 				function updateStatusLights(selectElement) {
-					const cellId = selectElement.id.split('-')[1]; // Extrahiert z.B. "1" aus "status-1"
+					const cellId = selectElement.id.split("-")[1]; // Extrahiert z.B. "1" aus "status-1"
 					const selectedStatus = selectElement.value;
-					
+
 					// Alle Lichter dieser Zelle deaktivieren
-					document.querySelectorAll(`[data-cell="${cellId}"]`).forEach(light => {
-						light.classList.remove('active');
-					});
-					
+					document
+						.querySelectorAll(`[data-cell="${cellId}"]`)
+						.forEach((light) => {
+							light.classList.remove("active");
+						});
+
 					// Das entsprechende Licht aktivieren
-					const activeLight = document.querySelector(`[data-cell="${cellId}"][data-status="${selectedStatus}"]`);
+					const activeLight = document.querySelector(
+						`[data-cell="${cellId}"][data-status="${selectedStatus}"]`
+					);
 					if (activeLight) {
-						activeLight.classList.add('active');
+						activeLight.classList.add("active");
 					}
 				}
-				
+
 				// Initialen Status für alle Kacheln setzen
-				document.querySelectorAll('.status-selector').forEach(select => {
+				document.querySelectorAll(".status-selector").forEach((select) => {
 					// Default auf "Ready" setzen
 					select.value = "ready";
 					updateStatusLights(select);
 				});
+				
+				// Initial die sekundäre Sektion ausblenden
+				document.querySelector('.section-divider').style.display = 'none';
+				document.querySelector('.section-label:nth-of-type(2)').style.display = 'none';
 			});
 		</script>
 	</body>
