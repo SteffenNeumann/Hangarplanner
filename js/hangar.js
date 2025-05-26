@@ -99,7 +99,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
 					// Kachel-Werte zurücksetzen, falls vorhanden
 					if (settings.tileValues && Array.isArray(settings.tileValues)) {
+						// Für jede gespeicherte Kachel die Werte setzen
 						settings.tileValues.forEach((tileValue) => {
+							// Position setzen
 							const positionInput = document.getElementById(
 								`hangar-position-${tileValue.cellId}`
 							);
@@ -107,17 +109,28 @@ document.addEventListener("DOMContentLoaded", () => {
 								positionInput.value = tileValue.position || "";
 							}
 
-							// Falls manuelle Eingabe gespeichert wurde
+							// Manuelle Eingabe setzen
 							if (tileValue.manualInput) {
-								const manualInputs = document.querySelectorAll(
-									`.hangar-cell:nth-child(${
-										tileValue.cellId <= 12
-											? tileValue.cellId
-											: tileValue.cellId - 100
-									}) input[placeholder="Manual Input"]`
+								// Bestimme den Container (primär oder sekundär)
+								const container =
+									tileValue.cellId < 100
+										? "#hangarGrid"
+										: "#secondaryHangarGrid";
+								const index =
+									tileValue.cellId < 100
+										? tileValue.cellId
+										: tileValue.cellId - 100;
+
+								// Suche nach dem manuellen Eingabefeld
+								const manualInput = document.querySelector(
+									`${container} .hangar-cell:nth-child(${index}) input[placeholder="Manual Input"]`
 								);
-								if (manualInputs.length > 0) {
-									manualInputs[0].value = tileValue.manualInput;
+
+								if (manualInput) {
+									manualInput.value = tileValue.manualInput;
+									debug(
+										`Manuelle Eingabe für Kachel ${tileValue.cellId} gesetzt: ${tileValue.manualInput}`
+									);
 								}
 							}
 						});
@@ -132,6 +145,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			}
 			return false;
 		},
+
 		save: function (exportToFile = false) {
 			try {
 				// Aktuelle Werte aus den Eingabefeldern holen
@@ -148,49 +162,14 @@ document.addEventListener("DOMContentLoaded", () => {
 						parseInt(document.getElementById("layoutType").value) || 4;
 				}
 
-				// Kachel-Werte sammeln
+				// Alle Kacheln sammeln (primäre und sekundäre)
 				const tileValues = [];
-				const maxCellId = this.tilesCount + this.secondaryTilesCount;
 
-				// Alle sichtbaren Kacheln sammeln (primäre und sekundäre)
-				// Primäre Kacheln
-				for (let i = 1; i <= this.tilesCount; i++) {
-					const positionInput = document.getElementById(`hangar-position-${i}`);
-					const manualInputs = document.querySelectorAll(
-						`.hangar-cell:nth-child(${i}) input[placeholder="Manual Input"]`
-					);
-					if (positionInput || (manualInputs && manualInputs.length > 0)) {
-						tileValues.push({
-							cellId: i,
-							position: positionInput ? positionInput.value : "",
-							manualInput:
-								manualInputs && manualInputs.length > 0
-									? manualInputs[0].value
-									: "",
-						});
-					}
-				}
+				// Sammle Daten von primären Kacheln
+				this.collectTileValues("#hangarGrid", tileValues, 1);
 
-				// Sekundäre Kacheln
-				for (let i = 1; i <= this.secondaryTilesCount; i++) {
-					const cellId = 100 + i;
-					const positionInput = document.getElementById(
-						`hangar-position-${cellId}`
-					);
-					const manualInputs = document.querySelectorAll(
-						`.hangar-cell:nth-child(${i}) input[placeholder="Manual Input"]`
-					);
-					if (positionInput || (manualInputs && manualInputs.length > 0)) {
-						tileValues.push({
-							cellId: cellId,
-							position: positionInput ? positionInput.value : "",
-							manualInput:
-								manualInputs && manualInputs.length > 0
-									? manualInputs[0].value
-									: "",
-						});
-					}
-				}
+				// Sammle Daten von sekundären Kacheln
+				this.collectTileValues("#secondaryHangarGrid", tileValues, 101);
 
 				// Im LocalStorage speichern
 				localStorage.setItem(
@@ -241,6 +220,43 @@ document.addEventListener("DOMContentLoaded", () => {
 				return false;
 			}
 		},
+
+		// Hilfsmethode zum Sammeln von Kachelwerten
+		collectTileValues: function (containerSelector, tileValues, baseIndex) {
+			const container = document.querySelector(containerSelector);
+			if (!container) return;
+
+			const cells = container.querySelectorAll(".hangar-cell");
+
+			cells.forEach((cell, index) => {
+				const cellId = baseIndex + index;
+
+				// Position-Input finden
+				const positionInput = document.getElementById(
+					`hangar-position-${cellId}`
+				);
+
+				// Manuelles Eingabefeld finden
+				const manualInput = cell.querySelector(
+					'input[placeholder="Manual Input"]'
+				);
+
+				// Wenn wir Werte haben, fügen wir sie hinzu
+				if (
+					(positionInput && positionInput.value) ||
+					(manualInput && manualInput.value)
+				) {
+					tileValues.push({
+						cellId: cellId,
+						position: positionInput ? positionInput.value : "",
+						manualInput: manualInput ? manualInput.value : "",
+					});
+				}
+			});
+
+			debug(`${cells.length} Kacheln aus ${containerSelector} verarbeitet`);
+		},
+
 		apply: function () {
 			try {
 				// Grid-Layout für primäre Kacheln aktualisieren
@@ -494,9 +510,11 @@ document.addEventListener("DOMContentLoaded", () => {
 			console.error("Element 'updateTilesBtn' nicht gefunden!");
 		}
 
-		document
-			.getElementById("updateSecondaryTilesBtn")
-			.addEventListener("click", function () {
+		const updateSecondaryTilesBtn = document.getElementById(
+			"updateSecondaryTilesBtn"
+		);
+		if (updateSecondaryTilesBtn) {
+			updateSecondaryTilesBtn.addEventListener("click", function () {
 				// Wert aus dem Eingabefeld in uiSettings speichern
 				uiSettings.secondaryTilesCount =
 					parseInt(document.getElementById("secondaryTilesCount").value) || 0;
@@ -504,16 +522,18 @@ document.addEventListener("DOMContentLoaded", () => {
 				uiSettings.save();
 				uiSettings.apply();
 			});
+		}
 
-		document
-			.getElementById("layoutType")
-			.addEventListener("change", function () {
+		const layoutType = document.getElementById("layoutType");
+		if (layoutType) {
+			layoutType.addEventListener("change", function () {
 				// Wert aus dem Auswahlfeld in uiSettings speichern
 				uiSettings.layout = parseInt(this.value) || 4;
 				// Einstellungen im LocalStorage speichern und anwenden
 				uiSettings.save();
 				uiSettings.apply();
 			});
+		}
 
 		// Settings-Buttons
 		const saveSettingsBtn = document.getElementById("saveSettingsBtn");
@@ -530,33 +550,37 @@ document.addEventListener("DOMContentLoaded", () => {
 			console.error("Element 'saveSettingsBtn' nicht gefunden!");
 		}
 
-		document
-			.getElementById("loadSettingsBtn")
-			.addEventListener("click", function () {
+		const loadSettingsBtn = document.getElementById("loadSettingsBtn");
+		if (loadSettingsBtn) {
+			loadSettingsBtn.addEventListener("click", function () {
 				document.getElementById("settingsFileInput").click();
 			});
+		}
 
 		// Settings-Datei-Import
-		document
-			.getElementById("settingsFileInput")
-			.addEventListener("change", loadSettingsFromFile);
+		const settingsFileInput = document.getElementById("settingsFileInput");
+		if (settingsFileInput) {
+			settingsFileInput.addEventListener("change", loadSettingsFromFile);
+		}
 
 		// PDF Export-Button
-		document
-			.getElementById("exportPdfBtn")
-			.addEventListener("click", exportToPDF);
+		const exportPdfBtn = document.getElementById("exportPdfBtn");
+		if (exportPdfBtn) {
+			exportPdfBtn.addEventListener("click", exportToPDF);
+		}
 
 		// Modales Fenster für Laden
-		document
-			.getElementById("cancelLoad")
-			.addEventListener("click", function () {
+		const cancelLoad = document.getElementById("cancelLoad");
+		if (cancelLoad) {
+			cancelLoad.addEventListener("click", function () {
 				document.getElementById("loadModal").classList.add("hidden");
 			});
+		}
 
 		// Bestätigen-Button für das Modal
-		document
-			.getElementById("confirmLoad")
-			.addEventListener("click", function () {
+		const confirmLoad = document.getElementById("confirmLoad");
+		if (confirmLoad) {
+			confirmLoad.addEventListener("click", function () {
 				const projectName = document.getElementById("loadProjectName").value;
 				if (projectName) {
 					// Hier würde die Logik zum Laden aus dem LocalStorage erfolgen
@@ -566,445 +590,708 @@ document.addEventListener("DOMContentLoaded", () => {
 					alert("Bitte geben Sie einen Projektnamen ein.");
 				}
 			});
+		}
 
 		// Email-Modal schließen
-		document
-			.getElementById("emailOkBtn")
-			.addEventListener("click", function () {
+		const emailOkBtn = document.getElementById("emailOkBtn");
+		if (emailOkBtn) {
+			emailOkBtn.addEventListener("click", function () {
 				document.getElementById("emailSentModal").classList.add("hidden");
 			});
+		}
 
-		// Event-Listener für Status-Änderungen in allen Kacheln
-		for (let i = 1; i <= 12; i++) {
-			// Flugzeugkennzeichen Eingabe
-			const aircraftInput = document.getElementById(`aircraft-${i}`);
-			if (aircraftInput) {
-				aircraftInput.addEventListener("change", (e) => {
-					if (i <= 8) {
-						hangarData.cells[i - 1].aircraftId = e.target.value;
-						updateCellData(i);
-					}
-				});
-			}
+		// Event-Listener für die Suchfunktion
+		const btnSearch = document.getElementById("btnSearch");
+		if (btnSearch) {
+			btnSearch.addEventListener("click", searchAircraft);
+		}
 
-			// Status-Änderung
-			const statusSelect = document.getElementById(`status-${i}`);
-			if (statusSelect) {
-				statusSelect.addEventListener("change", (e) => {
-					if (i <= 8) {
-						hangarData.cells[i - 1].status = e.target.value;
-					}
-					updateStatusLights(i);
-				});
-			}
-
-			// Manuelle Eingabe
-			const manualInputs = document.querySelectorAll(
-				`.hangar-cell:nth-child(${i}) input[placeholder="Manual Input"]`
-			);
-			if (manualInputs.length > 0) {
-				manualInputs.forEach((input) => {
-					input.addEventListener("change", (e) => {
-						if (i <= 8) {
-							hangarData.cells[i - 1].manualInput = e.target.value;
-						}
-					});
-				});
-			}
-
-			// Position-Eingabe
-			const positionInput = document.getElementById(`hangar-position-${i}`);
-			if (positionInput) {
-				positionInput.addEventListener("change", (e) => {
-					if (i <= 8) {
-						hangarData.cells[i - 1].position = e.target.value;
-					}
-				});
-			}
+		// Event-Listener für Flugdaten abrufen
+		const fetchFlightData = document.getElementById("fetchFlightData");
+		if (fetchFlightData) {
+			fetchFlightData.addEventListener("click", fetchFlightDataFunction);
 		}
 
 		// Projektname Änderungen verfolgen
-		document
-			.getElementById("projectName")
-			.addEventListener("change", function () {
+		const projectName = document.getElementById("projectName");
+		if (projectName) {
+			projectName.addEventListener("change", function () {
 				console.log("Projektname geändert zu: " + this.value);
 			});
+		}
+
+		// Save und Load Buttons
+		const saveBtn = document.getElementById("saveBtn");
+		if (saveBtn) {
+			saveBtn.addEventListener("click", saveProject);
+		}
+
+		const loadBtn = document.getElementById("loadBtn");
+		if (loadBtn) {
+			loadBtn.addEventListener("click", function () {
+				if (checkElement("jsonFileInput")) {
+					document.getElementById("jsonFileInput").click();
+				}
+			});
+		}
+
+		const jsonFileInput = document.getElementById("jsonFileInput");
+		if (jsonFileInput) {
+			jsonFileInput.addEventListener("change", importHangarPlanFromJson);
+		}
+
+		// Aktualisiere Event-Listener für alle Kacheln
+		setupAllTileEventListeners();
 	}
 
 	/**
-	 * Initialisiert die Status-Handler für alle Kacheln
+	 * Aktualisiert die Status-Lichter basierend auf dem gewählten Status
 	 */
-	function initStatusHandlers() {
-		document.querySelectorAll(".status-selector").forEach((select) => {
-			// Initialen Status setzen
-			if (!select.dataset.initialized) {
-				select.dataset.initialized = "true";
-				select.value = "ready";
-				updateStatusLights(parseInt(select.id.split("-")[1]));
+	function updateStatusLights(cellId) {
+		try {
+			const status = document.getElementById(`status-${cellId}`).value;
+
+			// Alle Lichter für diese Zelle finden
+			const lights = document.querySelectorAll(`[data-cell="${cellId}"]`);
+
+			// Alle Lichter zurücksetzen (deaktivieren)
+			lights.forEach((light) => {
+				light.classList.remove("active");
+			});
+
+			// Das richtige Licht aktivieren
+			const activeLight = document.querySelector(
+				`[data-cell="${cellId}"][data-status="${status}"]`
+			);
+			if (activeLight) {
+				activeLight.classList.add("active");
+			}
+
+			return true;
+		} catch (error) {
+			console.error(
+				`Fehler beim Aktualisieren der Statuslichter für Zelle ${cellId}:`,
+				error
+			);
+			return false;
+		}
+	}
+
+	/**
+	 * Aktualisiert die Daten einer Zelle
+	 */
+	function updateCellData(cellId) {
+		if (cellId > 8) return; // Nur für die primären Zellen relevant
+
+		const cell = hangarData.cells[cellId - 1];
+		if (!cell) return;
+
+		// Aktualisiere UI-Elemente basierend auf den Daten
+		const aircraftInput = document.getElementById(`aircraft-${cellId}`);
+		if (aircraftInput) {
+			aircraftInput.value = cell.aircraftId;
+		}
+
+		const statusSelect = document.getElementById(`status-${cellId}`);
+		if (statusSelect) {
+			statusSelect.value = cell.status;
+			updateStatusLights(cellId);
+		}
+
+		const arrivalTimeElement = document.getElementById(
+			`arrival-time-${cellId}`
+		);
+		if (arrivalTimeElement) {
+			arrivalTimeElement.textContent = cell.arrivalTime || "--:--";
+		}
+
+		const departureTimeElement = document.getElementById(
+			`departure-time-${cellId}`
+		);
+		if (departureTimeElement) {
+			departureTimeElement.textContent = cell.departureTime || "--:--";
+		}
+
+		const positionElement = document.getElementById(`position-${cellId}`);
+		if (positionElement) {
+			positionElement.textContent = cell.position || "--";
+		}
+	}
+
+	/**
+	 * Sucht nach einem Flugzeug
+	 */
+	function searchAircraft() {
+		const searchTerm = document
+			.getElementById("searchAircraft")
+			.value.trim()
+			.toUpperCase();
+		if (!searchTerm) {
+			alert("Bitte geben Sie eine Flugzeug-ID ein.");
+			return;
+		}
+
+		let found = false;
+
+		// Durchsuche alle Flugzeug-IDs
+		document.querySelectorAll('[id^="aircraft-"]').forEach((input) => {
+			const currentValue = input.value.trim().toUpperCase();
+			if (currentValue === searchTerm) {
+				found = true;
+
+				// Markiere das gefundene Element
+				const cell = input.closest(".hangar-cell");
+				if (cell) {
+					// Kurzzeitig hervorheben
+					cell.style.boxShadow = "0 0 0 4px #EF8354";
+					cell.scrollIntoView({ behavior: "smooth", block: "center" });
+
+					setTimeout(() => {
+						cell.style.boxShadow = "";
+					}, 3000);
+				}
 			}
 		});
 
-		// Schleppstatus-Handling einrichten
-		const towStates = ["initiated", "ongoing", "on-position"];
-		const towClasses = ["tow-initiated", "tow-ongoing", "tow-on-position"];
-		const towTexts = ["Initiated", "In Progress", "On Position"];
+		if (!found) {
+			alert(`Flugzeug mit ID "${searchTerm}" wurde nicht gefunden.`);
+		}
+	}
 
-		document
-			.querySelectorAll('[id^="tow-status-"]')
-			.forEach((statusElement) => {
-				statusElement.addEventListener("click", function () {
-					// Aktuelle Klasse bestimmen
-					const currentClass = towClasses.find((cls) =>
-						this.classList.contains(cls)
-					);
-					const currentIndex = towClasses.indexOf(currentClass);
-					const nextIndex = (currentIndex + 1) % towClasses.length;
+	/**
+	 * Speichert das aktuelle Projekt
+	 */
+	function saveProject() {
+		try {
+			exportHangarPlanToJson();
+			showNotification("Projekt erfolgreich gespeichert!", "success");
+		} catch (error) {
+			console.error("Fehler beim Speichern:", error);
+			alert("Fehler beim Speichern: " + error.message);
+		}
+	}
 
-					// Klasse und Text ändern
-					towClasses.forEach((cls) => this.classList.remove(cls));
-					this.classList.add(towClasses[nextIndex]);
-					this.textContent = towTexts[nextIndex];
+	/**
+	 * Funktion zum Abrufen von Flugdaten (Mock)
+	 */
+	function fetchFlightDataFunction() {
+		const fetchStatus = document.getElementById("fetchStatus");
+		if (fetchStatus) {
+			fetchStatus.textContent = "Daten werden abgerufen...";
+			fetchStatus.style.color = "#FFC107";
+		}
+
+		// Simuliere API-Aufruf
+		setTimeout(() => {
+			// Mock-Daten für Demo-Zwecke
+			const mockData = {
+				flights: [
+					{
+						id: "LH123",
+						arrival: "12:30",
+						departure: "14:45",
+						position: "Gate A1",
+					},
+					{
+						id: "BA456",
+						arrival: "13:15",
+						departure: "15:30",
+						position: "Gate B2",
+					},
+					{
+						id: "AF789",
+						arrival: "14:00",
+						departure: "16:20",
+						position: "Gate C3",
+					},
+				],
+			};
+
+			// Daten anwenden (für Demo nur das erste Flugzeug)
+			if (mockData.flights && mockData.flights.length > 0) {
+				const flight = mockData.flights[0];
+				if (checkElement("aircraft-1")) {
+					document.getElementById("aircraft-1").value = flight.id;
+					document.getElementById("arrival-time-1").textContent =
+						flight.arrival;
+					document.getElementById("departure-time-1").textContent =
+						flight.departure;
+					document.getElementById("position-1").textContent = flight.position;
+
+					// Auch in den Daten speichern
+					if (hangarData.cells && hangarData.cells.length > 0) {
+						hangarData.cells[0].aircraftId = flight.id;
+						hangarData.cells[0].arrivalTime = flight.arrival;
+						hangarData.cells[0].departureTime = flight.departure;
+						hangarData.cells[0].position = flight.position;
+					}
+				}
+			}
+
+			if (fetchStatus) {
+				fetchStatus.textContent = "Daten erfolgreich aktualisiert";
+				fetchStatus.style.color = "#4CAF50";
+
+				setTimeout(() => {
+					fetchStatus.textContent = "Ready to retrieve flight data";
+					fetchStatus.style.color = "";
+				}, 3000);
+			}
+
+			showNotification("Flugdaten wurden aktualisiert", "success");
+		}, 1500);
+	}
+
+	/**
+	 * Exportiert den Hangarplan als PDF
+	 */
+	function exportToPDF() {
+		try {
+			// PDF-Optionen aus der UI holen
+			const filename =
+				document.getElementById("pdfFilename").value || "Hangar_Plan";
+			const includeNotes = document.getElementById("includeNotes").checked;
+			const landscapeMode = document.getElementById("landscapeMode").checked;
+
+			// Content-Element vorbereiten für PDF-Export
+			const hangarContainer = document.querySelector(".hangar-container");
+
+			// Tiefe Kopie des Containers erstellen, um Originaldaten nicht zu verändern
+			const pdfContent = hangarContainer.cloneNode(true);
+
+			// Notizen ausblenden, wenn Option nicht aktiviert
+			if (!includeNotes) {
+				const noteAreas = pdfContent.querySelectorAll(".notes-container");
+				noteAreas.forEach((area) => (area.style.display = "none"));
+			}
+
+			// HTML2PDF Optionen
+			const options = {
+				margin: 10,
+				filename: `${filename}.pdf`,
+				image: { type: "jpeg", quality: 0.98 },
+				html2canvas: { scale: 2, useCORS: true },
+				jsPDF: {
+					unit: "mm",
+					format: "a4",
+					orientation: landscapeMode ? "landscape" : "portrait",
+				},
+			};
+
+			// Temporäres Element für den Export erstellen
+			const tempElement = document.createElement("div");
+			tempElement.className = "pdf-content";
+			tempElement.appendChild(pdfContent);
+
+			// Temporäres Element versteckt zum Body hinzufügen
+			tempElement.style.position = "absolute";
+			tempElement.style.left = "-9999px";
+			document.body.appendChild(tempElement);
+
+			// PDF generieren
+			html2pdf()
+				.from(tempElement)
+				.set(options)
+				.save()
+				.then(() => {
+					// Aufräumen
+					document.body.removeChild(tempElement);
+					showNotification("PDF wurde erfolgreich exportiert", "success");
+				})
+				.catch((error) => {
+					console.error("Fehler beim PDF-Export:", error);
+					showNotification("Fehler beim PDF-Export: " + error.message, "error");
 				});
-			});
-	}
-
-	/**
-	 * Zeigt oder versteckt die sekundäre Sektion basierend auf den Einstellungen
-	 */
-	function toggleSecondarySection() {
-		const divider = document.querySelector(".section-divider");
-		const secondaryLabel = document.querySelector(
-			".section-label:nth-of-type(2)"
-		);
-
-		// Prüfe, ob die Elemente existieren, bevor auf deren style-Eigenschaft zugegriffen wird
-		if (uiSettings.secondaryTilesCount > 0) {
-			if (divider) divider.style.display = "block";
-			if (secondaryLabel) secondaryLabel.style.display = "block";
-		} else {
-			if (divider) divider.style.display = "none";
-			if (secondaryLabel) secondaryLabel.style.display = "none";
+		} catch (error) {
+			console.error("PDF-Export fehlgeschlagen:", error);
+			showNotification("PDF-Export fehlgeschlagen: " + error.message, "error");
 		}
-	}
-
-	/**
-	 * Aktualisiert die sekundären Kacheln basierend auf den Einstellungen
-	 */
-	function updateSecondaryTiles(count, columns) {
-		const secondaryGrid = document.getElementById("secondaryHangarGrid");
-		secondaryGrid.innerHTML = "";
-
-		// Neue sekundäre Kacheln erstellen
-		for (let i = 1; i <= count; i++) {
-			const cellId = 100 + i; // IDs beginnen bei 101
-			createTile(secondaryGrid, cellId, `S${i}`);
-		}
-
-		// Trennlinie und Abschnitt ein-/ausblenden
-		toggleSecondarySection();
-
-		// Status-Handler für neue Kacheln initialisieren
-		initStatusHandlers();
-	}
-
-	/**
-	 * Erstellt eine einzelne Kachel und fügt sie dem Container hinzu
-	 */
-	function createTile(container, cellId, positionPlaceholder) {
-		const newCell = document.createElement("div");
-		newCell.className =
-			"hangar-cell bg-white rounded-lg shadow-md flex flex-col";
-		newCell.innerHTML = `
-		<div class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-			<div class="status-container">
-				<span class="status-light bg-status-green" data-cell="${cellId}" data-status="ready"></span>
-				<span class="status-light bg-status-yellow" data-cell="${cellId}" data-status="maintenance"></span>
-				<span class="status-light bg-status-red" data-cell="${cellId}" data-status="aog"></span>
-			</div>
-			<div class="flex items-center">
-				<span class="text-xs text-white font-medium mr-2">Position:</span>
-				<input type="text" placeholder="${positionPlaceholder}" id="hangar-position-${cellId}" class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
-			</div>
-			<input type="text" placeholder="Manual Input" class="text-xs bg-industrial-dark rounded px-2 py-1 w-32 text-white" />
-		</div>
-		<div class="p-4 flex-grow flex flex-col">
-			<input type="text" id="aircraft-${cellId}" placeholder="Aircraft ID" class="aircraft-id" />
-			<div class="info-grid mb-3">
-				<div class="info-label">Arrival:</div>
-				<div id="arrival-time-${cellId}" class="info-value">--:--</div>
-				<div class="info-label">Departure:</div>
-				<div id="departure-time-${cellId}" class="info-value">--:--</div>
-				<div class="info-label">Position:</div>
-				<div id="position-${cellId}" class="info-value">--</div>
-				<div class="info-label">Towing Status:</div>
-				<div id="tow-status-${cellId}" class="tow-status tow-initiated">Initiated</div>
-			</div>
-			<div class="notes-container">
-				<label class="block text-sm text-industrial-dark font-medium mb-1">Notes:</label>
-				<textarea id="notes-${cellId}" class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
-			</div>
-			<div class="mt-auto">
-				<select id="status-${cellId}" class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
-					<option value="ready">Ready</option>
-					<option value="maintenance">Maintenance</option>
-					<option value="aog">AOG</option>
-				</select>
-			</div>
-		</div>`;
-		container.appendChild(newCell);
 	}
 
 	/**
 	 * Lädt Einstellungen aus einer Datei
 	 */
 	function loadSettingsFromFile(event) {
-		const fileInput = event.target;
-		const file = fileInput.files[0];
+		try {
+			const file = event.target.files[0];
+			if (!file) {
+				showNotification("Keine Datei ausgewählt", "error");
+				return;
+			}
 
-		if (file) {
 			const reader = new FileReader();
-
 			reader.onload = function (e) {
 				try {
 					const settings = JSON.parse(e.target.result);
 
-					// Einstellungen in die UI-Elemente setzen
-					document.getElementById("tilesCount").value =
-						settings.tilesCount || 8;
-					document.getElementById("secondaryTilesCount").value =
-						settings.secondaryTilesCount || 0;
-					document.getElementById("layoutType").value = settings.layout || 4;
+					// Einstellungen in localStorage speichern
+					localStorage.setItem(
+						"hangarPlannerSettings",
+						JSON.stringify(settings)
+					);
 
-					// In uiSettings übernehmen
-					uiSettings.tilesCount = settings.tilesCount || 8;
-					uiSettings.secondaryTilesCount = settings.secondaryTilesCount || 0;
-					uiSettings.layout = settings.layout || 4;
+					// Einstellungen in UI aktualisieren
+					if (checkElement("tilesCount")) {
+						document.getElementById("tilesCount").value =
+							settings.tilesCount || 8;
+					}
+					if (checkElement("secondaryTilesCount")) {
+						document.getElementById("secondaryTilesCount").value =
+							settings.secondaryTilesCount || 0;
+					}
+					if (checkElement("layoutType")) {
+						document.getElementById("layoutType").value = settings.layout || 4;
+					}
 
-					// Speichern und anwenden
-					uiSettings.save();
+					// Einstellungen anwenden
+					uiSettings.load();
 					uiSettings.apply();
 
-					// HTML-Benachrichtigung statt Alert
-					showNotification("Einstellungen erfolgreich geladen!", "success");
+					showNotification("Einstellungen erfolgreich geladen", "success");
 				} catch (error) {
-					console.error("Fehler beim Laden der Einstellungen:", error);
+					console.error(
+						"Einstellungen-Datei konnte nicht verarbeitet werden:",
+						error
+					);
 					showNotification(
-						"Die Datei enthält keine gültigen Einstellungen.",
+						"Fehler beim Verarbeiten der Einstellungen-Datei",
 						"error"
 					);
 				}
 			};
-
 			reader.readAsText(file);
-			fileInput.value = ""; // Zurücksetzen für erneutes Laden
-		}
-	}
 
-	/**
-	 * Aktualisiert die Statuslichter basierend auf dem Status des Flugzeugs
-	 * @param {number} cellId - Die ID der Hangar-Zelle
-	 */
-	function updateStatusLights(cellId) {
-		// Für primäre Zellen direkt aus hangarData
-		if (cellId <= 8 && hangarData.cells[cellId - 1]) {
-			const cell = hangarData.cells[cellId - 1];
-			const status = cell.status;
-
-			// Standardmäßig alle Lichter ausschalten
-			cell.lightsStatus = {
-				arrival: false,
-				present: false,
-				departure: false,
-			};
-
-			// Je nach Status die entsprechenden Lichter einschalten
-			switch (status) {
-				case "maintenance":
-					cell.lightsStatus.present = true;
-					cell.lightsStatus.arrival = true;
-					break;
-				case "ready":
-					cell.lightsStatus.arrival = true;
-					cell.lightsStatus.present = true;
-					break;
-				case "boarding":
-					cell.lightsStatus.present = true;
-					cell.lightsStatus.departure = true;
-					break;
-				case "delay":
-					cell.lightsStatus.arrival = true;
-					cell.lightsStatus.departure = true;
-					break;
-			}
-		}
-
-		// UI-Update - für alle Zellen (primär und sekundär)
-		const statusSelect = document.getElementById(`status-${cellId}`);
-		if (!statusSelect) return;
-
-		const status = statusSelect.value;
-
-		// Alle Status-Lichter für diese Zelle finden und deaktivieren
-		const statusLights = document.querySelectorAll(
-			`.status-light[data-cell="${cellId}"]`
-		);
-		statusLights.forEach((light) => light.classList.remove("active"));
-
-		// Das richtige Licht aktivieren basierend auf dem Status
-		const activeLight = document.querySelector(
-			`.status-light[data-cell="${cellId}"][data-status="${status}"]`
-		);
-		if (activeLight) {
-			activeLight.classList.add("active");
-		}
-	}
-
-	/**
-	 * Aktualisiert die Daten für eine Zelle basierend auf dem Flugzeugkennzeichen
-	 * @param {number} cellId - Die ID der Hangar-Zelle
-	 */
-	async function updateCellData(cellId) {
-		const cell = hangarData.cells[cellId - 1];
-		const aircraftId = cell.aircraftId;
-
-		// Wenn kein Kennzeichen eingegeben wurde, zeige Standardwerte an
-		if (!aircraftId) {
-			document.getElementById(`arrival-time-${cellId}`).textContent = "--:--";
-			document.getElementById(`departure-time-${cellId}`).textContent = "--:--";
-			document.getElementById(`position-${cellId}`).textContent = "--";
-			return;
-		}
-
-		// UI-Status auf "Laden" setzen
-		document.getElementById(`arrival-time-${cellId}`).textContent = "Laden...";
-		document.getElementById(`departure-time-${cellId}`).textContent =
-			"Laden...";
-		document.getElementById(`position-${cellId}`).textContent = "Laden...";
-
-		try {
-			// Simulierte API-Anfrage (in einer realen Anwendung würde hier eine echte API angefragt werden)
-			await simulateFetchFlightData(aircraftId, cellId);
+			// Input zurücksetzen, damit das gleiche File erneut ausgewählt werden kann
+			event.target.value = "";
 		} catch (error) {
-			document.getElementById(`arrival-time-${cellId}`).textContent = "Fehler";
-			document.getElementById(`departure-time-${cellId}`).textContent =
-				"Fehler";
-			document.getElementById(`position-${cellId}`).textContent = "Fehler";
-			console.error("Fehler beim Abrufen der Flugdaten:", error);
+			console.error("Fehler beim Laden der Einstellungen:", error);
+			showNotification(
+				"Fehler beim Laden der Einstellungen: " + error.message,
+				"error"
+			);
 		}
 	}
 
 	/**
-	 * Simuliert das Abrufen von Flugdaten
-	 * In einer realen Anwendung würde dies durch einen tatsächlichen API-Aufruf ersetzt werden
-	 * @param {string} aircraftId - Flugzeugkennzeichen
-	 * @param {number} cellId - Die ID der Hangar-Zelle
-	 * @returns {Promise<void>}
+	 * Zeigt Benachrichtigungen für den Benutzer an
 	 */
-	function simulateFetchFlightData(aircraftId, cellId) {
-		return new Promise((resolve) => {
+	function showNotification(message, type = "info") {
+		// Prüfe, ob bereits eine Benachrichtigung angezeigt wird
+		let notification = document.getElementById("notification");
+		if (!notification) {
+			notification = document.createElement("div");
+			notification.id = "notification";
+			notification.style.position = "fixed";
+			notification.style.bottom = "20px";
+			notification.style.right = "20px";
+			notification.style.padding = "10px 20px";
+			notification.style.borderRadius = "4px";
+			notification.style.minWidth = "200px";
+			notification.style.boxShadow = "0 3px 6px rgba(0,0,0,0.16)";
+			notification.style.zIndex = "9999";
+			notification.style.transition = "opacity 0.3s";
+			document.body.appendChild(notification);
+		}
+
+		// Stil basierend auf Typ setzen
+		switch (type) {
+			case "success":
+				notification.style.backgroundColor = "#4CAF50";
+				notification.style.color = "#fff";
+				break;
+			case "error":
+				notification.style.backgroundColor = "#F44336";
+				notification.style.color = "#fff";
+				break;
+			case "warning":
+				notification.style.backgroundColor = "#FFC107";
+				notification.style.color = "#000";
+				break;
+			default:
+				notification.style.backgroundColor = "#2196F3";
+				notification.style.color = "#fff";
+		}
+
+		notification.textContent = message;
+		notification.style.opacity = "1";
+
+		// Nach 3 Sekunden ausblenden
+		setTimeout(() => {
+			notification.style.opacity = "0";
 			setTimeout(() => {
-				// Generiere zufällige Daten für das Demo
-				const now = new Date();
-				const arrivalHours = (now.getHours() - Math.floor(Math.random() * 5))
-					.toString()
-					.padStart(2, "0");
-				const arrivalMinutes = Math.floor(Math.random() * 60)
-					.toString()
-					.padStart(2, "0");
-				const departureHours = (now.getHours() + Math.floor(Math.random() * 5))
-					.toString()
-					.padStart(2, "0");
-				const departureMinutes = Math.floor(Math.random() * 60)
-					.toString()
-					.padStart(2, "0");
-				const positions = ["A1", "B3", "C2", "D4", "E5", "F2", "G7", "H8"];
-				const position =
-					positions[Math.floor(Math.random() * positions.length)];
+				if (notification.parentNode) {
+					notification.parentNode.removeChild(notification);
+				}
+			}, 300);
+		}, 3000);
+	}
 
-				// Daten speichern
-				hangarData.cells[
-					cellId - 1
-				].arrivalTime = `${arrivalHours}:${arrivalMinutes}`;
-				hangarData.cells[
-					cellId - 1
-				].departureTime = `${departureHours}:${departureMinutes}`;
-				hangarData.cells[cellId - 1].position = position;
+	/**
+	 * Aktualisiert die sekundären Kacheln
+	 */
+	function updateSecondaryTiles(count, layout) {
+		const secondaryGrid = document.getElementById("secondaryHangarGrid");
+		if (!secondaryGrid) return;
 
-				// UI aktualisieren
-				document.getElementById(`arrival-time-${cellId}`).textContent =
-					hangarData.cells[cellId - 1].arrivalTime;
-				document.getElementById(`departure-time-${cellId}`).textContent =
-					hangarData.cells[cellId - 1].departureTime;
-				document.getElementById(`position-${cellId}`).textContent =
-					hangarData.cells[cellId - 1].position;
+		// Bestehende Kacheln entfernen
+		secondaryGrid.innerHTML = "";
 
-				resolve();
-			}, 700); // Simuliere eine Verzögerung von 700ms
+		// Trennlinie ein-/ausblenden basierend auf Anzahl der sekundären Kacheln
+		toggleSecondarySection();
+
+		// Wenn keine Kacheln gewünscht werden, hier abbrechen
+		if (count <= 0) return;
+
+		// Neue sekundäre Kacheln erstellen
+		for (let i = 1; i <= count; i++) {
+			const cellId = 100 + i; // IDs für sekundäre Kacheln beginnen bei 101
+
+			const cell = document.createElement("div");
+			cell.className =
+				"hangar-cell bg-white rounded-lg shadow-md flex flex-col";
+
+			// HTML für eine sekundäre Kachel (ähnlich wie primäre, aber mit anderen IDs)
+			cell.innerHTML = `
+				<div class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
+					<div class="status-container">
+						<span class="status-light bg-status-green" data-cell="${cellId}" data-status="ready"></span>
+						<span class="status-light bg-status-yellow" data-cell="${cellId}" data-status="maintenance"></span>
+						<span class="status-light bg-status-red" data-cell="${cellId}" data-status="aog"></span>
+					</div>
+					<div class="flex items-center">
+						<span class="text-xs text-white font-medium mr-2">Position:</span>
+						<input type="text" placeholder="${i}" id="hangar-position-${cellId}" 
+							class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center">
+					</div>
+					<input type="text" placeholder="Manual Input" 
+						class="text-xs bg-industrial-dark rounded px-2 py-1 w-32 text-white">
+				</div>
+				<div class="p-4 flex-grow flex flex-col">
+					<input type="text" id="aircraft-${cellId}" placeholder="Aircraft ID" class="aircraft-id">
+					<div class="info-grid mb-3">
+						<div class="info-label">Arrival:</div>
+						<div id="arrival-time-${cellId}" class="info-value">--:--</div>
+						<div class="info-label">Departure:</div>
+						<div id="departure-time-${cellId}" class="info-value">--:--</div>
+						<div class="info-label">Position:</div>
+						<div id="position-${cellId}" class="info-value">--</div>
+						<div class="info-label">Towing Status:</div>
+						<div id="tow-status-${cellId}" class="tow-status tow-initiated">Initiated</div>
+					</div>
+					<div class="notes-container">
+						<label class="block text-sm text-industrial-dark font-medium mb-1">Notes:</label>
+						<textarea id="notes-${cellId}" class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
+					</div>
+					<div class="mt-auto">
+						<select id="status-${cellId}" class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
+							<option value="ready">Ready</option>
+							<option value="maintenance">Maintenance</option>
+							<option value="aog">AOG</option>
+						</select>
+					</div>
+				</div>
+			`;
+
+			secondaryGrid.appendChild(cell);
+		}
+
+		// Event-Handler für Status-Updates in den neuen Kacheln einrichten
+		setupAllTileEventListeners();
+	}
+
+	/**
+	 * Aktualisiert die Sichtbarkeit des sekundären Bereichs
+	 */
+	function toggleSecondarySection() {
+		const secondaryCount = uiSettings.secondaryTilesCount || 0;
+		const divider = document.querySelector(".section-divider");
+		const secondaryLabel = document.querySelector(
+			".section-label + .section-label"
+		);
+		const secondaryGrid = document.getElementById("secondaryHangarGrid");
+
+		if (secondaryCount > 0) {
+			// Sichtbar machen
+			if (divider) divider.style.display = "block";
+			if (secondaryLabel) secondaryLabel.style.display = "block";
+			if (secondaryGrid) secondaryGrid.style.display = "grid";
+		} else {
+			// Verstecken
+			if (divider) divider.style.display = "none";
+			if (secondaryLabel) secondaryLabel.style.display = "none";
+			if (secondaryGrid) secondaryGrid.style.display = "none";
+		}
+	}
+
+	/**
+	 * Richtet Event-Listener für alle Kacheln ein
+	 */
+	function setupAllTileEventListeners() {
+		// Status-Selektoren für Status-Updates
+		document.querySelectorAll(".status-selector").forEach((selector) => {
+			selector.removeEventListener("change", statusChangeHandler);
+			selector.addEventListener("change", statusChangeHandler);
 		});
 	}
 
 	/**
-	 * Sucht nach einem Flugzeug basierend auf dem Kennzeichen
+	 * Event-Handler für Status-Änderungen
 	 */
-	function searchAircraft() {
-		const searchText = document
-			.getElementById("searchAircraft")
-			.value.trim()
-			.toUpperCase();
-
-		if (!searchText) return;
-
-		const foundCell = hangarData.cells.find(
-			(cell) => cell.aircraftId.toUpperCase() === searchText
-		);
-
-		if (foundCell) {
-			// Flugzeug gefunden, entsprechende Zelle hervorheben
-			const cellElement = document.querySelector(
-				`.hangar-cell:nth-child(${foundCell.id})`
-			);
-			cellElement.scrollIntoView({ behavior: "smooth" });
-
-			// Visuelles Feedback durch kurzes Pulsieren
-			cellElement.classList.add("ring-4", "ring-industrial-accent");
-			setTimeout(() => {
-				cellElement.classList.remove("ring-4", "ring-industrial-accent");
-			}, 2000);
-		} else {
-			alert(`Flugzeug mit Kennzeichen ${searchText} wurde nicht gefunden.`);
-		}
+	function statusChangeHandler(event) {
+		const selector = event.target;
+		const cellId = selector.id.split("-")[1]; // Extrahiert die Zell-ID aus der Selector-ID
+		updateStatusLights(cellId);
 	}
 
 	/**
-	 * Aktualisiert die Flugdaten für alle Flugzeuge
+	 * Initialisiert alle Status-Handler
 	 */
-	async function fetchFlightData() {
-		const fetchStatusElement = document.getElementById("fetchStatus");
-		fetchStatusElement.textContent = "Aktualisiere Daten...";
-		fetchStatusElement.classList.add("text-status-yellow");
+	function initStatusHandlers() {
+		document.querySelectorAll(".status-selector").forEach((selector) => {
+			selector.addEventListener("change", statusChangeHandler);
+		});
+	}
 
+	/**
+	 * Importiert einen Hangarplan aus einer JSON-Datei
+	 */
+	function importHangarPlanFromJson(event) {
 		try {
-			// Für jedes vorhandene Flugzeug die Daten aktualisieren
-			const updatePromises = hangarData.cells
-				.filter((cell) => cell.aircraftId)
-				.map((cell) => updateCellData(cell.id));
+			const file = event.target.files[0];
+			if (!file) {
+				showNotification("Keine Datei ausgewählt", "error");
+				return;
+			}
 
-			await Promise.all(updatePromises);
+			const reader = new FileReader();
+			reader.onload = function (e) {
+				try {
+					const data = JSON.parse(e.target.result);
 
-			fetchStatusElement.textContent = "Alle Daten erfolgreich aktualisiert!";
-			fetchStatusElement.classList.remove("text-status-yellow");
-			fetchStatusElement.classList.add("text-status-green");
+					// Projekt-Name aktualisieren, falls vorhanden
+					if (data.projectName && checkElement("projectName")) {
+						document.getElementById("projectName").value = data.projectName;
+					}
 
-			// Nach 3 Sekunden zurücksetzen
-			setTimeout(() => {
-				fetchStatusElement.textContent = "Ready to retrieve flight data";
-				fetchStatusElement.classList.remove("text-status-green");
-			}, 3000);
+					// Einstellungen aktualisieren, falls vorhanden
+					if (data.settings) {
+						if (checkElement("tilesCount")) {
+							document.getElementById("tilesCount").value =
+								data.settings.tilesCount || 8;
+						}
+						if (checkElement("secondaryTilesCount")) {
+							document.getElementById("secondaryTilesCount").value =
+								data.settings.secondaryTilesCount || 0;
+						}
+						if (checkElement("layoutType")) {
+							document.getElementById("layoutType").value =
+								data.settings.layout || 4;
+						}
+
+						// Einstellungen anwenden
+						uiSettings.tilesCount = data.settings.tilesCount || 8;
+						uiSettings.secondaryTilesCount =
+							data.settings.secondaryTilesCount || 0;
+						uiSettings.layout = data.settings.layout || 4;
+						uiSettings.apply();
+					}
+
+					// Kacheldaten aktualisieren
+					if (data.cells && Array.isArray(data.cells)) {
+						data.cells.forEach((cellData) => {
+							const cellId = cellData.id;
+
+							// Primäre oder sekundäre Zelle
+							const isPrimary = cellId < 100;
+
+							// Flugzeug-ID
+							const aircraftInput = document.getElementById(
+								`aircraft-${cellId}`
+							);
+							if (aircraftInput && cellData.aircraftId) {
+								aircraftInput.value = cellData.aircraftId;
+							}
+
+							// Status
+							const statusSelect = document.getElementById(`status-${cellId}`);
+							if (statusSelect && cellData.status) {
+								statusSelect.value = cellData.status;
+								updateStatusLights(cellId);
+							}
+
+							// Ankunfts-/Abflugzeiten und Position
+							if (cellData.arrivalTime) {
+								const arrivalElement = document.getElementById(
+									`arrival-time-${cellId}`
+								);
+								if (arrivalElement)
+									arrivalElement.textContent = cellData.arrivalTime;
+							}
+
+							if (cellData.departureTime) {
+								const departureElement = document.getElementById(
+									`departure-time-${cellId}`
+								);
+								if (departureElement)
+									departureElement.textContent = cellData.departureTime;
+							}
+
+							if (cellData.position) {
+								const positionElement = document.getElementById(
+									`position-${cellId}`
+								);
+								if (positionElement)
+									positionElement.textContent = cellData.position;
+
+								const positionInput = document.getElementById(
+									`hangar-position-${cellId}`
+								);
+								if (positionInput) positionInput.value = cellData.position;
+							}
+
+							// Notizen
+							if (cellData.notes) {
+								const notesElement = document.getElementById(`notes-${cellId}`);
+								if (notesElement) notesElement.value = cellData.notes;
+							}
+
+							// Manuelle Eingabe
+							if (cellData.manualInput) {
+								// Bestimme den Container (primär oder sekundär)
+								const container = isPrimary
+									? "#hangarGrid"
+									: "#secondaryHangarGrid";
+								const index = isPrimary ? cellId : cellId - 100;
+
+								const manualInput = document.querySelector(
+									`${container} .hangar-cell:nth-child(${index}) input[placeholder="Manual Input"]`
+								);
+								if (manualInput) manualInput.value = cellData.manualInput;
+							}
+
+							// Wenn es eine primäre Zelle ist, aktualisieren wir auch die hangarData-Struktur
+							if (isPrimary && cellId <= 8) {
+								hangarData.cells[cellId - 1] = {
+									...hangarData.cells[cellId - 1],
+									...cellData,
+								};
+							}
+						});
+					}
+
+					showNotification("Hangar-Plan erfolgreich geladen", "success");
+				} catch (error) {
+					console.error("JSON-Datei konnte nicht verarbeitet werden:", error);
+					showNotification("Fehler beim Verarbeiten der JSON-Datei", "error");
+				}
+			};
+			reader.readAsText(file);
+
+			// Input zurücksetzen, damit das gleiche File erneut ausgewählt werden kann
+			event.target.value = "";
 		} catch (error) {
-			fetchStatusElement.textContent = "Fehler bei der Aktualisierung!";
-			fetchStatusElement.classList.remove("text-status-yellow");
-			fetchStatusElement.classList.add("text-status-red");
-			console.error("Fehler beim Aktualisieren der Flugdaten:", error);
+			console.error("Fehler beim Import des Hangar-Plans:", error);
+			showNotification("Fehler beim Import: " + error.message, "error");
 		}
 	}
 
@@ -1012,415 +1299,139 @@ document.addEventListener("DOMContentLoaded", () => {
 	 * Exportiert den aktuellen Hangarplan als JSON-Datei
 	 */
 	function exportHangarPlanToJson() {
-		const hangarData = collectHangarData();
-		const dataStr = JSON.stringify(hangarData, null, 2);
-		const dataBlob = new Blob([dataStr], { type: "application/json" });
+		try {
+			// Projektname aus Eingabefeld holen
+			const projectName = checkElement("projectName")
+				? document.getElementById("projectName").value
+				: "HangarPlan";
 
-		// Dateiname mit Projektnamen
-		const fileName = `${hangarData.projectName || "HangarPlan"}.json`;
-
-		// Download-Link erstellen
-		const downloadLink = document.createElement("a");
-		downloadLink.href = URL.createObjectURL(dataBlob);
-		downloadLink.download = fileName;
-
-		// Link anklicken und entfernen
-		document.body.appendChild(downloadLink);
-		downloadLink.click();
-		document.body.removeChild(downloadLink);
-
-		// Einstellungen ebenfalls speichern
-		uiSettings.save();
-	}
-
-	/**
-	 * Sammelt alle Daten des aktuellen Hangarplans
-	 */
-	function collectHangarData() {
-		const completeHangarData = {
-			projectName: document.getElementById("projectName").value,
-			lastModified: new Date().toISOString(),
-			aircrafts: [],
-			settings: {
+			// Einstellungen sammeln
+			const settings = {
 				tilesCount: uiSettings.tilesCount,
 				secondaryTilesCount: uiSettings.secondaryTilesCount,
 				layout: uiSettings.layout,
-			},
-		};
+			};
 
-		// Daten aus allen Kacheln sammeln (primär und sekundär)
-		const allCells = [
-			...document.querySelectorAll("#hangarGrid .hangar-cell"),
-			...document.querySelectorAll("#secondaryHangarGrid .hangar-cell"),
-		];
+			// Daten aller Kacheln sammeln
+			const cells = [];
 
-		allCells.forEach((cell, index) => {
-			// Beispiel für Zellenindex (für primäre 1-12, sekundäre 101+)
-			const cellId = index < 12 ? index + 1 : 100 + (index - 11);
-
-			// Position-Eingabe finden
-			const positionInput = cell.querySelector(`#hangar-position-${cellId}`);
-
-			// Aircraft ID finden
-			const aircraftId = cell.querySelector(`#aircraft-${cellId}`);
-
-			// Notizen finden
-			const notes = cell.querySelector(`#notes-${cellId}`);
-
-			// Status finden
-			const statusSelect = cell.querySelector(`#status-${cellId}`);
-
-			// Tow-Status finden
-			const towStatus = cell.querySelector(`#tow-status-${cellId}`);
-
-			// Tow Status Klasse ermitteln
-			let towStatusClass = 0; // Default = initiated
-			if (towStatus) {
-				if (towStatus.classList.contains("tow-ongoing")) towStatusClass = 1;
-				else if (towStatus.classList.contains("tow-on-position"))
-					towStatusClass = 2;
+			// Primäre Kacheln
+			for (let i = 1; i <= uiSettings.tilesCount; i++) {
+				const cell = collectCellData(i);
+				if (cell) cells.push(cell);
 			}
 
-			// Arrival/Departure-Zeiten finden
-			const arrivalTime = cell.querySelector(`#arrival-time-${cellId}`);
-			const departureTime = cell.querySelector(`#departure-time-${cellId}`);
+			// Sekundäre Kacheln
+			for (let i = 1; i <= uiSettings.secondaryTilesCount; i++) {
+				const cellId = 100 + i;
+				const cell = collectCellData(cellId);
+				if (cell) cells.push(cell);
+			}
 
-			// Manuelle Position
-			const positionDisplay = cell.querySelector(`#position-${cellId}`);
+			// Gesamtdaten zusammenstellen
+			const exportData = {
+				projectName: projectName,
+				settings: settings,
+				cells: cells,
+				exportDate: new Date().toISOString(),
+			};
 
-			// Manuelles Input-Feld oben rechts
-			const manualInput = cell.querySelector(
-				'input[placeholder="Manual Input"]'
+			// In Datei exportieren
+			const dataStr = JSON.stringify(exportData, null, 2);
+			const dataBlob = new Blob([dataStr], { type: "application/json" });
+			const fileName = `${projectName}.json`;
+			const downloadLink = document.createElement("a");
+			downloadLink.href = URL.createObjectURL(dataBlob);
+			downloadLink.download = fileName;
+			document.body.appendChild(downloadLink);
+			downloadLink.click();
+			document.body.removeChild(downloadLink);
+
+			showNotification(
+				`Hangarplan erfolgreich als ${fileName} gespeichert`,
+				"success"
 			);
+			return true;
+		} catch (error) {
+			console.error("Fehler beim Exportieren des Hangar-Plans:", error);
+			showNotification("Fehler beim Export: " + error.message, "error");
+			return false;
+		}
+	}
 
-			// Daten sammeln und in ein Objekt packen
-			const aircraftData = {
+	/**
+	 * Sammelt Daten einer einzelnen Kachel
+	 */
+	function collectCellData(cellId) {
+		try {
+			const cell = {
 				id: cellId,
-				position: positionInput ? positionInput.value : "",
-				aircraftId: aircraftId ? aircraftId.value : "",
-				notes: notes ? notes.value : "",
-				status: statusSelect ? statusSelect.value : "ready",
-				towStatus: towStatusClass,
-				arrivalTime: arrivalTime ? arrivalTime.textContent : "--:--",
-				departureTime: departureTime ? departureTime.textContent : "--:--",
-				positionDisplay: positionDisplay ? positionDisplay.textContent : "--",
-				manualInput: manualInput ? manualInput.value : "",
-				visible: !cell.classList.contains("hidden"),
 			};
 
-			completeHangarData.aircrafts.push(aircraftData);
-		});
+			// Aircraft ID
+			const aircraftInput = document.getElementById(`aircraft-${cellId}`);
+			if (aircraftInput) {
+				cell.aircraftId = aircraftInput.value;
+			}
 
-		return completeHangarData;
-	}
+			// Status
+			const statusSelect = document.getElementById(`status-${cellId}`);
+			if (statusSelect) {
+				cell.status = statusSelect.value;
+			}
 
-	/**
-	 * Speichert den aktuellen Hangarplan
-	 */
-	function saveProject() {
-		const projectName =
-			document.getElementById("projectName").value.trim() ||
-			generateTimestamp();
-		document.getElementById("projectName").value = projectName;
-		exportHangarPlanToJson();
-	}
+			// Position (aus der Position im Header und dem angezeigten Wert)
+			const positionInput = document.getElementById(
+				`hangar-position-${cellId}`
+			);
+			if (positionInput) {
+				cell.position = positionInput.value;
+			}
 
-	/**
-	 * Importiert Hangardaten aus einer JSON-Datei
-	 */
-	function importHangarPlanFromJson(event) {
-		const fileInput = event.target;
-		const file = fileInput.files[0];
+			// Arrival/Departure Zeiten
+			const arrivalElement = document.getElementById(`arrival-time-${cellId}`);
+			if (arrivalElement) {
+				cell.arrivalTime =
+					arrivalElement.textContent !== "--:--"
+						? arrivalElement.textContent
+						: "";
+			}
 
-		if (file) {
-			const reader = new FileReader();
+			const departureElement = document.getElementById(
+				`departure-time-${cellId}`
+			);
+			if (departureElement) {
+				cell.departureTime =
+					departureElement.textContent !== "--:--"
+						? departureElement.textContent
+						: "";
+			}
 
-			reader.onload = function (e) {
-				try {
-					const hangarData = JSON.parse(e.target.result);
-					applyHangarData(hangarData);
+			// Notizen
+			const notesElement = document.getElementById(`notes-${cellId}`);
+			if (notesElement) {
+				cell.notes = notesElement.value;
+			}
 
-					// Auch die Einstellungen übernehmen, falls vorhanden
-					if (hangarData.settings) {
-						uiSettings.tilesCount = hangarData.settings.tilesCount || 8;
-						uiSettings.secondaryTilesCount =
-							hangarData.settings.secondaryTilesCount || 0;
-						uiSettings.layout = hangarData.settings.layout || 4;
+			// Manual Input (über Container und Selector)
+			const isPrimary = cellId < 100;
+			const container = isPrimary ? "#hangarGrid" : "#secondaryHangarGrid";
+			const index = isPrimary ? cellId : cellId - 100;
 
-						// UI-Elemente aktualisieren
-						document.getElementById("tilesCount").value = uiSettings.tilesCount;
-						document.getElementById("secondaryTilesCount").value =
-							uiSettings.secondaryTilesCount;
-						document.getElementById("layoutType").value = uiSettings.layout;
+			const manualInput = document.querySelector(
+				`${container} .hangar-cell:nth-child(${index}) input[placeholder="Manual Input"]`
+			);
+			if (manualInput) {
+				cell.manualInput = manualInput.value;
+			}
 
-						// Speichern und anwenden
-						uiSettings.save();
-						uiSettings.apply();
-					}
-
-					alert("Hangar Plan erfolgreich importiert!");
-				} catch (error) {
-					console.error("Fehler beim Parsen der JSON-Datei:", error);
-					alert(
-						"Die Datei konnte nicht gelesen werden. Bitte überprüfe, ob es sich um eine gültige Hangar-Plan-Datei handelt."
-					);
-				}
-
-				// Input zurücksetzen für wiederholte Imports
-				fileInput.value = "";
-			};
-
-			reader.readAsText(file);
+			return cell;
+		} catch (error) {
+			console.error(
+				`Fehler beim Sammeln der Daten für Kachel ${cellId}:`,
+				error
+			);
+			return null;
 		}
-	}
-
-	/**
-	 * Wendet importierte Hangardaten auf die UI an
-	 */
-	function applyHangarData(data) {
-		// Projektname setzen
-		if (data.projectName) {
-			document.getElementById("projectName").value = data.projectName;
-		}
-
-		// Aircraft-Daten anwenden
-		if (data.aircrafts && Array.isArray(data.aircrafts)) {
-			data.aircrafts.forEach((aircraft) => {
-				// ID verarbeiten
-				const cellId = aircraft.id;
-
-				// Position setzen
-				const positionInput = document.querySelector(
-					`#hangar-position-${cellId}`
-				);
-				if (positionInput && aircraft.position) {
-					positionInput.value = aircraft.position;
-				}
-
-				// Aircraft ID setzen
-				const aircraftIdInput = document.querySelector(`#aircraft-${cellId}`);
-				if (aircraftIdInput && aircraft.aircraftId) {
-					aircraftIdInput.value = aircraft.aircraftId;
-				}
-
-				// Notizen setzen
-				const notesTextarea = document.querySelector(`#notes-${cellId}`);
-				if (notesTextarea && aircraft.notes) {
-					notesTextarea.value = aircraft.notes;
-				}
-
-				// Status setzen
-				const statusSelect = document.querySelector(`#status-${cellId}`);
-				if (statusSelect && aircraft.status) {
-					statusSelect.value = aircraft.status;
-					// Status-Lichter aktualisieren
-					updateStatusLights(cellId);
-				}
-
-				// Tow-Status setzen
-				const towStatusElem = document.querySelector(`#tow-status-${cellId}`);
-				if (towStatusElem && typeof aircraft.towStatus === "number") {
-					const towClasses = [
-						"tow-initiated",
-						"tow-ongoing",
-						"tow-on-position",
-					];
-					const towTexts = ["Initiated", "In Progress", "On Position"];
-
-					towClasses.forEach((cls) => towStatusElem.classList.remove(cls));
-
-					const towStatusIndex = Math.min(Math.max(aircraft.towStatus, 0), 2);
-					towStatusElem.classList.add(towClasses[towStatusIndex]);
-					towStatusElem.textContent = towTexts[towStatusIndex];
-				}
-
-				// Arrival/Departure-Zeiten setzen
-				const arrivalTimeElem = document.querySelector(
-					`#arrival-time-${cellId}`
-				);
-				if (
-					arrivalTimeElem &&
-					aircraft.arrivalTime &&
-					aircraft.arrivalTime !== "--:--"
-				) {
-					arrivalTimeElem.textContent = aircraft.arrivalTime;
-				}
-
-				const departureTimeElem = document.querySelector(
-					`#departure-time-${cellId}`
-				);
-				if (
-					departureTimeElem &&
-					aircraft.departureTime &&
-					aircraft.departureTime !== "--:--"
-				) {
-					departureTimeElem.textContent = aircraft.departureTime;
-				}
-
-				// Position anzeigen
-				const positionDisplayElem = document.querySelector(
-					`#position-${cellId}`
-				);
-				if (
-					positionDisplayElem &&
-					aircraft.positionDisplay &&
-					aircraft.positionDisplay !== "--"
-				) {
-					positionDisplayElem.textContent = aircraft.positionDisplay;
-				}
-
-				// Manuelles Input-Feld
-				const manualInputs = document.querySelectorAll(
-					`.hangar-cell:nth-child(${
-						cellId <= 12 ? cellId : cellId - 100
-					}) input[placeholder="Manual Input"]`
-				);
-				if (manualInputs.length > 0 && aircraft.manualInput) {
-					manualInputs[0].value = aircraft.manualInput;
-				}
-
-				// Sichtbarkeit
-				const cellSelector =
-					cellId <= 12
-						? `#hangarGrid .hangar-cell:nth-child(${cellId})`
-						: `#secondaryHangarGrid .hangar-cell:nth-child(${cellId - 100})`;
-
-				const cell = document.querySelector(cellSelector);
-				if (cell) {
-					if (aircraft.visible === false) {
-						cell.classList.add("hidden");
-					} else {
-						cell.classList.remove("hidden");
-					}
-				}
-			});
-		}
-	}
-
-	/**
-	 * Exportiert den Hangarplan als PDF
-	 */
-	function exportToPDF() {
-		const filename =
-			document.getElementById("pdfFilename").value || "Hangar_Plan";
-		const includeNotes = document.getElementById("includeNotes").checked;
-		const landscapeMode = document.getElementById("landscapeMode").checked;
-
-		// Erstelle eine Kopie des hangarGrid für den Export
-		const originalGrid = document.getElementById("hangarGrid");
-		const exportContainer = document.createElement("div");
-		exportContainer.className = "pdf-content";
-
-		// Füge Titel hinzu
-		const title = document.createElement("h1");
-		title.textContent =
-			document.getElementById("projectName").value || "Hangar Plan";
-		title.style.fontSize = "24px";
-		title.style.fontWeight = "bold";
-		title.style.marginBottom = "15px";
-		title.style.textAlign = "center";
-		title.style.color = "#2D3142";
-		exportContainer.appendChild(title);
-
-		// Datum hinzufügen
-		const dateElement = document.createElement("p");
-		dateElement.textContent = "Date: " + new Date().toLocaleDateString();
-		dateElement.style.fontSize = "14px";
-		dateElement.style.marginBottom = "20px";
-		dateElement.style.textAlign = "center";
-		dateElement.style.color = "#4F5D75";
-		exportContainer.appendChild(dateElement);
-
-		// Grid-Container erstellen mit angepasstem Layout für PDF
-		const gridContainer = document.createElement("div");
-		gridContainer.style.display = "grid";
-
-		// Nur sichtbare Kacheln ermitteln
-		const visibleCells = Array.from(originalGrid.children).filter(
-			(cell) => !cell.classList.contains("hidden")
-		);
-		const cellCount = visibleCells.length;
-
-		// Bestimme optimale Spaltenanzahl basierend auf Anzahl der sichtbaren Zellen
-		let columns;
-		if (landscapeMode) {
-			columns =
-				cellCount <= 2
-					? cellCount
-					: cellCount <= 4
-					? 2
-					: cellCount <= 6
-					? 3
-					: 4;
-		} else {
-			columns = cellCount <= 2 ? cellCount : 2; // Im Hochformat maximal 2 Spalten
-		}
-
-		gridContainer.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
-		gridContainer.style.gap = "10px";
-		gridContainer.style.width = "100%";
-		gridContainer.style.maxWidth = landscapeMode ? "1000px" : "800px";
-		gridContainer.style.margin = "0 auto";
-
-		// Jede sichtbare Kachel kopieren und optimieren
-		visibleCells.forEach((cell) => {
-			const cellClone = cell.cloneNode(true);
-			cellClone.style.breakInside = "avoid";
-			cellClone.style.pageBreakInside = "avoid";
-			cellClone.style.width = "100%";
-
-			// Weitere Styling-Optimierungen für PDF...
-			// (Code für PDF-Styling hier gekürzt)
-
-			gridContainer.appendChild(cellClone);
-		});
-
-		exportContainer.appendChild(gridContainer);
-
-		// PDF-Styling für den Container
-		exportContainer.style.padding = "20px";
-		exportContainer.style.backgroundColor = "white";
-		exportContainer.style.width = "100%";
-		exportContainer.style.margin = "0 auto";
-		exportContainer.style.maxWidth = landscapeMode ? "1100px" : "900px";
-
-		// PDF-Optionen konfigurieren
-		const options = {
-			margin: [10, 10],
-			filename: `${filename}.pdf`,
-			image: { type: "jpeg", quality: 0.98 },
-			html2canvas: {
-				scale: 2,
-				logging: false,
-				letterRendering: true,
-				useCORS: true,
-			},
-			jsPDF: {
-				unit: "mm",
-				format: "a4",
-				orientation: landscapeMode ? "landscape" : "portrait",
-			},
-		};
-
-		// PDF erzeugen und herunterladen
-		html2pdf().from(exportContainer).set(options).save();
-	}
-
-	/**
-	 * Zeigt eine Benachrichtigung an
-	 * @param {string} message - Die anzuzeigende Nachricht
-	 * @param {"success"|"error"} type - Typ der Benachrichtigung
-	 */
-	function showNotification(message, type) {
-		const notification = document.createElement("div");
-		notification.className = `notification ${type}`;
-		notification.textContent = message;
-
-		document.body.appendChild(notification);
-
-		// Automatisches Entfernen der Benachrichtigung nach 3 Sekunden
-		setTimeout(() => {
-			notification.remove();
-		}, 3000);
 	}
 });
