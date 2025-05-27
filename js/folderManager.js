@@ -9,9 +9,9 @@ class FolderManager {
 	constructor() {
 		// Basis-Ordnerstruktur definieren
 		this.folderStructure = {
-			baseDir: "HangarPlanner",
-			projectsDir: "HangarPlanner/Projekte",
-			settingsDir: "HangarPlanner/Einstellungen",
+			baseDir: "Settings",
+			projectsDir: "Settings/Projekte",
+			settingsDir: "Settings/Einstellungen",
 		};
 	}
 

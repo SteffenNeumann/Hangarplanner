@@ -2008,7 +2008,30 @@
 			</div>
 		</div>
 
-		<!-- Ausgelagerte JavaScript-Datei -->
+		<!-- Ausgelagerte JavaScript-Dateien -->
+		<script src="js/helpers.js"></script>
+		<script src="js/folderManager.js"></script>
 		<script src="js/hangar.js"></script>
+
+		<!-- Event-Handler für den "Info anzeigen"-Button -->
+		<script>
+			document.addEventListener("DOMContentLoaded", function () {
+				// Event-Handler für den Ordnerstruktur-Info-Button
+				const showFolderInfoBtn = document.getElementById("showFolderInfoBtn");
+				if (showFolderInfoBtn) {
+					showFolderInfoBtn.addEventListener("click", function () {
+						// Diese Funktion wird in folderManager.js definiert
+						if (typeof window.folderManager !== "undefined") {
+							window.folderManager.showFolderStructureInfo();
+						} else {
+							// Fallback, falls die Funktion nicht verfügbar ist
+							alert(
+								"Empfohlene Ordnerstruktur: HangarPlanner/Projekte/ für Projekte und HangarPlanner/Einstellungen/ für Einstellungen"
+							);
+						}
+					});
+				}
+			});
+		</script>
 	</body>
 </html>
