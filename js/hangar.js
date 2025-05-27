@@ -24,6 +24,34 @@ document.addEventListener("DOMContentLoaded", () => {
 		return true;
 	}
 
+	// Dateipfad-Konfiguration für die Anwendung
+	const filePaths = {
+		// Basis-Ordner für die App
+		baseDir: "HangarPlanner",
+
+		// Unterordner für Projektdaten
+		dataDir: "HangarPlanner/Projekte",
+
+		// Unterordner für Einstellungen
+		settingsDir: "HangarPlanner/Einstellungen",
+
+		// Hilfsfunktion zum Erzeugen des vollen Dateipfads für Projekte
+		getProjectPath: function (filename) {
+			if (!filename.endsWith(".json")) {
+				filename += ".json";
+			}
+			return `${this.dataDir}/${filename}`;
+		},
+
+		// Hilfsfunktion zum Erzeugen des vollen Dateipfads für Einstellungen
+		getSettingsPath: function (filename) {
+			if (!filename.endsWith(".json")) {
+				filename += ".json";
+			}
+			return `${this.settingsDir}/${filename}`;
+		},
+	};
+
 	// DOM-Element-Prüfung für kritische UI-Elemente
 	const criticalElements = [
 		"modeToggle",
@@ -184,31 +212,70 @@ document.addEventListener("DOMContentLoaded", () => {
 
 				// Optional als Datei exportieren
 				if (exportToFile) {
-					const dataStr = JSON.stringify(
-						{
-							tilesCount: this.tilesCount,
-							secondaryTilesCount: this.secondaryTilesCount,
-							layout: this.layout,
-							tileValues: tileValues,
-						},
-						null,
-						2
-					);
-					const dataBlob = new Blob([dataStr], { type: "application/json" });
+					const settingsData = {
+						tilesCount: this.tilesCount,
+						secondaryTilesCount: this.secondaryTilesCount,
+						layout: this.layout,
+						tileValues: tileValues,
+					};
+
 					const projectName = checkElement("projectName")
 						? document.getElementById("projectName").value
 						: "HangarPlan";
-					const fileName = `${projectName}_Settings.json`;
-					const downloadLink = document.createElement("a");
-					downloadLink.href = URL.createObjectURL(dataBlob);
-					downloadLink.download = fileName;
-					document.body.appendChild(downloadLink);
-					downloadLink.click();
-					document.body.removeChild(downloadLink);
-					showNotification(
-						`Einstellungen gespeichert als ${fileName}`,
-						"success"
-					);
+					const fileName = `${projectName}_Settings`;
+
+					// Prüfe, ob die moderne File System Access API unterstützt wird
+					if (window.showSaveFilePicker) {
+						// Definiere den Speicherordner für Einstellungen
+						const startInDirectory = "HangarPlanner/Einstellungen";
+
+						// Konfiguriere die Optionen für den File Picker
+						const options = {
+							suggestedName: `${fileName}.json`,
+							types: [
+								{
+									description: "JSON Settings Files",
+									accept: { "application/json": [".json"] },
+								},
+							],
+							// Versuche, ein Startverzeichnis anzugeben
+							startIn: startInDirectory,
+						};
+
+						showSaveFilePicker(options)
+							.then(async (fileHandle) => {
+								const writable = await fileHandle.createWritable();
+								await writable.write(JSON.stringify(settingsData, null, 2));
+								await writable.close();
+								showNotification(
+									"Einstellungen erfolgreich gespeichert!",
+									"success"
+								);
+							})
+							.catch((error) => {
+								if (error.name !== "AbortError") {
+									console.error(
+										"Fehler beim Speichern mit File System API:",
+										error
+									);
+									// Fallback zum regulären Download
+									downloadFile(settingsData, `${fileName}.json`);
+									showNotification(
+										`Einstellungen wurden heruntergeladen. Bitte in ${filePaths.settingsDir}/ speichern.`,
+										"info",
+										5000
+									);
+								}
+							});
+					} else {
+						// Fallback für Browser ohne File System Access API
+						downloadFile(settingsData, `${fileName}.json`);
+						showNotification(
+							`Einstellungen wurden heruntergeladen. Bitte in ${filePaths.settingsDir}/ speichern.`,
+							"info",
+							5000
+						);
+					}
 				}
 				return true;
 			} catch (error) {
@@ -259,10 +326,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
 		apply: function () {
 			try {
-				// Grid-Layout für primäre Kacheln aktualisieren
+				// Grid-Layout für primäre Kacheln aktualisieren mit dynamischem Zwischenraum
 				const hangarGrid = document.getElementById("hangarGrid");
 				if (hangarGrid) {
-					hangarGrid.className = `grid grid-cols-${this.layout} gap-4`;
+					// Berechne verfügbare Breite basierend auf Menüstatus
+					hangarGrid.className = `grid gap-[var(--grid-gap)]`;
+					hangarGrid.style.gridTemplateColumns = `repeat(${this.layout}, minmax(var(--card-min-width), 1fr))`;
 				} else {
 					console.error("Element 'hangarGrid' nicht gefunden!");
 				}
@@ -280,13 +349,17 @@ document.addEventListener("DOMContentLoaded", () => {
 				// Grid-Layout für sekundäre Kacheln aktualisieren
 				const secondaryGrid = document.getElementById("secondaryHangarGrid");
 				if (secondaryGrid) {
-					secondaryGrid.className = `grid grid-cols-${this.layout} gap-4`;
+					secondaryGrid.className = `grid gap-[var(--grid-gap)]`;
+					secondaryGrid.style.gridTemplateColumns = `repeat(${this.layout}, minmax(var(--card-min-width), 1fr))`;
 				} else {
 					console.error("Element 'secondaryHangarGrid' nicht gefunden!");
 				}
 
 				// Sekundäre Kacheln erstellen/aktualisieren
 				updateSecondaryTiles(this.secondaryTilesCount, this.layout);
+
+				// Skalierung nach Layoutänderung neu berechnen
+				setTimeout(adjustScaling, 50);
 				return true;
 			} catch (error) {
 				console.error("Fehler beim Anwenden der Einstellungen:", error);
@@ -386,6 +459,194 @@ document.addEventListener("DOMContentLoaded", () => {
 	}
 
 	/**
+	 * Verbesserte Funktion zur dynamischen Anpassung der Skalierung und Container-Breite
+	 */
+	function adjustScaling() {
+		try {
+			const isSidebarCollapsed =
+				document.body.classList.contains("sidebar-collapsed");
+			const windowWidth = window.innerWidth;
+			const sidebarWidth = isSidebarCollapsed ? 0 : 290;
+			const availableWidth = windowWidth - sidebarWidth;
+
+			// Content-Container Breite anpassen
+			const contentContainer = document.querySelector(".content-container");
+			if (contentContainer) {
+				contentContainer.style.width = `${availableWidth}px`;
+				contentContainer.style.maxWidth = `${availableWidth}px`;
+			}
+
+			// Skalierungsfaktor bestimmen
+			let scaleFactor;
+			if (availableWidth > 1800) scaleFactor = 1.0;
+			else if (availableWidth > 1650) scaleFactor = 0.95;
+			else if (availableWidth > 1500) scaleFactor = 0.9;
+			else if (availableWidth > 1350) scaleFactor = 0.85;
+			else if (availableWidth > 1200) scaleFactor = 0.8;
+			else scaleFactor = 0.75;
+
+			// Skalierungsfaktor als CSS-Variable setzen (für CSS-basierte Skalierung)
+			document.documentElement.style.setProperty("--scale-factor", scaleFactor);
+			document.documentElement.style.setProperty(
+				"--inv-scale",
+				1 / scaleFactor
+			);
+			document.documentElement.style.setProperty(
+				"--section-spacing",
+				`${12 / scaleFactor}px`
+			);
+
+			// Grid-Layout anpassen
+			const layout = uiSettings.layout || 4;
+			const hangarGrid = document.getElementById("hangarGrid");
+			const secondaryGrid = document.getElementById("secondaryHangarGrid");
+
+			// Gemeinsame Eigenschaften für beide Grids
+			const gridConfig = {
+				transform: `scale(${scaleFactor})`,
+				transformOrigin: "top left",
+				width: `calc(100% / ${scaleFactor})`,
+				gridTemplateColumns: `repeat(${layout}, minmax(var(--card-min-width), 1fr))`,
+				gap: "var(--grid-gap)",
+				display: "grid",
+			};
+
+			// Primären Grid konfigurieren
+			if (hangarGrid) {
+				Object.assign(hangarGrid.style, gridConfig);
+			}
+
+			// Sekundären Grid identisch konfigurieren
+			if (secondaryGrid && secondaryGrid.style.display !== "none") {
+				Object.assign(secondaryGrid.style, gridConfig);
+			}
+
+			// Verwende MutationObserver, um auf DOM-Änderungen zu reagieren
+			setupSectionSpacingObserver();
+		} catch (error) {
+			console.error("Fehler bei der Skalierungsanpassung:", error);
+		}
+	}
+
+	// Speichert die Instanz des MutationObservers
+	let spacingObserver = null;
+
+	/**
+	 * Richtet einen MutationObserver ein, um auf Änderungen an den Sektionen zu reagieren
+	 */
+	function setupSectionSpacingObserver() {
+		// Wenn bereits ein Observer existiert, diesen trennen
+		if (spacingObserver) {
+			spacingObserver.disconnect();
+		}
+
+		// Elemente für Abstandsprüfung
+		const divider = document.querySelector(".section-divider");
+		const primaryLabel = document.querySelector(".section-label:first-of-type");
+		const secondaryLabel = document.querySelector(
+			".section-label:not(:first-of-type)"
+		);
+		const secondaryGrid = document.getElementById("secondaryHangarGrid");
+
+		// Abstände auf CSS-Variablen umstellen
+		if (divider && divider.style.display !== "none") {
+			divider.style.margin = "var(--section-spacing) 0";
+		}
+
+		if (primaryLabel) {
+			primaryLabel.style.marginBottom = "var(--section-spacing)";
+		}
+
+		if (secondaryLabel && secondaryLabel.style.display !== "none") {
+			secondaryLabel.style.marginTop = "var(--section-spacing)";
+			secondaryLabel.style.marginBottom = "var(--section-spacing)";
+		}
+
+		// MutationObserver erstellen, um auf Änderungen an den Sektionen zu reagieren
+		spacingObserver = new MutationObserver((mutations) => {
+			const scaleFactor = parseFloat(
+				getComputedStyle(document.documentElement).getPropertyValue(
+					"--scale-factor"
+				)
+			);
+
+			mutations.forEach((mutation) => {
+				if (
+					mutation.target === divider ||
+					mutation.target === primaryLabel ||
+					mutation.target === secondaryLabel ||
+					mutation.target === secondaryGrid
+				) {
+					// Neuberechnung der Abstände nur bei Änderungen an den betreffenden Elementen
+					if (divider && divider.style.display !== "none") {
+						divider.style.margin = "var(--section-spacing) 0";
+					}
+
+					if (primaryLabel) {
+						primaryLabel.style.marginBottom = "var(--section-spacing)";
+					}
+
+					if (secondaryLabel && secondaryLabel.style.display !== "none") {
+						secondaryLabel.style.marginTop = "var(--section-spacing)";
+						secondaryLabel.style.marginBottom = "var(--section-spacing)";
+					}
+				}
+			});
+		});
+
+		// Beobachte Attributänderungen an relevanten Elementen
+		const elementsToObserve = [
+			divider,
+			primaryLabel,
+			secondaryLabel,
+			secondaryGrid,
+		].filter(Boolean);
+		elementsToObserve.forEach((element) => {
+			spacingObserver.observe(element, {
+				attributes: true,
+				attributeFilter: ["style", "class"],
+				childList: false,
+				subtree: false,
+			});
+		});
+	}
+
+	/**
+	 * Verbesserte Funktion zur Steuerung der Sichtbarkeit der sekundären Sektion
+	 */
+	function toggleSecondarySection(visible = false) {
+		const secondaryCount = uiSettings.secondaryTilesCount || 0;
+		visible = visible || secondaryCount > 0;
+
+		const divider = document.querySelector(".section-divider");
+		const secondaryLabel = document.querySelector(
+			".section-label:not(:first-of-type)"
+		);
+		const secondaryGrid = document.getElementById("secondaryHangarGrid");
+
+		// Display-Eigenschaft setzen
+		const display = visible ? null : "none"; // null = entfernt inline style
+
+		if (divider) divider.style.display = display || "block";
+		if (secondaryLabel) secondaryLabel.style.display = display || "block";
+		if (secondaryGrid) secondaryGrid.style.display = display || "grid";
+
+		// Stelle sicher, dass die Abstände korrekt sind
+		setTimeout(() => {
+			const scaleFactor = parseFloat(
+				getComputedStyle(document.documentElement).getPropertyValue(
+					"--scale-factor"
+				)
+			);
+			document.documentElement.style.setProperty(
+				"--section-spacing",
+				`${12 / scaleFactor}px`
+			);
+			adjustScaling();
+		}, 50);
+	}
+
+	/**
 	 * UI-Initialisierung
 	 */
 	function initializeUI() {
@@ -433,6 +694,17 @@ document.addEventListener("DOMContentLoaded", () => {
 		} else {
 			console.error("Element 'sidebarMenu' nicht gefunden!");
 		}
+
+		// Initial die Skalierung anpassen
+		adjustScaling();
+
+		// Zusätzlich nach vollständigem Laden die Layout-Optimierung durchführen
+		window.addEventListener("load", function () {
+			setTimeout(adjustScaling, 100);
+		});
+
+		// Event-Listener für Fenstergrößenänderungen
+		window.addEventListener("resize", adjustScaling);
 	}
 
 	/**
@@ -470,7 +742,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			console.error("Element 'modeToggle' nicht gefunden!");
 		}
 
-		// Toggle für Sidebar
+		// Toggle für Sidebar mit verbesserter Breitenskalierung
 		const menuToggle = document.getElementById("menuToggle");
 		if (menuToggle) {
 			menuToggle.addEventListener("click", function () {
@@ -478,6 +750,11 @@ document.addEventListener("DOMContentLoaded", () => {
 				if (sidebar) {
 					sidebar.classList.toggle("collapsed");
 					document.body.classList.toggle("sidebar-collapsed");
+
+					// Nach dem Umschalten des Menüs die Skalierung und Container-Breite anpassen
+					setTimeout(() => {
+						adjustScaling();
+					}, 300);
 				} else {
 					console.error("Element 'sidebarMenu' nicht gefunden beim Toggle!");
 				}
@@ -532,6 +809,8 @@ document.addEventListener("DOMContentLoaded", () => {
 				// Einstellungen im LocalStorage speichern und anwenden
 				uiSettings.save();
 				uiSettings.apply();
+				// Zusätzlich die Skalierung neu berechnen
+				setTimeout(adjustScaling, 200);
 			});
 		}
 
@@ -638,6 +917,33 @@ document.addEventListener("DOMContentLoaded", () => {
 		const jsonFileInput = document.getElementById("jsonFileInput");
 		if (jsonFileInput) {
 			jsonFileInput.addEventListener("change", importHangarPlanFromJson);
+		}
+
+		// Verbesserte Event-Listener für die Buttons
+		const loadBtn = document.getElementById("loadBtn");
+		if (loadBtn) {
+			loadBtn.addEventListener("click", function () {
+				try {
+					openImportFilePicker();
+				} catch (error) {
+					console.error("Fehler beim Öffnen des File Pickers:", error);
+					alert("Fehler beim Öffnen des Lade-Dialogs: " + error.message);
+				}
+			});
+		}
+
+		const loadSettingsBtn = document.getElementById("loadSettingsBtn");
+		if (loadSettingsBtn) {
+			loadSettingsBtn.addEventListener("click", function () {
+				try {
+					openSettingsFilePicker();
+				} catch (error) {
+					console.error("Fehler beim Öffnen des Settings File Pickers:", error);
+					alert(
+						"Fehler beim Öffnen des Settings-Lade-Dialogs: " + error.message
+					);
+				}
+			});
 		}
 
 		// Aktualisiere Event-Listener für alle Kacheln
@@ -764,7 +1070,6 @@ document.addEventListener("DOMContentLoaded", () => {
 	function saveProject() {
 		try {
 			exportHangarPlanToJson();
-			showNotification("Projekt erfolgreich gespeichert!", "success");
 		} catch (error) {
 			console.error("Fehler beim Speichern:", error);
 			alert("Fehler beim Speichern: " + error.message);
@@ -1062,7 +1367,17 @@ document.addEventListener("DOMContentLoaded", () => {
 					uiSettings.load();
 					uiSettings.apply();
 
-					showNotification("Einstellungen erfolgreich geladen", "success");
+					// Anzeige des Dateipfads
+					const fileName = file.name;
+					const recommendedPath = filePaths.getSettingsPath(
+						fileName.replace(".json", "")
+					);
+
+					showNotification(
+						`Einstellungen erfolgreich geladen aus: ${recommendedPath}`,
+						"success",
+						4000
+					);
 				} catch (error) {
 					console.error(
 						"Einstellungen-Datei konnte nicht verarbeitet werden:",
@@ -1088,465 +1403,375 @@ document.addEventListener("DOMContentLoaded", () => {
 	}
 
 	/**
-	 * Zeigt Benachrichtigungen für den Benutzer an
-	 */
-	function showNotification(message, type = "info") {
-		// Prüfe, ob bereits eine Benachrichtigung angezeigt wird
-		let notification = document.getElementById("notification");
-		if (!notification) {
-			notification = document.createElement("div");
-			notification.id = "notification";
-			notification.style.position = "fixed";
-			notification.style.bottom = "20px";
-			notification.style.right = "20px";
-			notification.style.padding = "10px 20px";
-			notification.style.borderRadius = "4px";
-			notification.style.minWidth = "200px";
-			notification.style.boxShadow = "0 3px 6px rgba(0,0,0,0.16)";
-			notification.style.zIndex = "9999";
-			notification.style.transition = "opacity 0.3s";
-			document.body.appendChild(notification);
-		}
-
-		// Stil basierend auf Typ setzen
-		switch (type) {
-			case "success":
-				notification.style.backgroundColor = "#4CAF50";
-				notification.style.color = "#fff";
-				break;
-			case "error":
-				notification.style.backgroundColor = "#F44336";
-				notification.style.color = "#fff";
-				break;
-			case "warning":
-				notification.style.backgroundColor = "#FFC107";
-				notification.style.color = "#000";
-				break;
-			default:
-				notification.style.backgroundColor = "#2196F3";
-				notification.style.color = "#fff";
-		}
-
-		notification.textContent = message;
-		notification.style.opacity = "1";
-
-		// Nach 3 Sekunden ausblenden
-		setTimeout(() => {
-			notification.style.opacity = "0";
-			setTimeout(() => {
-				if (notification.parentNode) {
-					notification.parentNode.removeChild(notification);
-				}
-			}, 300);
-		}, 3000);
-	}
-
-	/**
-	 * Aktualisiert die sekundären Kacheln
-	 */
-	function updateSecondaryTiles(count, layout) {
-		const secondaryGrid = document.getElementById("secondaryHangarGrid");
-		if (!secondaryGrid) return;
-
-		// Bestehende Kacheln entfernen
-		secondaryGrid.innerHTML = "";
-
-		// Trennlinie ein-/ausblenden basierend auf Anzahl der sekundären Kacheln
-		toggleSecondarySection();
-
-		// Wenn keine Kacheln gewünscht werden, hier abbrechen
-		if (count <= 0) return;
-
-		// Neue sekundäre Kacheln erstellen
-		for (let i = 1; i <= count; i++) {
-			const cellId = 100 + i; // IDs für sekundäre Kacheln beginnen bei 101
-
-			const cell = document.createElement("div");
-			cell.className =
-				"hangar-cell bg-white rounded-lg shadow-md flex flex-col";
-
-			// HTML für eine sekundäre Kachel (ähnlich wie primäre, aber mit anderen IDs)
-			cell.innerHTML = `
-				<div class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-					<div class="status-container">
-						<span class="status-light bg-status-green" data-cell="${cellId}" data-status="ready"></span>
-						<span class="status-light bg-status-yellow" data-cell="${cellId}" data-status="maintenance"></span>
-						<span class="status-light bg-status-red" data-cell="${cellId}" data-status="aog"></span>
-					</div>
-					<div class="flex items-center">
-						<span class="text-xs text-white font-medium mr-2">Position:</span>
-						<input type="text" placeholder="${i}" id="hangar-position-${cellId}" 
-							class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center">
-					</div>
-					<input type="text" placeholder="Manual Input" 
-						class="text-xs bg-industrial-dark rounded px-2 py-1 w-32 text-white">
-				</div>
-				<div class="p-4 flex-grow flex flex-col">
-					<input type="text" id="aircraft-${cellId}" placeholder="Aircraft ID" class="aircraft-id">
-					<div class="info-grid mb-3">
-						<div class="info-label">Arrival:</div>
-						<div id="arrival-time-${cellId}" class="info-value">--:--</div>
-						<div class="info-label">Departure:</div>
-						<div id="departure-time-${cellId}" class="info-value">--:--</div>
-						<div class="info-label">Position:</div>
-						<div id="position-${cellId}" class="info-value">--</div>
-						<div class="info-label">Towing Status:</div>
-						<div id="tow-status-${cellId}" class="tow-status tow-initiated">Initiated</div>
-					</div>
-					<div class="notes-container">
-						<label class="block text-sm text-industrial-dark font-medium mb-1">Notes:</label>
-						<textarea id="notes-${cellId}" class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
-					</div>
-					<div class="mt-auto">
-						<select id="status-${cellId}" class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
-							<option value="ready">Ready</option>
-							<option value="maintenance">Maintenance</option>
-							<option value="aog">AOG</option>
-						</select>
-					</div>
-				</div>
-			`;
-
-			secondaryGrid.appendChild(cell);
-		}
-
-		// Event-Handler für Status-Updates in den neuen Kacheln einrichten
-		setupAllTileEventListeners();
-	}
-
-	/**
-	 * Aktualisiert die Sichtbarkeit des sekundären Bereichs
-	 */
-	function toggleSecondarySection() {
-		const secondaryCount = uiSettings.secondaryTilesCount || 0;
-		const divider = document.querySelector(".section-divider");
-		const secondaryLabel = document.querySelector(
-			".section-label + .section-label"
-		);
-		const secondaryGrid = document.getElementById("secondaryHangarGrid");
-
-		if (secondaryCount > 0) {
-			// Sichtbar machen
-			if (divider) divider.style.display = "block";
-			if (secondaryLabel) secondaryLabel.style.display = "block";
-			if (secondaryGrid) secondaryGrid.style.display = "grid";
-		} else {
-			// Verstecken
-			if (divider) divider.style.display = "none";
-			if (secondaryLabel) secondaryLabel.style.display = "none";
-			if (secondaryGrid) secondaryGrid.style.display = "none";
-		}
-	}
-
-	/**
-	 * Richtet Event-Listener für alle Kacheln ein
-	 */
-	function setupAllTileEventListeners() {
-		// Status-Selektoren für Status-Updates
-		document.querySelectorAll(".status-selector").forEach((selector) => {
-			selector.removeEventListener("change", statusChangeHandler);
-			selector.addEventListener("change", statusChangeHandler);
-		});
-	}
-
-	/**
-	 * Event-Handler für Status-Änderungen
-	 */
-	function statusChangeHandler(event) {
-		const selector = event.target;
-		const cellId = selector.id.split("-")[1]; // Extrahiert die Zell-ID aus der Selector-ID
-		updateStatusLights(cellId);
-	}
-
-	/**
-	 * Initialisiert alle Status-Handler
-	 */
-	function initStatusHandlers() {
-		document.querySelectorAll(".status-selector").forEach((selector) => {
-			selector.addEventListener("change", statusChangeHandler);
-		});
-	}
-
-	/**
-	 * Importiert einen Hangarplan aus einer JSON-Datei
-	 */
-	function importHangarPlanFromJson(event) {
-		try {
-			const file = event.target.files[0];
-			if (!file) {
-				showNotification("Keine Datei ausgewählt", "error");
-				return;
-			}
-
-			const reader = new FileReader();
-			reader.onload = function (e) {
-				try {
-					const data = JSON.parse(e.target.result);
-
-					// Projekt-Name aktualisieren, falls vorhanden
-					if (data.projectName && checkElement("projectName")) {
-						document.getElementById("projectName").value = data.projectName;
-					}
-
-					// Einstellungen aktualisieren, falls vorhanden
-					if (data.settings) {
-						if (checkElement("tilesCount")) {
-							document.getElementById("tilesCount").value =
-								data.settings.tilesCount || 8;
-						}
-						if (checkElement("secondaryTilesCount")) {
-							document.getElementById("secondaryTilesCount").value =
-								data.settings.secondaryTilesCount || 0;
-						}
-						if (checkElement("layoutType")) {
-							document.getElementById("layoutType").value =
-								data.settings.layout || 4;
-						}
-
-						// Einstellungen anwenden
-						uiSettings.tilesCount = data.settings.tilesCount || 8;
-						uiSettings.secondaryTilesCount =
-							data.settings.secondaryTilesCount || 0;
-						uiSettings.layout = data.settings.layout || 4;
-						uiSettings.apply();
-					}
-
-					// Kacheldaten aktualisieren
-					if (data.cells && Array.isArray(data.cells)) {
-						data.cells.forEach((cellData) => {
-							const cellId = cellData.id;
-
-							// Primäre oder sekundäre Zelle
-							const isPrimary = cellId < 100;
-
-							// Flugzeug-ID
-							const aircraftInput = document.getElementById(
-								`aircraft-${cellId}`
-							);
-							if (aircraftInput && cellData.aircraftId) {
-								aircraftInput.value = cellData.aircraftId;
-							}
-
-							// Status
-							const statusSelect = document.getElementById(`status-${cellId}`);
-							if (statusSelect && cellData.status) {
-								statusSelect.value = cellData.status;
-								updateStatusLights(cellId);
-							}
-
-							// Ankunfts-/Abflugzeiten und Position
-							if (cellData.arrivalTime) {
-								const arrivalElement = document.getElementById(
-									`arrival-time-${cellId}`
-								);
-								if (arrivalElement)
-									arrivalElement.textContent = cellData.arrivalTime;
-							}
-
-							if (cellData.departureTime) {
-								const departureElement = document.getElementById(
-									`departure-time-${cellId}`
-								);
-								if (departureElement)
-									departureElement.textContent = cellData.departureTime;
-							}
-
-							if (cellData.position) {
-								const positionElement = document.getElementById(
-									`position-${cellId}`
-								);
-								if (positionElement)
-									positionElement.textContent = cellData.position;
-
-								const positionInput = document.getElementById(
-									`hangar-position-${cellId}`
-								);
-								if (positionInput) positionInput.value = cellData.position;
-							}
-
-							// Notizen
-							if (cellData.notes) {
-								const notesElement = document.getElementById(`notes-${cellId}`);
-								if (notesElement) notesElement.value = cellData.notes;
-							}
-
-							// Manuelle Eingabe
-							if (cellData.manualInput) {
-								// Bestimme den Container (primär oder sekundär)
-								const container = isPrimary
-									? "#hangarGrid"
-									: "#secondaryHangarGrid";
-								const index = isPrimary ? cellId : cellId - 100;
-
-								const manualInput = document.querySelector(
-									`${container} .hangar-cell:nth-child(${index}) input[placeholder="Manual Input"]`
-								);
-								if (manualInput) manualInput.value = cellData.manualInput;
-							}
-
-							// Wenn es eine primäre Zelle ist, aktualisieren wir auch die hangarData-Struktur
-							if (isPrimary && cellId <= 8) {
-								hangarData.cells[cellId - 1] = {
-									...hangarData.cells[cellId - 1],
-									...cellData,
-								};
-							}
-						});
-					}
-
-					showNotification("Hangar-Plan erfolgreich geladen", "success");
-				} catch (error) {
-					console.error("JSON-Datei konnte nicht verarbeitet werden:", error);
-					showNotification("Fehler beim Verarbeiten der JSON-Datei", "error");
-				}
-			};
-			reader.readAsText(file);
-
-			// Input zurücksetzen, damit das gleiche File erneut ausgewählt werden kann
-			event.target.value = "";
-		} catch (error) {
-			console.error("Fehler beim Import des Hangar-Plans:", error);
-			showNotification("Fehler beim Import: " + error.message, "error");
-		}
-	}
-
-	/**
-	 * Exportiert den aktuellen Hangarplan als JSON-Datei
+	 * Exportiert den aktuellen Hangarplan als JSON-Datei direkt in den Projektordner
 	 */
 	function exportHangarPlanToJson() {
 		try {
-			// Projektname aus Eingabefeld holen
-			const projectName = checkElement("projectName")
-				? document.getElementById("projectName").value
-				: "HangarPlan";
+			// Sammle alle relevanten Daten
+			const allData = collectAllHangarData();
 
-			// Einstellungen sammeln
-			const settings = {
-				tilesCount: uiSettings.tilesCount,
-				secondaryTilesCount: uiSettings.secondaryTilesCount,
-				layout: uiSettings.layout,
-			};
+			// Erstelle den JSON-String
+			const jsonData = JSON.stringify(allData, null, 2);
 
-			// Daten aller Kacheln sammeln
-			const cells = [];
+			// Verwende den Projektnamen vom Eingabefeld oder einen Fallback
+			const projectName =
+				document.getElementById("projectName").value || generateTimestamp();
+			const fileName = `${projectName}`;
 
-			// Primäre Kacheln
-			for (let i = 1; i <= uiSettings.tilesCount; i++) {
-				const cell = collectCellData(i);
-				if (cell) cells.push(cell);
+			// Prüfe, ob die moderne File System Access API unterstützt wird
+			if (window.showSaveFilePicker) {
+				// Definiere den Speicherordner
+				const startInDirectory = "HangarPlanner/Projekte";
+
+				// Konfiguriere die Optionen für den File Picker
+				const options = {
+					suggestedName: `${fileName}.json`,
+					types: [
+						{
+							description: "JSON Files",
+							accept: { "application/json": [".json"] },
+						},
+					],
+					// Im Chrome-basierten Browsern können wir versuchen, ein Startverzeichnis anzugeben
+					startIn: startInDirectory,
+				};
+
+				showSaveFilePicker(options)
+					.then(async (fileHandle) => {
+						const writable = await fileHandle.createWritable();
+						await writable.write(jsonData);
+						await writable.close();
+						showNotification("Projekt erfolgreich gespeichert!", "success");
+					})
+					.catch((error) => {
+						if (error.name !== "AbortError") {
+							console.error(
+								"Fehler beim Speichern mit File System API:",
+								error
+							);
+							// Fallback zum regulären Download
+							downloadFile(jsonData, `${fileName}.json`);
+							showNotification(
+								`Projekt wurde heruntergeladen. Bitte in ${filePaths.dataDir}/ speichern.`,
+								"info",
+								5000
+							);
+						}
+					});
+			} else {
+				// Fallback für Browser ohne File System Access API
+				downloadFile(jsonData, `${fileName}.json`);
+				showNotification(
+					`Projekt wurde heruntergeladen. Bitte in ${filePaths.dataDir}/ speichern.`,
+					"info",
+					5000
+				);
 			}
 
-			// Sekundäre Kacheln
-			for (let i = 1; i <= uiSettings.secondaryTilesCount; i++) {
-				const cellId = 100 + i;
-				const cell = collectCellData(cellId);
-				if (cell) cells.push(cell);
-			}
-
-			// Gesamtdaten zusammenstellen
-			const exportData = {
-				projectName: projectName,
-				settings: settings,
-				cells: cells,
-				exportDate: new Date().toISOString(),
-			};
-
-			// In Datei exportieren
-			const dataStr = JSON.stringify(exportData, null, 2);
-			const dataBlob = new Blob([dataStr], { type: "application/json" });
-			const fileName = `${projectName}.json`;
-			const downloadLink = document.createElement("a");
-			downloadLink.href = URL.createObjectURL(dataBlob);
-			downloadLink.download = fileName;
-			document.body.appendChild(downloadLink);
-			downloadLink.click();
-			document.body.removeChild(downloadLink);
-
-			showNotification(
-				`Hangarplan erfolgreich als ${fileName} gespeichert`,
-				"success"
-			);
 			return true;
 		} catch (error) {
-			console.error("Fehler beim Exportieren des Hangar-Plans:", error);
-			showNotification("Fehler beim Export: " + error.message, "error");
+			console.error("Fehler beim Exportieren des Hangarplans:", error);
+			showNotification(`Fehler beim Exportieren: ${error.message}`, "error");
 			return false;
 		}
 	}
 
 	/**
-	 * Sammelt Daten einer einzelnen Kachel
+	 * Hilfsfunktion zum Herunterladen einer Datei
+	 * @param {string|object} content - Dateiinhalt (wird zu JSON konvertiert, wenn es ein Objekt ist)
+	 * @param {string} filename - Name der Datei
 	 */
-	function collectCellData(cellId) {
+	function downloadFile(content, filename) {
+		const contentStr =
+			typeof content === "object" ? JSON.stringify(content, null, 2) : content;
+		const blob = new Blob([contentStr], { type: "application/json" });
+		const downloadLink = document.createElement("a");
+		downloadLink.href = URL.createObjectURL(blob);
+		downloadLink.download = filename;
+		document.body.appendChild(downloadLink);
+		downloadLink.click();
+		document.body.removeChild(downloadLink);
+	}
+
+	/**
+	 * Speichert die aktuellen Einstellungen
+	 * @param {boolean} exportToFile - Ob die Einstellungen als Datei exportiert werden sollen
+	 */
+	uiSettings.save = function (exportToFile = false) {
 		try {
-			const cell = {
-				id: cellId,
-			};
-
-			// Aircraft ID
-			const aircraftInput = document.getElementById(`aircraft-${cellId}`);
-			if (aircraftInput) {
-				cell.aircraftId = aircraftInput.value;
+			// Aktuelle Werte aus den Eingabefeldern holen
+			if (checkElement("tilesCount")) {
+				this.tilesCount =
+					parseInt(document.getElementById("tilesCount").value) || 8;
+			}
+			if (checkElement("secondaryTilesCount")) {
+				this.secondaryTilesCount =
+					parseInt(document.getElementById("secondaryTilesCount").value) || 0;
+			}
+			if (checkElement("layoutType")) {
+				this.layout =
+					parseInt(document.getElementById("layoutType").value) || 4;
 			}
 
-			// Status
-			const statusSelect = document.getElementById(`status-${cellId}`);
-			if (statusSelect) {
-				cell.status = statusSelect.value;
-			}
+			// Alle Kacheln sammeln (primäre und sekundäre)
+			const tileValues = [];
 
-			// Position (aus der Position im Header und dem angezeigten Wert)
-			const positionInput = document.getElementById(
-				`hangar-position-${cellId}`
+			// Sammle Daten von primären Kacheln
+			this.collectTileValues("#hangarGrid", tileValues, 1);
+
+			// Sammle Daten von sekundären Kacheln
+			this.collectTileValues("#secondaryHangarGrid", tileValues, 101);
+
+			// Im LocalStorage speichern
+			localStorage.setItem(
+				"hangarPlannerSettings",
+				JSON.stringify({
+					tilesCount: this.tilesCount,
+					secondaryTilesCount: this.secondaryTilesCount,
+					layout: this.layout,
+					tileValues: tileValues,
+				})
 			);
-			if (positionInput) {
-				cell.position = positionInput.value;
+
+			// Optional als Datei exportieren
+			if (exportToFile) {
+				const settingsData = {
+					tilesCount: this.tilesCount,
+					secondaryTilesCount: this.secondaryTilesCount,
+					layout: this.layout,
+					tileValues: tileValues,
+				};
+
+				const projectName = checkElement("projectName")
+					? document.getElementById("projectName").value
+					: "HangarPlan";
+				const fileName = `${projectName}_Settings`;
+
+				// Prüfe, ob die moderne File System Access API unterstützt wird
+				if (window.showSaveFilePicker) {
+					// Definiere den Speicherordner für Einstellungen
+					const startInDirectory = "HangarPlanner/Einstellungen";
+
+					// Konfiguriere die Optionen für den File Picker
+					const options = {
+						suggestedName: `${fileName}.json`,
+						types: [
+							{
+								description: "JSON Settings Files",
+								accept: { "application/json": [".json"] },
+							},
+						],
+						// Versuche, ein Startverzeichnis anzugeben
+						startIn: startInDirectory,
+					};
+
+					showSaveFilePicker(options)
+						.then(async (fileHandle) => {
+							const writable = await fileHandle.createWritable();
+							await writable.write(JSON.stringify(settingsData, null, 2));
+							await writable.close();
+							showNotification(
+								"Einstellungen erfolgreich gespeichert!",
+								"success"
+							);
+						})
+						.catch((error) => {
+							if (error.name !== "AbortError") {
+								console.error(
+									"Fehler beim Speichern mit File System API:",
+									error
+								);
+								// Fallback zum regulären Download
+								downloadFile(settingsData, `${fileName}.json`);
+								showNotification(
+									`Einstellungen wurden heruntergeladen. Bitte in ${filePaths.settingsDir}/ speichern.`,
+									"info",
+									5000
+								);
+							}
+						});
+				} else {
+					// Fallback für Browser ohne File System Access API
+					downloadFile(settingsData, `${fileName}.json`);
+					showNotification(
+						`Einstellungen wurden heruntergeladen. Bitte in ${filePaths.settingsDir}/ speichern.`,
+						"info",
+						5000
+					);
+				}
 			}
-
-			// Arrival/Departure Zeiten
-			const arrivalElement = document.getElementById(`arrival-time-${cellId}`);
-			if (arrivalElement) {
-				cell.arrivalTime =
-					arrivalElement.textContent !== "--:--"
-						? arrivalElement.textContent
-						: "";
-			}
-
-			const departureElement = document.getElementById(
-				`departure-time-${cellId}`
-			);
-			if (departureElement) {
-				cell.departureTime =
-					departureElement.textContent !== "--:--"
-						? departureElement.textContent
-						: "";
-			}
-
-			// Notizen
-			const notesElement = document.getElementById(`notes-${cellId}`);
-			if (notesElement) {
-				cell.notes = notesElement.value;
-			}
-
-			// Manual Input (über Container und Selector)
-			const isPrimary = cellId < 100;
-			const container = isPrimary ? "#hangarGrid" : "#secondaryHangarGrid";
-			const index = isPrimary ? cellId : cellId - 100;
-
-			const manualInput = document.querySelector(
-				`${container} .hangar-cell:nth-child(${index}) input[placeholder="Manual Input"]`
-			);
-			if (manualInput) {
-				cell.manualInput = manualInput.value;
-			}
-
-			return cell;
+			return true;
 		} catch (error) {
-			console.error(
-				`Fehler beim Sammeln der Daten für Kachel ${cellId}:`,
-				error
+			console.error("Fehler beim Speichern der Einstellungen:", error);
+			showNotification(
+				`Fehler beim Speichern der Einstellungen: ${error.message}`,
+				"error"
 			);
-			return null;
+			return false;
+		}
+	};
+
+	/**
+	 * Öffnet den File Picker zum Importieren einer Hangarplan-JSON-Datei
+	 */
+	function openImportFilePicker() {
+		try {
+			// Zeige eine Benachrichtigung, um den Benutzer zu informieren
+			showNotification("Bitte wählen Sie eine Projektdatei", "info", 3000);
+
+			// Moderne File System Access API verwenden, falls verfügbar
+			if (window.showOpenFilePicker) {
+				const options = {
+					types: [
+						{
+							description: "JSON Files",
+							accept: { "application/json": [".json"] },
+						},
+					],
+					excludeAcceptAllOption: false,
+					multiple: false,
+					// Versuche, den Ordner im File-Picker vorzuschlagen
+					startIn: "HangarPlanner/Projekte",
+				};
+
+				showOpenFilePicker(options)
+					.then(async ([fileHandle]) => {
+						const file = await fileHandle.getFile();
+						importHangarPlanFromJsonFile(file);
+					})
+					.catch((error) => {
+						// Fallback für abgebrochene Operationen
+						if (error.name !== "AbortError") {
+							console.error("Fehler beim Öffnen des File Pickers:", error);
+							document.getElementById("jsonFileInput").click();
+						}
+					});
+			} else {
+				// Fallback für ältere Browser
+				document.getElementById("jsonFileInput").click();
+			}
+		} catch (error) {
+			console.error("Fehler beim Öffnen des File Pickers:", error);
+			showNotification(
+				`Fehler beim Öffnen des File Pickers: ${error.message}`,
+				"error"
+			);
 		}
 	}
+
+	/**
+	 * Öffnet den File Picker für die Einstellungen
+	 */
+	function openSettingsFilePicker() {
+		try {
+			showNotification("Bitte wählen Sie eine Einstellungsdatei", "info", 3000);
+
+			// Moderne File System Access API verwenden, falls verfügbar
+			if (window.showOpenFilePicker) {
+				const options = {
+					types: [
+						{
+							description: "Settings JSON Files",
+							accept: { "application/json": [".json"] },
+						},
+					],
+					excludeAcceptAllOption: false,
+					multiple: false,
+					// Versuche, den Ordner im File-Picker vorzuschlagen
+					startIn: "HangarPlanner/Einstellungen",
+				};
+
+				showOpenFilePicker(options)
+					.then(async ([fileHandle]) => {
+						const file = await fileHandle.getFile();
+						loadSettingsFromFile({ target: { files: [file] } });
+					})
+					.catch((error) => {
+						// Fallback für abgebrochene Operationen
+						if (error.name !== "AbortError") {
+							console.error("Fehler beim Öffnen des File Pickers:", error);
+							document.getElementById("settingsFileInput").click();
+						}
+					});
+			} else {
+				// Fallback für ältere Browser
+				document.getElementById("settingsFileInput").click();
+			}
+		} catch (error) {
+			console.error("Fehler beim Öffnen des File Pickers:", error);
+			showNotification(
+				`Fehler beim Öffnen des File Pickers: ${error.message}`,
+				"error"
+			);
+		}
+	}
+
+	/**
+	 * Sammelt alle Daten des Hangarplans
+	 */
+	function collectAllHangarData() {
+		try {
+			const primaryTiles = collectTileData("#hangarGrid");
+			const secondaryTiles = collectTileData("#secondaryHangarGrid");
+
+			// Erfasse weitere Metadaten
+			const metadata = {
+				projectName: document.getElementById("projectName").value,
+				savedDate: new Date().toISOString(),
+				version: "1.0",
+			};
+
+			// Kombiniere alle Daten
+			return {
+				metadata: metadata,
+				settings: {
+					tilesCount: uiSettings.tilesCount,
+					secondaryTilesCount: uiSettings.secondaryTilesCount,
+					layout: uiSettings.layout,
+				},
+				primaryTiles: primaryTiles,
+				secondaryTiles: secondaryTiles,
+			};
+		} catch (error) {
+			console.error("Fehler beim Sammeln der Hangardaten:", error);
+			throw error;
+		}
+	}
+
+	/**
+	 * Zeigt Benachrichtigungen für den Benutzer an
+	 * @param {string} message - Die anzuzeigende Nachricht
+	 * @param {string} type - Der Typ der Nachricht (info, success, error, warning)
+	 * @param {number} duration - Wie lange die Nachricht angezeigt wird (in ms)
+	 */
+	function showNotification(message, type = "info", duration = 3000) {
+		// ...existing code...
+	}
+
+	// Aktualisiere Event-Listener für alle Kacheln
+	function setupAllTileEventListeners() {
+		// Implementierung hier
+	}
+
+	// Initialisiere Status-Handler
+	function initStatusHandlers() {
+		// Implementierung hier
+	}
+
+	// Event-Listener für dynamische Anpassung
+	window.addEventListener("resize", function () {
+		adjustScaling();
+	});
+
+	// Bei Änderung der Layout-Einstellung
+	document
+		.getElementById("layoutType")
+		?.addEventListener("change", function () {
+			setTimeout(adjustScaling, 50);
+		});
+
+	// Initiale Anwendung nach DOM-Laden
+	document.addEventListener("DOMContentLoaded", function () {
+		setTimeout(adjustScaling, 100);
+	});
 });

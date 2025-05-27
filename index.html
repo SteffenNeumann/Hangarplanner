@@ -31,6 +31,11 @@
 		<style>
 			:root {
 				--scale-factor: 1;
+				--inv-scale: 1;
+				--grid-gap: 24px;
+				--card-base-width: 200px;
+				--card-min-width: 200px;
+				--section-spacing: 12px;
 			}
 
 			body {
@@ -42,10 +47,27 @@
 			}
 			.hangar-cell {
 				transition: all 0.3s ease;
+				width: 100%; /* Nimmt die volle Zellbreite ein */
+				min-width: var(--card-min-width);
+				max-width: 350px; /* Erhöht von 100% auf 350px */
+				flex-basis: var(--card-base-width); /* Basis-Breite setzen */
+				margin: 0 auto; /* Zentrieren innerhalb der Zelle */
 			}
 			.hangar-cell:hover {
 				transform: translateY(-2px);
 			}
+
+			/* Grid-Definition mit dynamischem Zwischenraum */
+			#hangarGrid,
+			#secondaryHangarGrid {
+				display: grid;
+				gap: var(--grid-gap);
+				width: 100%;
+				transition: all 0.3s ease;
+				transform-origin: top left;
+			}
+
+			/* Styling für Statusanzeigen bleibt gleich */
 			.status-light {
 				width: 16px;
 				height: 16px;
@@ -244,13 +266,14 @@
 				background-color: rgba(45, 49, 66, 0.1);
 			}
 
-			/* Horizontale Trennlinie */
+			/* Horizontale Trennlinie mit verbesserten CSS-Variablen */
 			.section-divider {
 				width: 100%;
 				height: 2px;
 				background-color: #4f5d75;
-				margin: 20px 0;
+				margin: var(--section-spacing) 0;
 				position: relative;
+				transform-origin: center;
 			}
 
 			.section-divider::after {
@@ -261,195 +284,74 @@
 				transform: translateX(-50%);
 				background-color: #bfc0c0;
 				padding: 0 10px;
-				font-size: 12px;
+				font-size: calc(
+					12px * var(--inv-scale)
+				); /* Anpassung der Schriftgröße */
 				color: #2d3142;
+				white-space: nowrap;
 			}
 
 			.section-label {
 				font-size: 16px;
 				font-weight: 500;
 				color: white;
-				margin-bottom: 10px;
+				margin-bottom: var(--section-spacing);
+				margin-top: var(--section-spacing);
 				padding-left: 5px;
 			}
 
-			/* Responsive Design und Skalierung */
-			.scaling-container {
-				transform-origin: top left;
-				transform: scale(var(--scale-factor));
-				width: calc(100% / var(--scale-factor));
-				height: calc(100% / var(--scale-factor));
+			/* Erste Section Label hat keinen oberen Abstand */
+			.section-label:first-of-type {
+				margin-top: 0;
 			}
 
+			/* Responsive Design und Skalierung */
 			.content-container {
-				min-width: 1100px; /* Verringerte Mindestbreite */
+				min-width: 900px; /* Reduzierte Mindestbreite */
+				width: 100%;
+				transition: width 0.3s ease;
 			}
 
 			.sidebar-container {
 				min-width: 250px;
 				width: 18%;
-				max-width: 290px; /* Leicht verringert */
-			}
-
-			/* Verbesserte Text-Overflow-Behandlung für Input-Felder */
-			input[type="text"] {
-				text-overflow: ellipsis;
-			}
-
-			/* Kompakteres Header-Layout mit verbesserter responsiver Anpassung */
-			.bg-industrial-medium.px-3.py-2 {
-				padding: 0.35rem 0.6rem;
-				display: flex;
-				flex-wrap: nowrap;
-				align-items: center;
-				justify-content: space-between;
-				/* Dunklere Hintergrundfarbe für besseren Kontrast zu den Ampeln */
-				background-color: #353e54;
-				min-height: 36px;
-			}
-
-			/* Toggle-Button-Styling grundlegend überarbeitet */
-			.menu-toggle {
-				position: relative; /* Statt fixed */
-				width: 30px;
-				height: 30px;
-				background-color: #ef8354;
-				border: 2px solid white;
-				border-radius: 50%;
-				display: flex;
-				justify-content: center;
-				align-items: center;
-				cursor: pointer;
-				z-index: 9999;
-				color: white;
-				font-weight: bold;
-				box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
+				max-width: 290px;
 				transition: all 0.3s ease;
-				margin-right: 20px; /* Fester Abstand nach rechts */
 			}
 
-			.menu-toggle:hover {
-				transform: scale(1.1);
-			}
-
-			/* Button im eingeklappten Zustand - nur Rotation */
-			.sidebar-collapsed .menu-toggle {
-				transform: rotate(180deg);
-			}
-
-			/* Status-Container kompakter und selbstständiger */
-			.status-container {
-				display: flex;
-				align-items: center;
-				gap: 4px;
-				padding: 2px 5px;
-				border-radius: 10px;
-				background-color: rgba(45, 49, 66, 0.6);
-				flex-shrink: 0;
-			}
-
-			/* Kompakteres Layout für Position-Bereich */
-			.bg-industrial-medium.px-3.py-2 .flex.items-center {
-				flex-shrink: 1;
-				min-width: 0;
-				margin: 0 4px;
-			}
-
-			/* Position Label nur bei ausreichend Platz anzeigen */
-			.bg-industrial-medium.px-3.py-2 .flex.items-center span.text-xs {
-				margin-right: 4px;
-				white-space: nowrap;
-				overflow: hidden;
-				flex-shrink: 1;
-			}
-
-			/* Kompakteres Positions-Eingabefeld */
-			.bg-industrial-medium.px-3.py-2 input[id^="hangar-position"] {
-				height: 22px;
-				width: 56px;
-				min-width: 56px;
-				border-radius: 0.375rem;
-				padding: 0 3px;
-				text-align: center;
-				flex-shrink: 0;
-			}
-
-			/* Verbessertes Manual Input Feld */
-			.bg-industrial-medium.px-3.py-2 input[placeholder="Manual Input"] {
-				height: 22px;
-				max-width: 70px;
-				min-width: 45px;
-				font-size: 10px;
-				padding: 0 5px;
-				border-radius: 0.375rem;
-				flex-grow: 0;
-				flex-shrink: 1;
-				text-overflow: ellipsis;
-			}
-
-			/* Früher beginnende Breakpoints mit feinerer Abstufung und Header-Anpassungen */
+			/* Verbesserte und verfeinerte Media Queries für dynamische Anpassung */
 			@media (max-width: 1800px) {
 				:root {
 					--scale-factor: 0.95;
-				}
-
-				.bg-industrial-medium.px-3.py-2 input[placeholder="Manual Input"] {
-					max-width: 65px;
+					--grid-gap: 24px; /* Mindestens 24px Zwischenraum */
 				}
 			}
 
 			@media (max-width: 1650px) {
 				:root {
-					--scale-factor: 0.92;
-				}
-
-				.bg-industrial-medium.px-3.py-2 input[placeholder="Manual Input"] {
-					max-width: 60px;
+					--scale-factor: 0.9;
+					--grid-gap: 24px; /* Mindestens 24px Zwischenraum */
 				}
 			}
 
-			@media (max-width: 1550px) {
-				:root {
-					--scale-factor: 0.88;
-				}
-
-				.bg-industrial-medium.px-3.py-2 input[placeholder="Manual Input"] {
-					max-width: 55px;
-				}
-
-				/* Position-Text ausblenden bei kleineren Bildschirmen */
-				.bg-industrial-medium.px-3.py-2 .flex.items-center span.text-xs {
-					display: none;
-				}
-			}
-
-			@media (max-width: 1450px) {
+			@media (max-width: 1500px) {
 				:root {
 					--scale-factor: 0.85;
-				}
-
-				.bg-industrial-medium.px-3.py-2 {
-					padding: 0.25rem 0.5rem;
+					--grid-gap: 24px; /* Mindestens 24px Zwischenraum */
 				}
 			}
 
 			@media (max-width: 1350px) {
 				:root {
 					--scale-factor: 0.8;
-				}
-
-				.bg-industrial-medium.px-3.py-2 input[placeholder="Manual Input"] {
-					max-width: 50px;
+					--grid-gap: 24px; /* Mindestens 24px Zwischenraum */
 				}
 			}
 
 			@media (max-width: 1200px) {
 				:root {
 					--scale-factor: 0.75;
-				}
-
-				.bg-industrial-medium.px-3.py-2 input[placeholder="Manual Input"] {
-					max-width: 45px;
+					--grid-gap: 24px; /* Mindestens 24px Zwischenraum */
 				}
 			}
 
@@ -703,50 +605,73 @@
 				}
 			}
 
-			@media print {
-				.no-print {
-					display: none !important;
-				}
-
-				.print-only {
-					display: block !important;
-				}
-
-				body {
-					width: 100% !important;
-					margin: 0 !important;
-					padding: 0 !important;
-				}
-
-				.pdf-content {
-					width: 100% !important;
-					page-break-inside: avoid;
-				}
-
-				.hangar-cell {
-					page-break-inside: avoid;
-				}
+			/* Verbesserte Skalierung und Responsive Design */
+			.scaling-container {
+				transform-origin: top left;
+				transform: scale(var(--scale-factor));
+				width: calc(100% / var(--scale-factor));
+				height: calc(100% / var(--scale-factor));
+				transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
 			}
 
-			.print-only {
-				display: none;
+			.content-container {
+				min-width: 900px; /* Reduzierte Mindestbreite */
 			}
 
-			/* Einklappbares Menü Styles - vollständig überarbeitet */
 			.sidebar-container {
 				min-width: 250px;
 				width: 18%;
 				max-width: 290px;
 				transition: all 0.3s ease;
-				position: relative;
 			}
 
-			.sidebar-container.collapsed {
-				min-width: 0;
-				width: 0;
-				max-width: 0;
-				overflow: hidden !important; /* Geändert zurück zu hidden, aber mit !important */
-				padding: 0;
+			/* Verbesserte und verfeinerte Media Queries für dynamische Anpassung */
+			@media (max-width: 1800px) {
+				:root {
+					--scale-factor: 0.95;
+					--grid-gap: 24px; /* Mindestens 24px Zwischenraum */
+				}
+			}
+
+			@media (max-width: 1650px) {
+				:root {
+					--scale-factor: 0.9;
+					--grid-gap: 24px; /* Mindestens 24px Zwischenraum */
+				}
+			}
+
+			@media (max-width: 1500px) {
+				:root {
+					--scale-factor: 0.85;
+					--grid-gap: 24px; /* Mindestens 24px Zwischenraum */
+				}
+			}
+
+			@media (max-width: 1350px) {
+				:root {
+					--scale-factor: 0.8;
+					--grid-gap: 24px; /* Mindestens 24px Zwischenraum */
+				}
+			}
+
+			@media (max-width: 1200px) {
+				:root {
+					--scale-factor: 0.75;
+					--grid-gap: 24px; /* Mindestens 24px Zwischenraum */
+				}
+			}
+
+			/* Rest der bestehenden Stile und Media Queries */
+			/* Kompakteres Header-Layout mit verbesserter responsiver Anpassung */
+			.bg-industrial-medium.px-3.py-2 {
+				padding: 0.35rem 0.6rem;
+				display: flex;
+				flex-wrap: nowrap;
+				align-items: center;
+				justify-content: space-between;
+				/* Dunklere Hintergrundfarbe für besseren Kontrast zu den Ampeln */
+				background-color: #353e54;
+				min-height: 36px;
 			}
 
 			/* Toggle-Button-Styling grundlegend überarbeitet */
@@ -842,7 +767,7 @@
 	<body class="bg-industrial-dark text-white font-sans edit-mode">
 		<div class="flex h-screen">
 			<!-- Hauptbereich mit Hangar-Kacheln -->
-			<div class="flex-grow flex flex-col content-container scaling-container">
+			<div class="flex-grow flex flex-col content-container">
 				<!-- Header mit Titel und Aktionen -->
 				<header
 					class="bg-industrial-medium p-4 shadow-md flex justify-between items-center">
@@ -856,7 +781,7 @@
 				<!-- Hangar-Kacheln Bereich -->
 				<div
 					class="flex-grow bg-industrial-light p-6 overflow-auto hangar-container">
-					<!-- Abschnitt 1 Label -->
+					<!-- Abschnitt 1 Label mit konsistentem Abstand -->
 					<div class="section-label">Primary Section</div>
 					<div id="hangarGrid" class="grid grid-cols-4 gap-4">
 						<!-- 8 Hangar-Kacheln hier -->
@@ -1824,10 +1749,10 @@
 						</div>
 					</div>
 
-					<!-- Horizontale Trennlinie -->
+					<!-- Horizontale Trennlinie mit gleichmäßigem Abstand -->
 					<div class="section-divider"></div>
 
-					<!-- Abschnitt 2 Label -->
+					<!-- Abschnitt 2 Label mit konsistentem Abstand -->
 					<div class="section-label">Secondary Section</div>
 					<div id="secondaryHangarGrid" class="grid grid-cols-4 gap-4">
 						<!-- Hier werden dynamisch weitere Kacheln eingefügt -->
