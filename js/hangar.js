@@ -498,10 +498,10 @@ document.addEventListener("DOMContentLoaded", () => {
 					`hangar-position-${cellId}`
 				);
 
-				// Manuelles Eingabefeld finden (jetzt mit ID)
+				// Manuelles Eingabefeld finden - jetzt mit ID
 				const manualInput = document.getElementById(`manual-input-${cellId}`);
 
-				// Alternativ als Fallback suchen wir auch mit dem alten Selektor
+				// Fallback für alte Implementierung (ohne IDs)
 				const fallbackManualInput = !manualInput
 					? cell.querySelector('input[placeholder="Manual Input"]')
 					: null;
@@ -646,7 +646,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			positionInput.classList.add("w-16");
 		}
 
-		// Einheitliche Breite für Manual Input und eindeutige ID hinzufügen
+		// Einheitliche Breite für Manual Input und eindeutige ID + Event-Handler
 		const manualInput = cell.querySelector('input[placeholder="Manual Input"]');
 		if (manualInput) {
 			// Breite setzen
@@ -658,8 +658,11 @@ document.addEventListener("DOMContentLoaded", () => {
 			// Eindeutige ID setzen
 			manualInput.id = `manual-input-${cellId}`;
 
-			// Event-Listener für automatisches Speichern hinzufügen
+			// Event-Handler für automatisches Speichern hinzufügen
 			manualInput.addEventListener("blur", function () {
+				console.log(
+					`Manuelle Eingabe in Kachel ${cellId} geändert: ${this.value}`
+				);
 				// Automatisches Speichern auslösen
 				if (
 					typeof uiSettings !== "undefined" &&
@@ -690,10 +693,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
 		// Event-Listener für manuelle Eingabefelder in sekundären Kacheln
 		document
-			.querySelectorAll('#secondaryHangarGrid input[id^="manual-input-"]')
+			.querySelectorAll(
+				'#secondaryHangarGrid input[placeholder="Manual Input"]'
+			)
 			.forEach((input) => {
-				// Blur-Event für automatisches Speichern
+				// ID zuweisen, falls noch nicht vorhanden
+				const cellId = parseInt(
+					input
+						.closest(".hangar-cell")
+						.querySelector('[id^="status-"]')
+						.id.split("-")[1]
+				);
+				if (!input.id) input.id = `manual-input-${cellId}`;
+
+				// Event-Handler für automatisches Speichern
 				input.addEventListener("blur", function () {
+					console.log(
+						`Manuelle Eingabe in sekundärer Kachel ${cellId} geändert: ${this.value}`
+					);
 					if (
 						typeof uiSettings !== "undefined" &&
 						typeof uiSettings.save === "function"
@@ -1532,6 +1549,9 @@ document.addEventListener("DOMContentLoaded", () => {
 			const manualInputById = document.getElementById(`manual-input-${tileId}`);
 			if (manualInputById) {
 				manualInputById.value = tileData.manualInput || "";
+				console.log(
+					`Manuelle Eingabe für Kachel ${tileId} geladen: ${tileData.manualInput}`
+				);
 			} else {
 				// Fallback auf die alte Methode
 				const cellIndex = isSecondary ? tileId - 100 : tileId;
@@ -1940,6 +1960,6 @@ document.addEventListener("DOMContentLoaded", () => {
 	}
 
 	// Globale Funktionen für die Initialisierung und das Setup von Event-Listenern
-	window.setupUIEventListeners = setupUIEventListeners;
 	window.initializeUI = initializeUI;
+	window.setupUIEventListeners = setupUIEventListeners;
 });
