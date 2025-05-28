@@ -498,20 +498,28 @@ document.addEventListener("DOMContentLoaded", () => {
 					`hangar-position-${cellId}`
 				);
 
-				// Manuelles Eingabefeld finden
-				const manualInput = cell.querySelector(
-					'input[placeholder="Manual Input"]'
-				);
+				// Manuelles Eingabefeld finden (jetzt mit ID)
+				const manualInput = document.getElementById(`manual-input-${cellId}`);
+
+				// Alternativ als Fallback suchen wir auch mit dem alten Selektor
+				const fallbackManualInput = !manualInput
+					? cell.querySelector('input[placeholder="Manual Input"]')
+					: null;
 
 				// Wenn wir Werte haben, fügen wir sie hinzu
 				if (
 					(positionInput && positionInput.value) ||
-					(manualInput && manualInput.value)
+					(manualInput && manualInput.value) ||
+					(fallbackManualInput && fallbackManualInput.value)
 				) {
 					tileValues.push({
 						cellId: cellId,
 						position: positionInput ? positionInput.value : "",
-						manualInput: manualInput ? manualInput.value : "",
+						manualInput: manualInput
+							? manualInput.value
+							: fallbackManualInput
+							? fallbackManualInput.value
+							: "",
 					});
 				}
 			});
@@ -626,6 +634,41 @@ document.addEventListener("DOMContentLoaded", () => {
 		statusLights.forEach((light) => {
 			light.setAttribute("data-cell", cellId);
 		});
+
+		// Einheitliche Breite für Positionseingabefeld (w-16)
+		const positionInput = cell.querySelector('input[id^="hangar-position-"]');
+		if (positionInput) {
+			positionInput.classList.remove(
+				...Array.from(positionInput.classList).filter((cls) =>
+					/^w-\d+/.test(cls)
+				)
+			);
+			positionInput.classList.add("w-16");
+		}
+
+		// Einheitliche Breite für Manual Input und eindeutige ID hinzufügen
+		const manualInput = cell.querySelector('input[placeholder="Manual Input"]');
+		if (manualInput) {
+			// Breite setzen
+			manualInput.classList.remove(
+				...Array.from(manualInput.classList).filter((cls) => /^w-\d+/.test(cls))
+			);
+			manualInput.classList.add("w-16");
+
+			// Eindeutige ID setzen
+			manualInput.id = `manual-input-${cellId}`;
+
+			// Event-Listener für automatisches Speichern hinzufügen
+			manualInput.addEventListener("blur", function () {
+				// Automatisches Speichern auslösen
+				if (
+					typeof uiSettings !== "undefined" &&
+					typeof uiSettings.save === "function"
+				) {
+					setTimeout(() => uiSettings.save(), 100);
+				}
+			});
+		}
 	}
 
 	/**
@@ -643,6 +686,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
 				// Initialen Status setzen
 				updateStatusLights(cellId);
+			});
+
+		// Event-Listener für manuelle Eingabefelder in sekundären Kacheln
+		document
+			.querySelectorAll('#secondaryHangarGrid input[id^="manual-input-"]')
+			.forEach((input) => {
+				// Blur-Event für automatisches Speichern
+				input.addEventListener("blur", function () {
+					if (
+						typeof uiSettings !== "undefined" &&
+						typeof uiSettings.save === "function"
+					) {
+						setTimeout(() => uiSettings.save(), 100);
+					}
+				});
 			});
 	}
 
@@ -1470,15 +1528,21 @@ document.addEventListener("DOMContentLoaded", () => {
 				positionInput.value = tileData.position || "";
 			}
 
-			// Manuelle Eingabe setzen
-			const cellIndex = isSecondary ? tileId - 100 : tileId;
-			const cells = document.querySelectorAll(`${container} .hangar-cell`);
-			if (cells.length >= cellIndex) {
-				const manualInput = cells[cellIndex - 1].querySelector(
-					'input[placeholder="Manual Input"]'
-				);
-				if (manualInput) {
-					manualInput.value = tileData.manualInput || "";
+			// Manuelle Eingabe setzen - zuerst versuchen mit ID
+			const manualInputById = document.getElementById(`manual-input-${tileId}`);
+			if (manualInputById) {
+				manualInputById.value = tileData.manualInput || "";
+			} else {
+				// Fallback auf die alte Methode
+				const cellIndex = isSecondary ? tileId - 100 : tileId;
+				const cells = document.querySelectorAll(`${container} .hangar-cell`);
+				if (cells.length >= cellIndex) {
+					const manualInput = cells[cellIndex - 1].querySelector(
+						'input[placeholder="Manual Input"]'
+					);
+					if (manualInput) {
+						manualInput.value = tileData.manualInput || "";
+					}
 				}
 			}
 
@@ -1876,6 +1940,6 @@ document.addEventListener("DOMContentLoaded", () => {
 	}
 
 	// Globale Funktionen für die Initialisierung und das Setup von Event-Listenern
-	window.initializeUI = initializeUI;
 	window.setupUIEventListeners = setupUIEventListeners;
+	window.initializeUI = initializeUI;
 });
