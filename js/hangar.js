@@ -99,6 +99,144 @@ document.addEventListener("DOMContentLoaded", () => {
 			})),
 	};
 
+	// Referenz zum Datenbank-Manager
+	const dbManager = window.databaseManager;
+
+	// Globale Funktionen für Datenbankinteraktion
+	window.loadProjectFromDatabase = function (projectData) {
+		try {
+			// Projektname setzen
+			if (projectData.metadata && projectData.metadata.projectName) {
+				document.getElementById("projectName").value =
+					projectData.metadata.projectName;
+			}
+
+			// Einstellungen übernehmen
+			if (projectData.settings) {
+				if (checkElement("tilesCount")) {
+					document.getElementById("tilesCount").value =
+						projectData.settings.tilesCount || 8;
+				}
+				if (checkElement("secondaryTilesCount")) {
+					document.getElementById("secondaryTilesCount").value =
+						projectData.settings.secondaryTilesCount || 0;
+				}
+				if (checkElement("layoutType")) {
+					document.getElementById("layoutType").value =
+						projectData.settings.layout || 4;
+				}
+
+				// Einstellungen anwenden
+				uiSettings.tilesCount = projectData.settings.tilesCount || 8;
+				uiSettings.secondaryTilesCount =
+					projectData.settings.secondaryTilesCount || 0;
+				uiSettings.layout = projectData.settings.layout || 4;
+				uiSettings.apply();
+			}
+
+			// Kachelndaten anwenden
+			applyLoadedTileData(projectData);
+
+			showNotification("Projekt erfolgreich geladen", "success");
+			return true;
+		} catch (error) {
+			console.error("Fehler beim Laden des Projekts aus der Datenbank:", error);
+			showNotification(`Fehler beim Laden: ${error.message}`, "error");
+			return false;
+		}
+	};
+
+	window.createNewProjectInDatabase = function (projectName) {
+		try {
+			// Aktuellen Zustand zurücksetzen
+			resetAllFields();
+
+			// Projektname setzen
+			document.getElementById("projectName").value =
+				projectName || generateTimestamp();
+
+			// Standardeinstellungen anwenden
+			uiSettings.tilesCount = 8;
+			uiSettings.secondaryTilesCount = 0;
+			uiSettings.layout = 4;
+			uiSettings.apply();
+
+			showNotification("Neues Projekt erstellt", "success");
+			// Automatisches Speichern des neuen Projekts
+			saveProjectToDatabase();
+
+			return true;
+		} catch (error) {
+			console.error("Fehler beim Erstellen eines neuen Projekts:", error);
+			showNotification(`Fehler beim Erstellen: ${error.message}`, "error");
+			return false;
+		}
+	};
+
+	// Funktion zum Zurücksetzen aller Felder
+	function resetAllFields() {
+		// Projektname zurücksetzen
+		if (checkElement("projectName")) {
+			document.getElementById("projectName").value = generateTimestamp();
+		}
+
+		// Alle Kacheln leeren (Primär und Sekundär)
+		document
+			.querySelectorAll(
+				"#hangarGrid .hangar-cell, #secondaryHangarGrid .hangar-cell"
+			)
+			.forEach((cell) => {
+				const inputs = cell.querySelectorAll("input, textarea");
+				inputs.forEach((input) => {
+					input.value = "";
+				});
+
+				// Status auf "ready" setzen
+				const statusSelect = cell.querySelector("select");
+				if (statusSelect) {
+					statusSelect.value = "ready";
+					// Statuslichter aktualisieren
+					const cellId = parseInt(statusSelect.id.split("-")[1]);
+					if (cellId) updateStatusLights(cellId);
+				}
+
+				// Zeit-Anzeigen zurücksetzen
+				const timeElements = cell.querySelectorAll(
+					"[id^='arrival-time-'], [id^='departure-time-']"
+				);
+				timeElements.forEach((el) => {
+					el.textContent = "--:--";
+				});
+
+				// Position-Anzeige zurücksetzen
+				const posDisplay = cell.querySelector("[id^='position-']");
+				if (posDisplay) posDisplay.textContent = "--";
+			});
+	}
+
+	// Speichern in die Datenbank
+	async function saveProjectToDatabase() {
+		try {
+			const projectData = collectAllHangarData();
+
+			// Vorhandene ID beibehalten, falls bereits gespeichert
+			const existingId = projectData.id;
+
+			// In Datenbank speichern
+			const projectId = await dbManager.saveProject(projectData);
+
+			showNotification(
+				"Projekt erfolgreich in der Datenbank gespeichert",
+				"success"
+			);
+			return projectId;
+		} catch (error) {
+			console.error("Fehler beim Speichern in der Datenbank:", error);
+			showNotification(`Speichern fehlgeschlagen: ${error.message}`, "error");
+			return null;
+		}
+	}
+
 	// UI-Einstellungen Objekt
 	const uiSettings = {
 		tilesCount: 8,
@@ -603,21 +741,15 @@ document.addEventListener("DOMContentLoaded", () => {
 		const saveSettingsBtn = document.getElementById("saveSettingsBtn");
 		if (saveSettingsBtn) {
 			saveSettingsBtn.addEventListener("click", function () {
-				uiSettings.save(true);
+				saveSettingsToDatabase();
 			});
 		}
 
 		const loadSettingsBtn = document.getElementById("loadSettingsBtn");
 		if (loadSettingsBtn) {
 			loadSettingsBtn.addEventListener("click", function () {
-				openSettingsFilePicker();
+				loadSettingsFromDatabase();
 			});
-		}
-
-		// Settings-Datei-Import
-		const settingsFileInput = document.getElementById("settingsFileInput");
-		if (settingsFileInput) {
-			settingsFileInput.addEventListener("change", loadSettingsFromFile);
 		}
 
 		// PDF Export-Button mit verbessertem Event-Listener
@@ -639,22 +771,35 @@ document.addEventListener("DOMContentLoaded", () => {
 			console.error("PDF-Export-Button konnte nicht gefunden werden");
 		}
 
-		// Save und Load Buttons - Keine doppelten Deklarationen mehr
+		// Save und Load Buttons - für Datenbankintegration aktualisiert
 		const saveBtn = document.getElementById("saveBtn");
 		if (saveBtn) {
-			saveBtn.addEventListener("click", saveProject);
+			saveBtn.addEventListener("click", function () {
+				// Projekt in Datenbank speichern
+				saveProjectToDatabase();
+			});
 		}
 
 		const loadBtn = document.getElementById("loadBtn");
 		if (loadBtn) {
 			loadBtn.addEventListener("click", function () {
-				openImportFilePicker();
+				// Projekt-Browser öffnen
+				showProjectBrowser();
 			});
 		}
 
-		const jsonFileInput = document.getElementById("jsonFileInput");
-		if (jsonFileInput) {
-			jsonFileInput.addEventListener("change", importHangarPlanFromJson);
+		// Füge Event-Listener für neue UI-Elemente hinzu (falls in HTML vorhanden)
+		const newProjectBtn = document.getElementById("newProjectBtn");
+		if (newProjectBtn) {
+			newProjectBtn.addEventListener("click", function () {
+				const projectName = prompt(
+					"Bitte geben Sie einen Namen für das neue Projekt ein:",
+					generateTimestamp()
+				);
+				if (projectName) {
+					window.createNewProjectInDatabase(projectName);
+				}
+			});
 		}
 
 		// Initialisiere Status-Handler für alle vorhandenen Kacheln
@@ -1048,6 +1193,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			document.getElementById("projectName").value || generateTimestamp();
 
 		return {
+			id: document.getElementById("projectId")?.value || Date.now().toString(), // ID für Datenbank
 			metadata: {
 				projectName: projectName,
 				exportDate: new Date().toISOString(),
@@ -1065,11 +1211,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
 	/**
 	 * Speichert das aktuelle Projekt
-	 * Dient als Wrapper für exportHangarPlanToJson
+	 * Dient als Wrapper für beide Speichermöglichkeiten
 	 */
 	function saveProject() {
 		try {
-			exportHangarPlanToJson();
+			// Prüfen, ob File System Access verwendet werden soll
+			const useFileSystem =
+				localStorage.getItem("useFileSystemAccess") === "true";
+
+			if (useFileSystem) {
+				// JSON-Datei-Export mit direkter Ordnerauswahl
+				exportHangarPlanToJson();
+			} else {
+				// In Datenbank speichern
+				saveProjectToDatabase();
+			}
 		} catch (error) {
 			console.error("Fehler beim Speichern:", error);
 			showNotification("Fehler beim Speichern: " + error.message, "error");
@@ -1077,7 +1233,8 @@ document.addEventListener("DOMContentLoaded", () => {
 	}
 
 	/**
-	 * Exportiert den aktuellen Hangarplan als JSON-Datei direkt in den Projektordner
+	 * Exportiert den aktuellen Hangarplan als JSON-Datei
+	 * Bietet bessere Nutzerführung für Dateiauswahl
 	 */
 	function exportHangarPlanToJson() {
 		try {
@@ -1094,9 +1251,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 			// Prüfe, ob die moderne File System Access API unterstützt wird
 			if (window.showSaveFilePicker) {
-				// Definiere den Speicherordner - Angepasst an die neue Struktur
-				const startInDirectory = filePaths.dataDir;
-
 				// Konfiguriere die Optionen für den File Picker
 				const options = {
 					suggestedName: `${fileName}.json`,
@@ -1106,16 +1260,39 @@ document.addEventListener("DOMContentLoaded", () => {
 							accept: { "application/json": [".json"] },
 						},
 					],
-					// Aktualisierter Pfad für den Startordner
-					startIn: startInDirectory,
+					// Versuch, den Projects-Ordner als Start zu verwenden
+					startIn: { name: "Projects" },
 				};
+
+				// Zeige dem Benutzer einen Hinweis, wo die Datei gespeichert werden sollte
+				showNotification(
+					`Bitte wählen Sie den "${filePaths.dataDir}"-Ordner zum Speichern aus`,
+					"info",
+					5000
+				);
 
 				showSaveFilePicker(options)
 					.then(async (fileHandle) => {
 						const writable = await fileHandle.createWritable();
 						await writable.write(jsonData);
 						await writable.close();
-						showNotification("Projekt erfolgreich gespeichert!", "success");
+
+						// Informiere den Benutzer über den erfolgreichen Speichervorgang und den Pfad
+						const fileName = fileHandle.name;
+						showNotification(
+							`Projekt "${fileName}" erfolgreich gespeichert!`,
+							"success"
+						);
+
+						// Zusätzlich in der DB speichern für redundante Sicherheit
+						try {
+							await dbManager.saveProject(allData);
+						} catch (dbError) {
+							console.log(
+								"Info: Datenbank-Backup nicht durchgeführt:",
+								dbError
+							);
+						}
 					})
 					.catch((error) => {
 						if (error.name !== "AbortError") {
@@ -1126,7 +1303,7 @@ document.addEventListener("DOMContentLoaded", () => {
 							// Fallback zum regulären Download
 							downloadFile(jsonData, `${fileName}.json`);
 							showNotification(
-								`Projekt wurde heruntergeladen. Bitte in ${filePaths.dataDir}/ speichern.`,
+								`Projekt wurde heruntergeladen. Bitte manuell in ${filePaths.dataDir}/ ablegen.`,
 								"info",
 								5000
 							);
@@ -1136,7 +1313,7 @@ document.addEventListener("DOMContentLoaded", () => {
 				// Fallback für Browser ohne File System Access API
 				downloadFile(jsonData, `${fileName}.json`);
 				showNotification(
-					`Projekt wurde heruntergeladen. Bitte in ${filePaths.dataDir}/ speichern.`,
+					`Projekt wurde heruntergeladen. Bitte manuell in ${filePaths.dataDir}/ ablegen.`,
 					"info",
 					5000
 				);
