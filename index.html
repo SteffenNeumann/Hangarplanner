@@ -1811,13 +1811,24 @@
 						</button>
 					</div>
 
-					<!-- Einstellungen speichern/laden -->
-					<div class="mt-4">
+					<!-- Dateidialog-Modus Toggle hinzufügen - ausblenden -->
+					<div class="mt-3 flex items-center" style="display: none">
+						<label for="fileSystemToggle" class="text-sm mr-2"
+							>Dateidialog:</label
+						>
+						<label class="toggle-switch inline-flex">
+							<input type="checkbox" id="fileSystemToggle" checked />
+							<span class="toggle-slider"></span>
+						</label>
+					</div>
+
+					<!-- Einstellungen speichern/laden - komplett ausgeblendet -->
+					<div class="mt-4" style="display: none">
 						<h4 class="text-sm font-semibold mb-2">Configuration</h4>
 						<div class="flex gap-2">
 							<button
 								id="saveSettingsBtn"
-								class="flex-1 bg-industrial-accent hover:bg-opacity-80 px-3 py-1 rounded text-xs">
+								class="w-full bg-industrial-accent hover:bg-opacity-80 px-3 py-1 rounded text-xs">
 								Save Settings
 							</button>
 							<button
@@ -1827,7 +1838,7 @@
 							</button>
 						</div>
 						<p class="text-xs mt-2 opacity-70">
-							Settings werden separat gespeichert und umfassen Layout,
+							Settings werden automatisch gespeichert und umfassen Layout,
 							Kachelanzahl etc.
 						</p>
 					</div>
@@ -2013,8 +2024,9 @@
 		<script src="js/helpers.js"></script>
 		<script src="js/folderManager.js"></script>
 		<script src="js/databaseManager.js"></script>
-		<script src="js/projectManager.js"></script>
-		<script src="js/hangar.js"></script>
+		<script src="js/projectManager.js">
+			</script		<script src="js/hangar.js">
+		</script>
 
 		<!-- Event-Handler für den "Info anzeigen"-Button -->
 		<script>

@@ -219,16 +219,15 @@ document.addEventListener("DOMContentLoaded", () => {
 		try {
 			const projectData = collectAllHangarData();
 
-			// Vorhandene ID beibehalten, falls bereits gespeichert
-			const existingId = projectData.id;
-
 			// In Datenbank speichern
 			const projectId = await dbManager.saveProject(projectData);
 
+			// Erfolgsmeldung anzeigen
 			showNotification(
 				"Projekt erfolgreich in der Datenbank gespeichert",
 				"success"
 			);
+
 			return projectId;
 		} catch (error) {
 			console.error("Fehler beim Speichern in der Datenbank:", error);
@@ -237,13 +236,50 @@ document.addEventListener("DOMContentLoaded", () => {
 		}
 	}
 
-	// UI-Einstellungen Objekt
+	// UI-Einstellungen Objekt mit korrigierter Syntax
 	const uiSettings = {
 		tilesCount: 8,
 		secondaryTilesCount: 0,
 		layout: 4,
-		load: function () {
+
+		// Lädt Einstellungen aus der Datenbank und fallback auf localStorage
+		// Korrigierte async-Funktion ohne Leerzeichen zwischen load und ()
+		load: async function () {
 			try {
+				// Zuerst versuchen, aus der IndexedDB zu laden
+				if (dbManager) {
+					try {
+						const dbSettings = await dbManager.loadSettings("ui");
+						if (dbSettings && dbSettings.data) {
+							// Einstellungen aus der Datenbank laden
+							this.tilesCount = dbSettings.data.tilesCount || 8;
+							this.secondaryTilesCount =
+								dbSettings.data.secondaryTilesCount || 0;
+							this.layout = dbSettings.data.layout || 4;
+
+							// UI-Elemente aktualisieren
+							this.updateUIControls();
+
+							// Kachelwerte anwenden, falls vorhanden
+							if (
+								dbSettings.data.tileValues &&
+								Array.isArray(dbSettings.data.tileValues)
+							) {
+								this.applyTileValues(dbSettings.data.tileValues);
+							}
+
+							console.log("Einstellungen aus IndexedDB geladen");
+							return true;
+						}
+					} catch (dbError) {
+						console.warn(
+							"Konnte Einstellungen nicht aus IndexedDB laden, versuche localStorage",
+							dbError
+						);
+					}
+				}
+
+				// Fallback: Aus localStorage laden
 				const savedSettingsJSON = localStorage.getItem("hangarPlannerSettings");
 				if (savedSettingsJSON) {
 					const settings = JSON.parse(savedSettingsJSON);
@@ -251,68 +287,77 @@ document.addEventListener("DOMContentLoaded", () => {
 					this.secondaryTilesCount = settings.secondaryTilesCount || 0;
 					this.layout = settings.layout || 4;
 
-					// Formulareingaben aktualisieren
-					if (checkElement("tilesCount")) {
-						document.getElementById("tilesCount").value = this.tilesCount;
-					}
-					if (checkElement("secondaryTilesCount")) {
-						document.getElementById("secondaryTilesCount").value =
-							this.secondaryTilesCount;
-					}
-					if (checkElement("layoutType")) {
-						document.getElementById("layoutType").value = this.layout;
-					}
+					// UI-Elemente aktualisieren
+					this.updateUIControls();
 
-					// Kachel-Werte zurücksetzen, falls vorhanden
+					// Kachelwerte anwenden, falls vorhanden
 					if (settings.tileValues && Array.isArray(settings.tileValues)) {
-						// Für jede gespeicherte Kachel die Werte setzen
-						settings.tileValues.forEach((tileValue) => {
-							// Position setzen
-							const positionInput = document.getElementById(
-								`hangar-position-${tileValue.cellId}`
-							);
-							if (positionInput) {
-								positionInput.value = tileValue.position || "";
-							}
-
-							// Manuelle Eingabe setzen
-							if (tileValue.manualInput) {
-								// Bestimme den Container (primär oder sekundär)
-								const container =
-									tileValue.cellId < 100
-										? "#hangarGrid"
-										: "#secondaryHangarGrid";
-								const index =
-									tileValue.cellId < 100
-										? tileValue.cellId
-										: tileValue.cellId - 100;
-
-								// Suche nach dem manuellen Eingabefeld
-								const manualInput = document.querySelector(
-									`${container} .hangar-cell:nth-child(${index}) input[placeholder="Manual Input"]`
-								);
-
-								if (manualInput) {
-									manualInput.value = tileValue.manualInput;
-									debug(
-										`Manuelle Eingabe für Kachel ${tileValue.cellId} gesetzt: ${tileValue.manualInput}`
-									);
-								}
-							}
-						});
+						this.applyTileValues(settings.tileValues);
 					}
+
+					// Optional: Migrieren zu IndexedDB für zukünftige Verwendung
+					this.save(false);
+
 					return true;
 				}
 			} catch (error) {
-				console.error(
-					"Fehler beim Laden der gespeicherten Einstellungen:",
-					error
-				);
+				console.error("Fehler beim Laden der Einstellungen:", error);
 			}
 			return false;
 		},
 
-		save: function (exportToFile = false) {
+		// Wendet geladene Kachelwerte auf die UI an
+		applyTileValues: function (tileValues) {
+			// Für jede gespeicherte Kachel die Werte setzen
+			tileValues.forEach((tileValue) => {
+				// Position setzen
+				const positionInput = document.getElementById(
+					`hangar-position-${tileValue.cellId}`
+				);
+				if (positionInput) {
+					positionInput.value = tileValue.position || "";
+				}
+
+				// Manuelle Eingabe setzen
+				if (tileValue.manualInput) {
+					// Bestimme den Container (primär oder sekundär)
+					const container =
+						tileValue.cellId < 100 ? "#hangarGrid" : "#secondaryHangarGrid";
+					const index =
+						tileValue.cellId < 100 ? tileValue.cellId : tileValue.cellId - 100;
+
+					// Suche nach dem manuellen Eingabefeld
+					const manualInput = document.querySelector(
+						`${container} .hangar-cell:nth-child(${index}) input[placeholder="Manual Input"]`
+					);
+
+					if (manualInput) {
+						manualInput.value = tileValue.manualInput;
+						debug(
+							`Manuelle Eingabe für Kachel ${tileValue.cellId} gesetzt: ${tileValue.manualInput}`
+						);
+					}
+				}
+			});
+		},
+
+		// Aktualisiert die UI-Steuerelemente mit aktuellen Werten
+		updateUIControls: function () {
+			if (checkElement("tilesCount")) {
+				document.getElementById("tilesCount").value = this.tilesCount;
+			}
+			if (checkElement("secondaryTilesCount")) {
+				document.getElementById("secondaryTilesCount").value =
+					this.secondaryTilesCount;
+			}
+			if (checkElement("layoutType")) {
+				document.getElementById("layoutType").value = this.layout;
+			}
+		},
+
+		// Speichert Einstellungen in localStorage und IndexedDB
+		// Korrigierte Methode ohne Leerraum zwischen save und ()
+		save: async function (exportToFile = false) {
 			try {
 				// Aktuelle Werte aus den Eingabefeldern holen
 				if (checkElement("tilesCount")) {
@@ -337,26 +382,39 @@ document.addEventListener("DOMContentLoaded", () => {
 				// Sammle Daten von sekundären Kacheln
 				this.collectTileValues("#secondaryHangarGrid", tileValues, 101);
 
-				// Im LocalStorage speichern
+				// Einstellungsobjekt erstellen
+				const settingsData = {
+					tilesCount: this.tilesCount,
+					secondaryTilesCount: this.secondaryTilesCount,
+					layout: this.layout,
+					tileValues: tileValues,
+					lastSaved: new Date().toISOString(),
+				};
+
+				// Im LocalStorage speichern als Fallback
 				localStorage.setItem(
 					"hangarPlannerSettings",
-					JSON.stringify({
-						tilesCount: this.tilesCount,
-						secondaryTilesCount: this.secondaryTilesCount,
-						layout: this.layout,
-						tileValues: tileValues,
-					})
+					JSON.stringify(settingsData)
 				);
 
-				// Optional als Datei exportieren
-				if (exportToFile) {
-					const settingsData = {
-						tilesCount: this.tilesCount,
-						secondaryTilesCount: this.secondaryTilesCount,
-						layout: this.layout,
-						tileValues: tileValues,
-					};
+				// In IndexedDB speichern
+				if (dbManager) {
+					try {
+						await dbManager.saveSettings({
+							id: "ui", // Konstante ID für UI-Einstellungen
+							data: settingsData,
+						});
+						console.log("Einstellungen in IndexedDB gespeichert");
+					} catch (dbError) {
+						console.warn(
+							"Konnte Einstellungen nicht in IndexedDB speichern:",
+							dbError
+						);
+					}
+				}
 
+				// Optional als Datei exportieren wenn gewünscht
+				if (exportToFile) {
 					const projectName = checkElement("projectName")
 						? document.getElementById("projectName").value
 						: "HangarPlan";
@@ -737,18 +795,33 @@ document.addEventListener("DOMContentLoaded", () => {
 			});
 		}
 
-		// Settings-Buttons
+		// Settings-Buttons mit automatischer Speicherung (behalten aber ausgeblendet)
 		const saveSettingsBtn = document.getElementById("saveSettingsBtn");
 		if (saveSettingsBtn) {
 			saveSettingsBtn.addEventListener("click", function () {
-				saveSettingsToDatabase();
+				uiSettings.save(true); // true = mit Dateiexport
 			});
 		}
 
-		const loadSettingsBtn = document.getElementById("loadSettingsBtn");
-		if (loadSettingsBtn) {
-			loadSettingsBtn.addEventListener("click", function () {
-				loadSettingsFromDatabase();
+		// Automatische Speicherung der Einstellungen bei Änderungen
+		if (updateTilesBtn) {
+			updateTilesBtn.addEventListener("click", function () {
+				// Nach der Anwendung der neuen Einstellungen automatisch speichern
+				setTimeout(() => uiSettings.save(), 100);
+			});
+		}
+
+		if (updateSecondaryTilesBtn) {
+			updateSecondaryTilesBtn.addEventListener("click", function () {
+				// Nach der Anwendung der neuen Einstellungen automatisch speichern
+				setTimeout(() => uiSettings.save(), 100);
+			});
+		}
+
+		if (layoutType) {
+			layoutType.addEventListener("change", function () {
+				// Nach der Layoutänderung automatisch speichern
+				setTimeout(() => uiSettings.save(), 100);
 			});
 		}
 
@@ -771,21 +844,28 @@ document.addEventListener("DOMContentLoaded", () => {
 			console.error("PDF-Export-Button konnte nicht gefunden werden");
 		}
 
-		// Save und Load Buttons - für Datenbankintegration aktualisiert
+		// Save und Load Buttons - direkte Verwendung von Dateidialogen
 		const saveBtn = document.getElementById("saveBtn");
 		if (saveBtn) {
 			saveBtn.addEventListener("click", function () {
-				// Projekt in Datenbank speichern
-				saveProjectToDatabase();
+				// Direkter Dateidialog zum Speichern
+				saveProject();
 			});
 		}
 
 		const loadBtn = document.getElementById("loadBtn");
 		if (loadBtn) {
 			loadBtn.addEventListener("click", function () {
-				// Projekt-Browser öffnen
+				// Direkter Dateidialog zum Laden
 				showProjectBrowser();
 			});
+		}
+
+		// Datei-Modus Toggle - entfernen oder ausblenden
+		const fileSystemToggle = document.getElementById("fileSystemToggle");
+		if (fileSystemToggle) {
+			// Toggle verstecken, da wir immer den Dateidialog verwenden
+			fileSystemToggle.parentElement.style.display = "none";
 		}
 
 		// Füge Event-Listener für neue UI-Elemente hinzu (falls in HTML vorhanden)
@@ -935,9 +1015,18 @@ document.addEventListener("DOMContentLoaded", () => {
 		}
 
 		// Gespeicherte Einstellungen laden und anwenden
-		if (uiSettings.load()) {
-			uiSettings.apply();
-		}
+		// Korrigierte anonyme async-Funktion mit korrekter Syntax
+		(async function () {
+			try {
+				await uiSettings.load();
+				uiSettings.apply();
+			} catch (error) {
+				console.error("Fehler beim Laden der Einstellungen:", error);
+			}
+		})();
+
+		// Dateidialog-Modus immer aktivieren ohne Wahlmöglichkeit
+		localStorage.setItem("useFileSystemAccess", "true");
 
 		// Anfangszustand des Menüs korrekt setzen
 		document.body.classList.remove("sidebar-collapsed");
@@ -951,6 +1040,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
 		// Event-Listener für Fenstergrößenänderungen
 		window.addEventListener("resize", adjustScaling);
+
+		// Settings-Elemente ausblenden
+		const saveSettingsBtn = document.getElementById("saveSettingsBtn");
+		const loadSettingsBtn = document.getElementById("loadSettingsBtn");
+		if (
+			saveSettingsBtn &&
+			saveSettingsBtn.parentElement &&
+			saveSettingsBtn.parentElement.parentElement
+		) {
+			// Blende den ganzen Settings-Bereich aus
+			saveSettingsBtn.parentElement.parentElement.style.display = "none";
+		}
 	}
 
 	/**
@@ -1210,33 +1311,31 @@ document.addEventListener("DOMContentLoaded", () => {
 	}
 
 	/**
-	 * Speichert das aktuelle Projekt
-	 * Dient als Wrapper für beide Speichermöglichkeiten
+	 * Speichert das aktuelle Projekt mit Dateidialog
+	 * Diese Funktion sorgt dafür, dass ein Dateiauswahldialog angezeigt wird
 	 */
 	function saveProject() {
 		try {
-			// Prüfen, ob File System Access verwendet werden soll
-			const useFileSystem =
-				localStorage.getItem("useFileSystemAccess") === "true";
+			console.log("Speicherfunktion wird aufgerufen...");
 
-			if (useFileSystem) {
-				// JSON-Datei-Export mit direkter Ordnerauswahl
-				exportHangarPlanToJson();
-			} else {
-				// In Datenbank speichern
-				saveProjectToDatabase();
-			}
+			// Zeige Benachrichtigung, dass der Speichervorgang beginnt
+			showNotification("Bereite Speichervorgang vor...", "info");
+
+			// Rufe die Export-Funktion auf, die den Dateiauswahldialog anzeigt
+			exportHangarPlanToJson();
 		} catch (error) {
-			console.error("Fehler beim Speichern:", error);
-			showNotification("Fehler beim Speichern: " + error.message, "error");
+			console.error("Kritischer Fehler beim Speichern:", error);
+			showNotification(`Fehler beim Speichern: ${error.message}`, "error");
 		}
 	}
 
 	/**
-	 * Exportiert den aktuellen Hangarplan als JSON-Datei
-	 * Bietet bessere Nutzerführung für Dateiauswahl
+	 * Exportiert den aktuellen Hangarplan als JSON-Datei mit Dateiauswahldialog
+	 * Diese Funktion wurde überarbeitet, um robust zu funktionieren
 	 */
 	function exportHangarPlanToJson() {
+		console.log("exportHangarPlanToJson wird ausgeführt");
+
 		try {
 			// Sammle alle relevanten Daten
 			const allData = collectAllHangarData();
@@ -1250,7 +1349,16 @@ document.addEventListener("DOMContentLoaded", () => {
 			const fileName = `${projectName}`;
 
 			// Prüfe, ob die moderne File System Access API unterstützt wird
-			if (window.showSaveFilePicker) {
+			if (typeof window.showSaveFilePicker === "function") {
+				console.log("File System Access API wird verwendet");
+
+				// Zeige dem Benutzer einen Hinweis
+				showNotification(
+					`Bitte wählen Sie einen Speicherort für Ihr Projekt "${projectName}"`,
+					"info",
+					5000
+				);
+
 				// Konfiguriere die Optionen für den File Picker
 				const options = {
 					suggestedName: `${fileName}.json`,
@@ -1261,61 +1369,69 @@ document.addEventListener("DOMContentLoaded", () => {
 						},
 					],
 					// Versuch, den Projects-Ordner als Start zu verwenden
-					startIn: { name: "Projects" },
+					startIn: "documents",
 				};
 
-				// Zeige dem Benutzer einen Hinweis, wo die Datei gespeichert werden sollte
-				showNotification(
-					`Bitte wählen Sie den "${filePaths.dataDir}"-Ordner zum Speichern aus`,
-					"info",
-					5000
-				);
-
-				showSaveFilePicker(options)
+				// Zeige Dateiauswahldialog und verarbeite die Ergebnisse
+				window
+					.showSaveFilePicker(options)
 					.then(async (fileHandle) => {
-						const writable = await fileHandle.createWritable();
-						await writable.write(jsonData);
-						await writable.close();
-
-						// Informiere den Benutzer über den erfolgreichen Speichervorgang und den Pfad
-						const fileName = fileHandle.name;
-						showNotification(
-							`Projekt "${fileName}" erfolgreich gespeichert!`,
-							"success"
-						);
-
-						// Zusätzlich in der DB speichern für redundante Sicherheit
 						try {
-							await dbManager.saveProject(allData);
-						} catch (dbError) {
-							console.log(
-								"Info: Datenbank-Backup nicht durchgeführt:",
-								dbError
+							console.log("Datei wird geschrieben...");
+							const writable = await fileHandle.createWritable();
+							await writable.write(jsonData);
+							await writable.close();
+
+							console.log("Datei erfolgreich gespeichert:", fileHandle.name);
+							showNotification(
+								`Projekt "${projectName}" erfolgreich gespeichert!`,
+								"success"
+							);
+
+							// Optional: Datenbank-Backup
+							try {
+								await saveProjectToDatabase();
+								console.log("Datenbank-Backup erstellt");
+							} catch (dbError) {
+								console.log("Datenbank-Backup fehlgeschlagen:", dbError);
+							}
+						} catch (writeError) {
+							console.error("Fehler beim Schreiben der Datei:", writeError);
+							showNotification(
+								`Fehler beim Schreiben der Datei: ${writeError.message}`,
+								"error"
 							);
 						}
 					})
 					.catch((error) => {
+						// AbortError ignorieren (wird ausgelöst, wenn der Benutzer abbricht)
 						if (error.name !== "AbortError") {
 							console.error(
 								"Fehler beim Speichern mit File System API:",
 								error
 							);
+
 							// Fallback zum regulären Download
 							downloadFile(jsonData, `${fileName}.json`);
 							showNotification(
-								`Projekt wurde heruntergeladen. Bitte manuell in ${filePaths.dataDir}/ ablegen.`,
+								`Fallback: Projekt wurde als Download gespeichert.`,
 								"info",
 								5000
 							);
+						} else {
+							console.log("Benutzer hat den Speichervorgang abgebrochen");
 						}
 					});
 			} else {
 				// Fallback für Browser ohne File System Access API
+				console.log(
+					"Browser unterstützt File System Access API nicht, nutze Download-Fallback"
+				);
 				downloadFile(jsonData, `${fileName}.json`);
 				showNotification(
-					`Projekt wurde heruntergeladen. Bitte manuell in ${filePaths.dataDir}/ ablegen.`,
+					`Ihr Browser unterstützt keine Dateiauswahldialoge. Das Projekt wurde als Download gespeichert.`,
 					"info",
-					5000
+					8000
 				);
 			}
 
@@ -1328,152 +1444,198 @@ document.addEventListener("DOMContentLoaded", () => {
 	}
 
 	/**
-	 * Lädt Einstellungen aus einer Datei
+	 * Öffnet den Projekt-Browser für das Laden von Projekten
+	 * Diese Funktion zeigt immer den Dateiauswahldialog wenn möglich
 	 */
-	function loadSettingsFromFile(event) {
+	function showProjectBrowser() {
+		console.log("showProjectBrowser wird aufgerufen");
+
 		try {
-			const file = event.target.files[0];
-			if (!file) {
-				showNotification("Keine Datei ausgewählt", "error");
-				return;
-			}
+			// Immer den Dateiauswahldialog verwenden
+			openFileLoadDialog();
+		} catch (error) {
+			console.error("Fehler beim Aufrufen des Dateidialogs:", error);
+			showNotification(
+				`Fehler beim Öffnen des Dateidialogs: ${error.message}`,
+				"error"
+			);
 
-			const reader = new FileReader();
-			reader.onload = function (e) {
-				try {
-					const settings = JSON.parse(e.target.result);
-
-					// Einstellungen übernehmen
-					uiSettings.tilesCount = settings.tilesCount || 8;
-					uiSettings.secondaryTilesCount = settings.secondaryTilesCount || 0;
-					uiSettings.layout = settings.layout || 4;
-
-					// Formulareingaben aktualisieren
-					if (checkElement("tilesCount")) {
-						document.getElementById("tilesCount").value = uiSettings.tilesCount;
-					}
-					if (checkElement("secondaryTilesCount")) {
-						document.getElementById("secondaryTilesCount").value =
-							uiSettings.secondaryTilesCount;
-					}
-					if (checkElement("layoutType")) {
-						document.getElementById("layoutType").value = uiSettings.layout;
-					}
-
-					// Einstellungen anwenden
-					uiSettings.apply();
-
-					showNotification("Einstellungen erfolgreich geladen", "success");
-				} catch (error) {
-					console.error(
-						"Fehler beim Laden der Einstellungen aus Datei:",
-						error
-					);
+			// Fallback auf Projekt-Manager-Dialog
+			try {
+				if (
+					window.projectManager &&
+					typeof window.projectManager.showProjectManager === "function"
+				) {
+					window.projectManager.showProjectManager();
+				} else {
 					showNotification(
-						`Fehler beim Laden der Einstellungen: ${error.message}`,
+						"Das Laden von Projekten ist nicht möglich",
 						"error"
 					);
 				}
-			};
-
-			reader.readAsText(file);
-
-			// Input zurücksetzen
-			event.target.value = "";
-		} catch (error) {
-			console.error("Fehler beim Laden der Einstellungsdatei:", error);
-			showNotification(`Fehler beim Laden: ${error.message}`, "error");
+			} catch (fallbackError) {
+				console.error("Fehler beim Ausführen des Fallbacks:", fallbackError);
+			}
 		}
 	}
 
 	/**
-	 * Exportiert den Hangarplan als PDF
+	 * Öffnet einen Datei-Auswahldialog zum Laden eines Projekts
+	 * Diese Funktion wurde überarbeitet um Fehler zu verhindern
 	 */
-	function exportToPDF() {
+	async function openFileLoadDialog() {
+		console.log("openFileLoadDialog wird ausgeführt");
+
 		try {
-			// PDF-Dateiname aus Eingabefeld oder Projektname
-			const pdfFileName =
-				document.getElementById("pdfFilename").value ||
-				document.getElementById("projectName").value ||
-				"Hangar_Plan";
+			// Prüfen, ob File System Access API unterstützt wird
+			if (typeof window.showOpenFilePicker !== "function") {
+				throw new Error(
+					"Ihr Browser unterstützt keine Dateiauswahldialoge - bitte Chrome, Edge oder einen anderen kompatiblen Browser verwenden"
+				);
+			}
 
-			// Optionen aus der UI holen
-			const includeNotes = document.getElementById("includeNotes").checked;
-			const landscapeMode = document.getElementById("landscapeMode").checked;
+			showNotification("Bitte wählen Sie eine Projekt-Datei aus", "info", 3000);
 
-			// Aktuellen Bearbeitungsmodus speichern
-			const wasInEditMode = document.body.classList.contains("edit-mode");
-
-			// Temporär in den Ansichtsmodus wechseln (bessere PDF-Ausgabe)
-			document.body.classList.remove("edit-mode");
-			document.body.classList.add("view-mode");
-
-			// PDF-Erstellung verzögern, um den DOM-Update abzuwarten
-			setTimeout(() => {
-				// Elemente zum Ausblenden markieren
-				document.querySelectorAll(".no-print").forEach((el) => {
-					el.classList.add("temporarily-hidden");
-					el.style.display = "none";
-				});
-
-				// Wenn Notizen ausgeblendet werden sollen
-				if (!includeNotes) {
-					document.querySelectorAll(".notes-container").forEach((el) => {
-						el.classList.add("temporarily-hidden");
-						el.style.display = "none";
-					});
-				}
-
-				const element = document.querySelector(".hangar-container");
-
-				// PDF-Optionen konfigurieren
-				const options = {
-					margin: 10,
-					filename: `${pdfFileName}.pdf`,
-					image: { type: "jpeg", quality: 0.98 },
-					html2canvas: {
-						scale: 2,
-						useCORS: true,
-						logging: false,
+			const options = {
+				types: [
+					{
+						description: "JSON Projekt-Dateien",
+						accept: { "application/json": [".json"] },
 					},
-					jsPDF: {
-						unit: "mm",
-						format: "a4",
-						orientation: landscapeMode ? "landscape" : "portrait",
-					},
-				};
+				],
+				multiple: false,
+			};
 
-				// PDF erstellen
-				html2pdf()
-					.from(element)
-					.set(options)
-					.save()
-					.then(() => {
-						// Ausgeblendete Elemente wiederherstellen
-						document.querySelectorAll(".temporarily-hidden").forEach((el) => {
-							el.classList.remove("temporarily-hidden");
-							el.style.display = null;
-						});
+			try {
+				// Dateiauswahldialog anzeigen
+				console.log("Dateiauswahldialog wird angezeigt...");
+				const [fileHandle] = await window.showOpenFilePicker(options);
+				console.log("Datei ausgewählt:", fileHandle.name);
 
-						// Zurück zum vorherigen Bearbeitungsmodus
-						if (wasInEditMode) {
-							document.body.classList.remove("view-mode");
-							document.body.classList.add("edit-mode");
-						}
+				const file = await fileHandle.getFile();
+				const contents = await file.text();
 
-						showNotification("PDF-Export erfolgreich", "success");
-					})
-					.catch((error) => {
-						console.error("PDF-Export-Fehler:", error);
-						showNotification(
-							`PDF-Export fehlgeschlagen: ${error.message}`,
-							"error"
+				try {
+					console.log("Datei wird geladen und geparst...");
+					const projectData = JSON.parse(contents);
+
+					// Projekt in Datenbank speichern für späteres einfaches Laden (optional)
+					try {
+						await dbManager.importProject(projectData);
+						console.log("Projekt in Datenbank importiert");
+					} catch (dbError) {
+						console.log(
+							"Hinweis: Projekt konnte nicht in Datenbank importiert werden",
+							dbError
 						);
-					});
-			}, 100);
+						// Kein Fehler anzeigen, da das Projekt trotzdem geladen wird
+					}
+
+					// Projekt sofort laden
+					window.loadProjectFromDatabase(projectData);
+
+					showNotification(
+						`Projekt "${
+							projectData.metadata?.projectName || "Projekt"
+						}" erfolgreich geladen`,
+						"success"
+					);
+				} catch (parseError) {
+					console.error("Fehler beim Parsen der JSON-Datei:", parseError);
+					showNotification(
+						"Die Datei hat ein ungültiges Format und konnte nicht geladen werden",
+						"error"
+					);
+				}
+			} catch (error) {
+				if (error.name === "AbortError") {
+					console.log("Benutzer hat den Ladevorgang abgebrochen");
+				} else {
+					throw error; // Weitergeben für die äußere try-catch
+				}
+			}
 		} catch (error) {
-			console.error("Fehler beim PDF-Export:", error);
-			showNotification(`PDF-Export fehlgeschlagen: ${error.message}`, "error");
+			console.error("Fehler beim Laden der Datei:", error);
+
+			const errorMessage =
+				error.name === "AbortError"
+					? "Vorgang abgebrochen"
+					: `Fehler beim Laden: ${error.message}`;
+
+			showNotification(errorMessage, "error");
+
+			// Bei Browser-Kompatibilitätsproblemen: Fallback zum Projekt-Manager
+			if (error.message.includes("unterstützt keine")) {
+				try {
+					if (
+						window.projectManager &&
+						typeof window.projectManager.showProjectManager === "function"
+					) {
+						window.projectManager.showProjectManager();
+					}
+				} catch (fallbackError) {
+					console.error("Fallback fehlgeschlagen:", fallbackError);
+				}
+			}
+
+			throw error; // Weitergeben für umfassendere Fehlerbehandlung
 		}
 	}
+
+	// Event-Handler für UI-Elemente werden überprüft
+	function verifyEventHandlers() {
+		// Save-Button überprüfen
+		const saveBtn = document.getElementById("saveBtn");
+		if (saveBtn) {
+			// Vorhandenen Event-Listener entfernen und neu hinzufügen
+			saveBtn.replaceWith(saveBtn.cloneNode(true));
+			const newSaveBtn = document.getElementById("saveBtn");
+			newSaveBtn.addEventListener("click", function () {
+				console.log("Save-Button wurde geklickt");
+				saveProject();
+			});
+		}
+
+		// Load-Button überprüfen
+		const loadBtn = document.getElementById("loadBtn");
+		if (loadBtn) {
+			// Vorhandenen Event-Listener entfernen und neu hinzufügen
+			loadBtn.replaceWith(loadBtn.cloneNode(true));
+			const newLoadBtn = document.getElementById("loadBtn");
+			newLoadBtn.addEventListener("click", function () {
+				console.log("Load-Button wurde geklickt");
+				showProjectBrowser();
+			});
+		}
+	}
+
+	// Initialisierungscode erweitern
+	function extendedInit() {
+		// Dateidialog-Modus immer aktivieren
+		localStorage.setItem("useFileSystemAccess", "true");
+
+		// Event-Handler überprüfen und korrigieren
+		verifyEventHandlers();
+
+		// API-Unterstützung prüfen und Benutzer informieren
+		if (
+			typeof window.showOpenFilePicker !== "function" ||
+			typeof window.showSaveFilePicker !== "function"
+		) {
+			console.warn("Browser unterstützt File System Access API nicht");
+			showNotification(
+				"Ihr Browser unterstützt keine nativen Dateiauswahldialoge. Einige Funktionen sind eingeschränkt.",
+				"warning",
+				8000
+			);
+		}
+	}
+
+	// Alte Funktionen verbleiben, aber werden ergänzt
+	// Ergänze die initializeUI-Funktion um den erweiterten Initialisierungscode
+	const originalInitializeUI = initializeUI;
+	initializeUI = function () {
+		originalInitializeUI.apply(this, arguments);
+		extendedInit();
+	};
 });
