@@ -1527,7 +1527,7 @@
 										data-status="maintenance"></span>
 									<span
 										class="status-light bg-status-red"
-										data-cell="10"
+									data-cell="10"
 										data-status="aog"></span>
 								</div>
 								<div class="flex items-center">
@@ -2024,9 +2024,8 @@
 		<script src="js/helpers.js"></script>
 		<script src="js/folderManager.js"></script>
 		<script src="js/databaseManager.js"></script>
-		<script src="js/projectManager.js">
-			</script		<script src="js/hangar.js">
-		</script>
+		<script src="js/projectManager.js"></script>
+		<script src="js/hangar.js"></script>
 
 		<!-- Event-Handler für den "Info anzeigen"-Button -->
 		<script>
@@ -2045,6 +2044,14 @@
 							);
 						}
 					});
+				}
+
+				// Am Ende der DOMContentLoaded-Initialisierung:
+				if (typeof initializeUI === "function") {
+					initializeUI();
+				}
+				if (typeof setupUIEventListeners === "function") {
+					setupUIEventListeners();
 				}
 			});
 		</script>

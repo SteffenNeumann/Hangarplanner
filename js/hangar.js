@@ -704,22 +704,81 @@ document.addEventListener("DOMContentLoaded", () => {
 	/**
 	 * Initialisiere die UI mit Error-Handling
 	 */
-	try {
-		initializeUI();
-	} catch (error) {
-		console.error("Fehler bei der Initialisierung:", error);
-		alert(
-			"Es ist ein Fehler bei der Initialisierung aufgetreten: " + error.message
-		);
+	function initializeUI() {
+		// Automatischer Dateiname aus Datum/Zeit generieren
+		if (checkElement("projectName")) {
+			document.getElementById("projectName").value = generateTimestamp();
+		}
+
+		// Gespeicherte Einstellungen laden und anwenden
+		// Korrigierte anonyme async-Funktion mit korrekter Syntax
+		(async function () {
+			try {
+				await uiSettings.load();
+				uiSettings.apply();
+			} catch (error) {
+				console.error("Fehler beim Laden der Einstellungen:", error);
+			}
+		})();
+
+		// Dateidialog-Modus immer aktivieren ohne Wahlmöglichkeit
+		localStorage.setItem("useFileSystemAccess", "true");
+
+		// Anfangszustand des Menüs korrekt setzen
+		document.body.classList.remove("sidebar-collapsed");
+		const sidebarMenu = document.getElementById("sidebarMenu");
+		if (sidebarMenu) {
+			sidebarMenu.classList.remove("collapsed");
+		}
+
+		// Initial die Skalierung anpassen
+		adjustScaling();
+
+		// Event-Listener für Fenstergrößenänderungen
+		window.addEventListener("resize", adjustScaling);
+
+		// Settings-Elemente ausblenden
+		const saveSettingsBtn = document.getElementById("saveSettingsBtn");
+		const loadSettingsBtn = document.getElementById("loadSettingsBtn");
+		if (
+			saveSettingsBtn &&
+			saveSettingsBtn.parentElement &&
+			saveSettingsBtn.parentElement.parentElement
+		) {
+			// Blende den ganzen Settings-Bereich aus
+			saveSettingsBtn.parentElement.parentElement.style.display = "none";
+		}
 	}
 
-	// Bereite Event-Listener vor - Entferne doppelte Deklarationen
-	try {
-		setupUIEventListeners();
-	} catch (error) {
-		console.error("Fehler beim Einrichten der UI-Event-Listener:", error);
-		alert("Fehler beim Einrichten der Bedienelemente: " + error.message);
+	// Initialisierungscode erweitern
+	function extendedInit() {
+		// Dateidialog-Modus immer aktivieren
+		localStorage.setItem("useFileSystemAccess", "true");
+
+		// Event-Handler überprüfen und korrigieren
+		verifyEventHandlers();
+
+		// API-Unterstützung prüfen und Benutzer informieren
+		if (
+			typeof window.showOpenFilePicker !== "function" ||
+			typeof window.showSaveFilePicker !== "function"
+		) {
+			console.warn("Browser unterstützt File System Access API nicht");
+			showNotification(
+				"Ihr Browser unterstützt keine nativen Dateiauswahldialoge. Einige Funktionen sind eingeschränkt.",
+				"warning",
+				8000
+			);
+		}
 	}
+
+	// Alte Funktionen verbleiben, aber werden ergänzt
+	// Ergänze die initializeUI-Funktion um den erweiterten Initialisierungscode
+	const originalInitializeUI = initializeUI;
+	initializeUI = function () {
+		originalInitializeUI.apply(this, arguments);
+		extendedInit();
+	};
 
 	/**
 	 * Richtet alle Event-Listener für die UI ein
@@ -1631,11 +1690,7 @@ document.addEventListener("DOMContentLoaded", () => {
 		}
 	}
 
-	// Alte Funktionen verbleiben, aber werden ergänzt
-	// Ergänze die initializeUI-Funktion um den erweiterten Initialisierungscode
-	const originalInitializeUI = initializeUI;
-	initializeUI = function () {
-		originalInitializeUI.apply(this, arguments);
-		extendedInit();
-	};
+	// Globale Funktionen für die Initialisierung und das Setup von Event-Listenern
+	window.initializeUI = initializeUI;
+	window.setupUIEventListeners = setupUIEventListeners;
 });
