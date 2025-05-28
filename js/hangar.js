@@ -29,11 +29,11 @@ document.addEventListener("DOMContentLoaded", () => {
 		// Basis-Ordner für die App
 		baseDir: "HangarPlanner",
 
-		// Unterordner für Projektdaten - Neuer Pfad
-		dataDir: "Settings/Projekte",
+		// Unterordner für Projektdaten - Angepasst an die neue Struktur
+		dataDir: "Projects",
 
-		// Unterordner für Einstellungen - Neuer Pfad
-		settingsDir: "Settings/Einstellungen",
+		// Unterordner für Einstellungen - Angepasst an die neue Struktur
+		settingsDir: "settings",
 
 		// Hilfsfunktion zum Erzeugen des vollen Dateipfads für Projekte
 		getProjectPath: function (filename) {
@@ -238,7 +238,7 @@ document.addEventListener("DOMContentLoaded", () => {
 									accept: { "application/json": [".json"] },
 								},
 							],
-							// Aktualisierter Startverzeichnis-Pfad
+							// Aktualisierter Startverzeichnis-Pfad für Einstellungen
 							startIn: startInDirectory,
 						};
 
@@ -1023,6 +1023,14 @@ document.addEventListener("DOMContentLoaded", () => {
 			if (departureTime) {
 				departureTime.textContent = tileData.departureTime || "--:--";
 			}
+
+			// Position-Wert setzen
+			const positionDisplay = document.querySelector(
+				`${container} #position-${tileId}`
+			);
+			if (positionDisplay) {
+				positionDisplay.textContent = tileData.position || "--";
+			}
 		} catch (error) {
 			console.error(
 				`Fehler beim Anwenden der Daten für Kachel ${tileData.tileId}:`,
@@ -1032,14 +1040,39 @@ document.addEventListener("DOMContentLoaded", () => {
 	}
 
 	/**
+	 * Sammelt alle Daten für den Export
+	 * @returns {Object} - Objekt mit allen Daten des Hangarplans
+	 */
+	function collectAllHangarData() {
+		const projectName =
+			document.getElementById("projectName").value || generateTimestamp();
+
+		return {
+			metadata: {
+				projectName: projectName,
+				exportDate: new Date().toISOString(),
+				version: "1.0",
+			},
+			settings: {
+				tilesCount: uiSettings.tilesCount,
+				secondaryTilesCount: uiSettings.secondaryTilesCount,
+				layout: uiSettings.layout,
+			},
+			primaryTiles: collectTileData("#hangarGrid"),
+			secondaryTiles: collectTileData("#secondaryHangarGrid"),
+		};
+	}
+
+	/**
 	 * Speichert das aktuelle Projekt
+	 * Dient als Wrapper für exportHangarPlanToJson
 	 */
 	function saveProject() {
 		try {
 			exportHangarPlanToJson();
 		} catch (error) {
 			console.error("Fehler beim Speichern:", error);
-			alert("Fehler beim Speichern: " + error.message);
+			showNotification("Fehler beim Speichern: " + error.message, "error");
 		}
 	}
 
@@ -1061,7 +1094,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 			// Prüfe, ob die moderne File System Access API unterstützt wird
 			if (window.showSaveFilePicker) {
-				// Definiere den Speicherordner - Neuer Pfad
+				// Definiere den Speicherordner - Angepasst an die neue Struktur
 				const startInDirectory = filePaths.dataDir;
 
 				// Konfiguriere die Optionen für den File Picker
@@ -1118,172 +1151,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	}
 
 	/**
-	 * Öffnet den File Picker zum Importieren einer Hangarplan-JSON-Datei
-	 */
-	function openImportFilePicker() {
-		try {
-			// Zeige eine Benachrichtigung, um den Benutzer zu informieren
-			showNotification("Bitte wählen Sie eine Projektdatei", "info", 3000);
-
-			// Moderne File System Access API verwenden, falls verfügbar
-			if (window.showOpenFilePicker) {
-				const options = {
-					types: [
-						{
-							description: "JSON Files",
-							accept: { "application/json": [".json"] },
-						},
-					],
-					excludeAcceptAllOption: false,
-					multiple: false,
-					// Aktualisierter Pfad für den Startordner
-					startIn: filePaths.dataDir,
-				};
-
-				showOpenFilePicker(options)
-					.then(async ([fileHandle]) => {
-						const file = await fileHandle.getFile();
-						importHangarPlanFromJson({ target: { files: [file] } });
-					})
-					.catch((error) => {
-						// Fallback für abgebrochene Operationen
-						if (error.name !== "AbortError") {
-							console.error("Fehler beim Öffnen des File Pickers:", error);
-							document.getElementById("jsonFileInput").click();
-						}
-					});
-			} else {
-				// Fallback für ältere Browser
-				document.getElementById("jsonFileInput").click();
-			}
-		} catch (error) {
-			console.error("Fehler beim Öffnen des File Pickers:", error);
-			showNotification(
-				`Fehler beim Öffnen des File Pickers: ${error.message}`,
-				"error"
-			);
-		}
-	}
-
-	/**
-	 * Öffnet den File Picker für die Einstellungen
-	 */
-	function openSettingsFilePicker() {
-		try {
-			showNotification("Bitte wählen Sie eine Einstellungsdatei", "info", 3000);
-
-			// Moderne File System Access API verwenden, falls verfügbar
-			if (window.showOpenFilePicker) {
-				const options = {
-					types: [
-						{
-							description: "Settings JSON Files",
-							accept: { "application/json": [".json"] },
-						},
-					],
-					excludeAcceptAllOption: false,
-					multiple: false,
-					// Aktualisierter Pfad für den Startordner
-					startIn: filePaths.settingsDir,
-				};
-
-				showOpenFilePicker(options)
-					.then(async ([fileHandle]) => {
-						const file = await fileHandle.getFile();
-						loadSettingsFromFile({ target: { files: [file] } });
-					})
-					.catch((error) => {
-						// Fallback für abgebrochene Operationen
-						if (error.name !== "AbortError") {
-							console.error("Fehler beim Öffnen des File Pickers:", error);
-							document.getElementById("settingsFileInput").click();
-						}
-					});
-			} else {
-				// Fallback für ältere Browser
-				document.getElementById("settingsFileInput").click();
-			}
-		} catch (error) {
-			console.error("Fehler beim Öffnen des File Pickers:", error);
-			showNotification(
-				`Fehler beim Öffnen des File Pickers: ${error.message}`,
-				"error"
-			);
-		}
-	}
-
-	/**
-	 * Sammelt alle Daten des Hangarplans
-	 */
-	function collectAllHangarData() {
-		try {
-			const primaryTiles = collectTileData("#hangarGrid");
-			const secondaryTiles = collectTileData("#secondaryHangarGrid");
-
-			// Erfasse weitere Metadaten
-			const metadata = {
-				projectName: document.getElementById("projectName").value,
-				savedDate: new Date().toISOString(),
-				version: "1.0",
-			};
-
-			// Kombiniere alle Daten
-			return {
-				metadata: metadata,
-				settings: {
-					tilesCount: uiSettings.tilesCount,
-					secondaryTilesCount: uiSettings.secondaryTilesCount,
-					layout: uiSettings.layout,
-				},
-				primaryTiles: primaryTiles,
-				secondaryTiles: secondaryTiles,
-			};
-		} catch (error) {
-			console.error("Fehler beim Sammeln der Hangardaten:", error);
-			throw error;
-		}
-	}
-
-	/**
-	 * Zeigt Benachrichtigungen für den Benutzer an
-	 * @param {string} message - Die anzuzeigende Nachricht
-	 * @param {string} type - Der Typ der Nachricht (info, success, error, warning)
-	 * @param {number} duration - Wie lange die Nachricht angezeigt wird (in ms)
-	 */
-	function showNotification(message, type = "info", duration = 3000) {
-		// ...existing code...
-	}
-
-	// Aktualisiere Event-Listener für alle Kacheln
-	function setupAllTileEventListeners() {
-		// Implementierung hier
-	}
-
-	// Initialisiere Status-Handler
-	function initStatusHandlers() {
-		// Implementierung hier
-	}
-
-	// Event-Listener für dynamische Anpassung
-	window.addEventListener("resize", function () {
-		adjustScaling();
-	});
-
-	// Bei Änderung der Layout-Einstellung
-	document
-		.getElementById("layoutType")
-		?.addEventListener("change", function () {
-			setTimeout(adjustScaling, 50);
-		});
-
-	// Initiale Anwendung nach DOM-Laden
-	document.addEventListener("DOMContentLoaded", function () {
-		setTimeout(adjustScaling, 100);
-	});
-
-	/**
-	 * Lädt Einstellungen aus einer ausgewählten Datei
-	 * @param {Event} event - Das auslösende Event
+	 * Lädt Einstellungen aus einer Datei
 	 */
 	function loadSettingsFromFile(event) {
 		try {
@@ -1296,75 +1164,34 @@ document.addEventListener("DOMContentLoaded", () => {
 			const reader = new FileReader();
 			reader.onload = function (e) {
 				try {
-					const settingsData = JSON.parse(e.target.result);
+					const settings = JSON.parse(e.target.result);
 
 					// Einstellungen übernehmen
-					if (settingsData) {
-						if (checkElement("tilesCount")) {
-							document.getElementById("tilesCount").value =
-								settingsData.tilesCount || 8;
-						}
-						if (checkElement("secondaryTilesCount")) {
-							document.getElementById("secondaryTilesCount").value =
-								settingsData.secondaryTilesCount || 0;
-						}
-						if (checkElement("layoutType")) {
-							document.getElementById("layoutType").value =
-								settingsData.layout || 4;
-						}
+					uiSettings.tilesCount = settings.tilesCount || 8;
+					uiSettings.secondaryTilesCount = settings.secondaryTilesCount || 0;
+					uiSettings.layout = settings.layout || 4;
 
-						// Einstellungen ins uiSettings-Objekt übertragen
-						uiSettings.tilesCount = settingsData.tilesCount || 8;
-						uiSettings.secondaryTilesCount =
-							settingsData.secondaryTilesCount || 0;
-						uiSettings.layout = settingsData.layout || 4;
-
-						// Kachelwerte setzen, falls vorhanden
-						if (
-							settingsData.tileValues &&
-							Array.isArray(settingsData.tileValues)
-						) {
-							settingsData.tileValues.forEach((tileValue) => {
-								// Position setzen
-								const positionInput = document.getElementById(
-									`hangar-position-${tileValue.cellId}`
-								);
-								if (positionInput) {
-									positionInput.value = tileValue.position || "";
-								}
-
-								// Manuelle Eingabe setzen
-								const container =
-									tileValue.cellId < 100
-										? "#hangarGrid"
-										: "#secondaryHangarGrid";
-								const index =
-									tileValue.cellId < 100
-										? tileValue.cellId
-										: tileValue.cellId - 100;
-
-								const cells = document.querySelectorAll(
-									`${container} .hangar-cell`
-								);
-								if (cells.length >= index) {
-									const manualInput = cells[index - 1]?.querySelector(
-										'input[placeholder="Manual Input"]'
-									);
-									if (manualInput) {
-										manualInput.value = tileValue.manualInput || "";
-									}
-								}
-							});
-						}
-
-						// Einstellungen anwenden
-						uiSettings.apply();
-						showNotification("Einstellungen erfolgreich geladen", "success");
-					} else {
-						showNotification("Fehler: Ungültiges Einstellungsformat", "error");
+					// Formulareingaben aktualisieren
+					if (checkElement("tilesCount")) {
+						document.getElementById("tilesCount").value = uiSettings.tilesCount;
 					}
+					if (checkElement("secondaryTilesCount")) {
+						document.getElementById("secondaryTilesCount").value =
+							uiSettings.secondaryTilesCount;
+					}
+					if (checkElement("layoutType")) {
+						document.getElementById("layoutType").value = uiSettings.layout;
+					}
+
+					// Einstellungen anwenden
+					uiSettings.apply();
+
+					showNotification("Einstellungen erfolgreich geladen", "success");
 				} catch (error) {
-					console.error("Fehler beim Parsen der Einstellungsdatei:", error);
+					console.error(
+						"Fehler beim Laden der Einstellungen aus Datei:",
+						error
+					);
 					showNotification(
 						`Fehler beim Laden der Einstellungen: ${error.message}`,
 						"error"
@@ -1378,251 +1205,98 @@ document.addEventListener("DOMContentLoaded", () => {
 			event.target.value = "";
 		} catch (error) {
 			console.error("Fehler beim Laden der Einstellungsdatei:", error);
-			showNotification(
-				`Fehler beim Laden der Einstellungsdatei: ${error.message}`,
-				"error"
-			);
+			showNotification(`Fehler beim Laden: ${error.message}`, "error");
 		}
 	}
 
 	/**
-	 * Exportiert den aktuellen Hangarplan als PDF-Datei
-	 * WICHTIG: Diese Funktion muss VOR setupUIEventListeners definiert sein!
+	 * Exportiert den Hangarplan als PDF
 	 */
 	function exportToPDF() {
 		try {
-			console.log("PDF-Export-Funktion wurde aufgerufen"); // Debug-Ausgabe
+			// PDF-Dateiname aus Eingabefeld oder Projektname
+			const pdfFileName =
+				document.getElementById("pdfFilename").value ||
+				document.getElementById("projectName").value ||
+				"Hangar_Plan";
 
-			const filename =
-				document.getElementById("pdfFilename").value || "Hangar_Plan";
+			// Optionen aus der UI holen
 			const includeNotes = document.getElementById("includeNotes").checked;
 			const landscapeMode = document.getElementById("landscapeMode").checked;
 
-			// Erstelle eine Kopie des hangarGrid für den Export
-			const originalGrid = document.getElementById("hangarGrid");
-			if (!originalGrid) {
-				throw new Error("Hangar Grid nicht gefunden!");
-			}
+			// Aktuellen Bearbeitungsmodus speichern
+			const wasInEditMode = document.body.classList.contains("edit-mode");
 
-			const exportContainer = document.createElement("div");
-			exportContainer.className = "pdf-content";
+			// Temporär in den Ansichtsmodus wechseln (bessere PDF-Ausgabe)
+			document.body.classList.remove("edit-mode");
+			document.body.classList.add("view-mode");
 
-			// Füge Titel hinzu
-			const title = document.createElement("h1");
-			title.textContent =
-				document.getElementById("projectName").value || "Hangar Plan";
-			title.style.fontSize = "24px";
-			title.style.fontWeight = "bold";
-			title.style.marginBottom = "15px";
-			title.style.textAlign = "center";
-			title.style.color = "#2D3142";
-			exportContainer.appendChild(title);
+			// PDF-Erstellung verzögern, um den DOM-Update abzuwarten
+			setTimeout(() => {
+				// Elemente zum Ausblenden markieren
+				document.querySelectorAll(".no-print").forEach((el) => {
+					el.classList.add("temporarily-hidden");
+					el.style.display = "none";
+				});
 
-			// Datum hinzufügen
-			const dateElement = document.createElement("p");
-			dateElement.textContent = "Date: " + new Date().toLocaleDateString();
-			dateElement.style.fontSize = "14px";
-			dateElement.style.marginBottom = "20px";
-			dateElement.style.textAlign = "center";
-			dateElement.style.color = "#4F5D75";
-			exportContainer.appendChild(dateElement);
-
-			// Grid-Container erstellen mit angepasstem Layout für PDF
-			const gridContainer = document.createElement("div");
-			gridContainer.style.display = "grid";
-
-			// Angepasste Spaltenanzahl je nach Modus und Anzahl der Kacheln
-			const visibleCells = Array.from(originalGrid.children).filter(
-				(cell) => !cell.classList.contains("hidden")
-			);
-			const cellCount = visibleCells.length;
-
-			// Bestimme optimale Spaltenanzahl basierend auf Anzahl der sichtbaren Zellen
-			let columns;
-			if (landscapeMode) {
-				columns =
-					cellCount <= 2
-						? cellCount
-						: cellCount <= 4
-						? 2
-						: cellCount <= 6
-						? 3
-						: 4;
-			} else {
-				columns = cellCount <= 2 ? cellCount : 2; // Im Hochformat maximal 2 Spalten
-			}
-
-			gridContainer.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
-			gridContainer.style.gap = "10px";
-			gridContainer.style.width = "100%";
-			gridContainer.style.maxWidth = landscapeMode ? "1000px" : "800px";
-			gridContainer.style.margin = "0 auto";
-
-			// Nur sichtbare Kacheln kopieren
-			visibleCells.forEach((cell) => {
-				const cellClone = cell.cloneNode(true);
-				cellClone.style.breakInside = "avoid";
-				cellClone.style.pageBreakInside = "avoid";
-				cellClone.style.width = "100%";
-
-				// Vereinfache und optimiere für PDF
-				const headerElement = cellClone.querySelector(
-					'[class*="bg-industrial-medium"]'
-				);
-				if (headerElement) {
-					headerElement.style.backgroundColor = "#4F5D75";
-					headerElement.style.color = "white";
-					headerElement.style.padding = "8px";
-					headerElement.style.borderTopLeftRadius = "8px";
-					headerElement.style.borderTopRightRadius = "8px";
-
-					// Position-Anzeige optimieren
-					const positionElement = headerElement.querySelector(
-						'[class*="text-xs text-white"]'
-					);
-					if (positionElement) {
-						positionElement.style.fontSize = "11px";
-						positionElement.style.whiteSpace = "nowrap";
-					}
-
-					// Input-Felder für bessere PDF-Darstellung optimieren
-					const inputs = headerElement.querySelectorAll("input");
-					inputs.forEach((input) => {
-						input.style.width = input.classList.contains("w-10")
-							? "30px"
-							: "90px";
-						input.style.backgroundColor = "#3A4154";
-						input.style.padding = "2px 4px";
-						input.style.fontSize = "11px";
+				// Wenn Notizen ausgeblendet werden sollen
+				if (!includeNotes) {
+					document.querySelectorAll(".notes-container").forEach((el) => {
+						el.classList.add("temporarily-hidden");
+						el.style.display = "none";
 					});
 				}
 
-				// Status Lichter
-				const statusLights = cellClone.querySelectorAll(".status-light");
-				statusLights.forEach((light) => {
-					if (!light.classList.contains("active")) {
-						light.style.display = "none"; // Nur aktiven Status anzeigen
-					} else {
-						light.style.boxShadow = "none";
-						light.style.transform = "none"; // Entferne Skalierung
-					}
-				});
+				const element = document.querySelector(".hangar-container");
 
-				// Aircraft ID optimieren
-				const aircraftId = cellClone.querySelector(".aircraft-id");
-				if (aircraftId) {
-					aircraftId.style.fontSize = "16px";
-					aircraftId.style.padding = "4px 0";
-					aircraftId.style.borderBottomWidth = "1px";
-				}
+				// PDF-Optionen konfigurieren
+				const options = {
+					margin: 10,
+					filename: `${pdfFileName}.pdf`,
+					image: { type: "jpeg", quality: 0.98 },
+					html2canvas: {
+						scale: 2,
+						useCORS: true,
+						logging: false,
+					},
+					jsPDF: {
+						unit: "mm",
+						format: "a4",
+						orientation: landscapeMode ? "landscape" : "portrait",
+					},
+				};
 
-				// Info-Grid optimieren
-				const infoGrid = cellClone.querySelector(".info-grid");
-				if (infoGrid) {
-					infoGrid.style.fontSize = "12px";
-					infoGrid.style.gap = "3px";
-					infoGrid.style.maxWidth = "100%";
-				}
+				// PDF erstellen
+				html2pdf()
+					.from(element)
+					.set(options)
+					.save()
+					.then(() => {
+						// Ausgeblendete Elemente wiederherstellen
+						document.querySelectorAll(".temporarily-hidden").forEach((el) => {
+							el.classList.remove("temporarily-hidden");
+							el.style.display = null;
+						});
 
-				// Entferne Notizbereich wenn nicht gewünscht
-				if (!includeNotes) {
-					const notesContainer = cellClone.querySelector(".notes-container");
-					if (notesContainer) notesContainer.remove();
-				} else {
-					// Notizen optimieren
-					const notesContainer = cellClone.querySelector(".notes-container");
-					if (notesContainer) {
-						notesContainer.style.minHeight = "40px";
-						const notesLabel = notesContainer.querySelector("label");
-						if (notesLabel) notesLabel.style.fontSize = "11px";
-						const textarea = notesContainer.querySelector("textarea");
-						if (textarea) {
-							textarea.style.fontSize = "11px";
-							textarea.style.minHeight = "30px";
+						// Zurück zum vorherigen Bearbeitungsmodus
+						if (wasInEditMode) {
+							document.body.classList.remove("view-mode");
+							document.body.classList.add("edit-mode");
 						}
-					}
-				}
 
-				// Entferne Status-Selector aus dem Export
-				const statusSelector = cellClone.querySelector("select");
-				if (statusSelector) statusSelector.parentElement.remove();
-
-				// Hauptbereich für PDF optimieren
-				const mainArea = cellClone.querySelector(".p-4");
-				if (mainArea) {
-					mainArea.style.backgroundColor = "white";
-					mainArea.style.color = "black";
-					mainArea.style.borderBottomLeftRadius = "8px";
-					mainArea.style.borderBottomRightRadius = "8px";
-					mainArea.style.boxShadow = "0 2px 4px rgba(0,0,0,0.1)";
-					mainArea.style.padding = "8px 10px";
-				}
-
-				gridContainer.appendChild(cellClone);
-			});
-
-			exportContainer.appendChild(gridContainer);
-
-			// Styles für den Export
-			exportContainer.style.padding = "20px";
-			exportContainer.style.backgroundColor = "white";
-			exportContainer.style.width = "100%";
-			exportContainer.style.margin = "0 auto";
-			exportContainer.style.maxWidth = landscapeMode ? "1100px" : "900px";
-
-			// Überprüfe, ob html2pdf verfügbar ist
-			if (typeof html2pdf !== "function") {
-				showNotification(
-					"PDF-Bibliothek (html2pdf) ist nicht geladen. Bitte Seite neu laden.",
-					"error"
-				);
-				return;
-			}
-
-			// Konfiguriere und generiere PDF
-			const options = {
-				margin: [10, 10],
-				filename: `${filename}.pdf`,
-				image: { type: "jpeg", quality: 0.98 },
-				html2canvas: {
-					scale: 2,
-					logging: false,
-					letterRendering: true,
-					useCORS: true,
-					allowTaint: true,
-					width: landscapeMode ? 1100 : 900,
-				},
-				jsPDF: {
-					unit: "mm",
-					format: "a4",
-					orientation: landscapeMode ? "landscape" : "portrait",
-					compress: true,
-					precision: 2,
-				},
-			};
-
-			// Zeige Benachrichtigung während der Generierung
-			showNotification("PDF wird generiert, bitte warten...", "info");
-
-			// Erzeuge und downloade PDF
-			html2pdf()
-				.from(exportContainer)
-				.set(options)
-				.save()
-				.then(() => {
-					// Bei erfolgreicher Erstellung Erfolgsmeldung anzeigen
-					showNotification("PDF erfolgreich erstellt!", "success");
-				})
-				.catch((error) => {
-					console.error("Fehler bei PDF-Erstellung:", error);
-					showNotification(
-						"Fehler bei der PDF-Erstellung: " + error.message,
-						"error"
-					);
-				});
+						showNotification("PDF-Export erfolgreich", "success");
+					})
+					.catch((error) => {
+						console.error("PDF-Export-Fehler:", error);
+						showNotification(
+							`PDF-Export fehlgeschlagen: ${error.message}`,
+							"error"
+						);
+					});
+			}, 100);
 		} catch (error) {
 			console.error("Fehler beim PDF-Export:", error);
-			showNotification("PDF-Export fehlgeschlagen: " + error.message, "error");
+			showNotification(`PDF-Export fehlgeschlagen: ${error.message}`, "error");
 		}
 	}
 });

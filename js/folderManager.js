@@ -7,11 +7,11 @@
 
 class FolderManager {
 	constructor() {
-		// Basis-Ordnerstruktur definieren
+		// Basis-Ordnerstruktur definieren - Aktualisiert für die neue Ordnerstruktur
 		this.folderStructure = {
-			baseDir: "Settings",
-			projectsDir: "Settings/Projekte",
-			settingsDir: "Settings/Einstellungen",
+			baseDir: "HangarPlanner",
+			projectsDir: "Projects",
+			settingsDir: "settings",
 		};
 	}
 
@@ -51,9 +51,9 @@ class FolderManager {
                     <p class="mb-3">Bitte speichern Sie Ihre Dateien in der folgenden Struktur:</p>
                     <div class="bg-industrial-dark p-3 rounded mb-4 font-mono text-sm">
                         📁 ${this.folderStructure.baseDir}/<br>
-                        &nbsp;&nbsp;📁 Projekte/<br>
+                        &nbsp;&nbsp;📁 ${this.folderStructure.projectsDir}/<br>
                         &nbsp;&nbsp;&nbsp;&nbsp;📄 IhrProjekt.json<br>
-                        &nbsp;&nbsp;📁 Einstellungen/<br>
+                        &nbsp;&nbsp;📁 ${this.folderStructure.settingsDir}/<br>
                         &nbsp;&nbsp;&nbsp;&nbsp;📄 IhrProjekt_Settings.json
                     </div>
                     <p class="mb-4 text-sm">Diese Struktur hilft Ihnen, Ihre Projekte und Einstellungen besser zu organisieren.</p>
@@ -103,8 +103,8 @@ class FolderManager {
 			const readmeContent = {
 				info: "Dies ist der Hauptordner für HangarPlanner Dateien.",
 				structure: {
-					Projekte: "Speicherort für Ihre Hangarplaner-Projekte",
-					Einstellungen: "Speicherort für Ihre Einstellungsdateien",
+					Projects: "Speicherort für Ihre Hangarplaner-Projekte",
+					settings: "Speicherort für Ihre Einstellungsdateien",
 				},
 				version: "1.0",
 			};
