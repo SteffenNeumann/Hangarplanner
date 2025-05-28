@@ -319,18 +319,17 @@ document.addEventListener("DOMContentLoaded", () => {
 				}
 
 				// Manuelle Eingabe setzen
-				if (tileValue.manualInput) {
-					// Bestimme den Container (primär oder sekundär)
-					const container =
-						tileValue.cellId < 100 ? "#hangarGrid" : "#secondaryHangarGrid";
-					const index =
-						tileValue.cellId < 100 ? tileValue.cellId : tileValue.cellId - 100;
+				// Suche nach dem manuellen Eingabefeld im jeweiligen Container
+				const container =
+					tileValue.cellId < 100 ? "#hangarGrid" : "#secondaryHangarGrid";
+				const index =
+					tileValue.cellId < 100 ? tileValue.cellId : tileValue.cellId - 100;
 
-					// Suche nach dem manuellen Eingabefeld
-					const manualInput = document.querySelector(
-						`${container} .hangar-cell:nth-child(${index}) input[placeholder="Manual Input"]`
+				const cells = document.querySelectorAll(`${container} .hangar-cell`);
+				if (cells.length >= index) {
+					const manualInput = cells[index - 1].querySelector(
+						'input[placeholder="Manual Input"]'
 					);
-
 					if (manualInput) {
 						manualInput.value = tileValue.manualInput;
 						debug(
@@ -885,151 +884,169 @@ document.addEventListener("DOMContentLoaded", () => {
 		}
 
 		// PDF Export Funktion
-		const exportPdfBtn = document.getElementById('exportPdfBtn');
+		const exportPdfBtn = document.getElementById("exportPdfBtn");
 		if (exportPdfBtn) {
-			exportPdfBtn.addEventListener('click', function() {
-				const filename = document.getElementById('pdfFilename').value || 'Hangar_Plan';
-				const includeNotes = document.getElementById('includeNotes').checked;
-				const landscapeMode = document.getElementById('landscapeMode').checked;
+			exportPdfBtn.addEventListener("click", function () {
+				const filename =
+					document.getElementById("pdfFilename").value || "Hangar_Plan";
+				const includeNotes = document.getElementById("includeNotes").checked;
+				const landscapeMode = document.getElementById("landscapeMode").checked;
 
 				// Erstelle eine Kopie des hangarGrid für den Export
-				const originalGrid = document.getElementById('hangarGrid');
-				const exportContainer = document.createElement('div');
-				exportContainer.className = 'pdf-content';
+				const originalGrid = document.getElementById("hangarGrid");
+				const exportContainer = document.createElement("div");
+				exportContainer.className = "pdf-content";
 
 				// Füge Titel hinzu
-				const title = document.createElement('h1');
-				title.textContent = document.getElementById('projectName').value || 'Hangar Plan';
-				title.style.fontSize = '24px';
-				title.style.fontWeight = 'bold';
-				title.style.marginBottom = '15px';
-				title.style.textAlign = 'center';
-				title.style.color = '#2D3142';
+				const title = document.createElement("h1");
+				title.textContent =
+					document.getElementById("projectName").value || "Hangar Plan";
+				title.style.fontSize = "24px";
+				title.style.fontWeight = "bold";
+				title.style.marginBottom = "15px";
+				title.style.textAlign = "center";
+				title.style.color = "#2D3142";
 				exportContainer.appendChild(title);
 
 				// Datum hinzufügen
-				const dateElement = document.createElement('p');
-				dateElement.textContent = 'Date: ' + new Date().toLocaleDateString();
-				dateElement.style.fontSize = '14px';
-				dateElement.style.marginBottom = '20px';
-				dateElement.style.textAlign = 'center';
-				dateElement.style.color = '#4F5D75';
+				const dateElement = document.createElement("p");
+				dateElement.textContent = "Date: " + new Date().toLocaleDateString();
+				dateElement.style.fontSize = "14px";
+				dateElement.style.marginBottom = "20px";
+				dateElement.style.textAlign = "center";
+				dateElement.style.color = "#4F5D75";
 				exportContainer.appendChild(dateElement);
 
 				// Grid-Container erstellen mit angepasstem Layout für PDF
-				const gridContainer = document.createElement('div');
-				gridContainer.style.display = 'grid';
+				const gridContainer = document.createElement("div");
+				gridContainer.style.display = "grid";
 
 				// Angepasste Spaltenanzahl je nach Modus und Anzahl der Kacheln
-				const visibleCells = Array.from(originalGrid.children).filter(cell => !cell.classList.contains('hidden'));
+				const visibleCells = Array.from(originalGrid.children).filter(
+					(cell) => !cell.classList.contains("hidden")
+				);
 				const cellCount = visibleCells.length;
 
 				// Bestimme optimale Spaltenanzahl basierend auf Anzahl der sichtbaren Zellen
 				let columns;
 				if (landscapeMode) {
-					columns = cellCount <= 2 ? cellCount : cellCount <= 4 ? 2 : cellCount <= 6 ? 3 : 4;
+					columns =
+						cellCount <= 2
+							? cellCount
+							: cellCount <= 4
+							? 2
+							: cellCount <= 6
+							? 3
+							: 4;
 				} else {
 					columns = cellCount <= 2 ? cellCount : 2; // Im Hochformat maximal 2 Spalten
 				}
 
 				gridContainer.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
-				gridContainer.style.gap = '10px';
-				gridContainer.style.width = '100%';
-				gridContainer.style.maxWidth = landscapeMode ? '1000px' : '800px';
-				gridContainer.style.margin = '0 auto';
+				gridContainer.style.gap = "10px";
+				gridContainer.style.width = "100%";
+				gridContainer.style.maxWidth = landscapeMode ? "1000px" : "800px";
+				gridContainer.style.margin = "0 auto";
 
 				// Nur sichtbare Kacheln kopieren
-				visibleCells.forEach(cell => {
+				visibleCells.forEach((cell) => {
 					const cellClone = cell.cloneNode(true);
-					cellClone.style.breakInside = 'avoid';
-					cellClone.style.pageBreakInside = 'avoid';
-					cellClone.style.width = '100%';
+					cellClone.style.breakInside = "avoid";
+					cellClone.style.pageBreakInside = "avoid";
+					cellClone.style.width = "100%";
 
 					// Vereinfache und optimiere für PDF
-					const headerElement = cellClone.querySelector('[class*="bg-industrial-medium"]');
+					const headerElement = cellClone.querySelector(
+						'[class*="bg-industrial-medium"]'
+					);
 					if (headerElement) {
-						headerElement.style.backgroundColor = '#4F5D75';
-						headerElement.style.color = 'white';
-						headerElement.style.padding = '8px';
-						headerElement.style.borderTopLeftRadius = '8px';
-						headerElement.style.borderTopRightRadius = '8px';
+						headerElement.style.backgroundColor = "#4F5D75";
+						headerElement.style.color = "white";
+						headerElement.style.padding = "8px";
+						headerElement.style.borderTopLeftRadius = "8px";
+						headerElement.style.borderTopRightRadius = "8px";
 
 						// Position-Anzeige optimieren
-						const positionElement = headerElement.querySelector('[class*="text-xs text-white"]');
+						const positionElement = headerElement.querySelector(
+							'[class*="text-xs text-white"]'
+						);
 						if (positionElement) {
-							positionElement.style.fontSize = '11px';
-							positionElement.style.whiteSpace = 'nowrap';
+							positionElement.style.fontSize = "11px";
+							positionElement.style.whiteSpace = "nowrap";
 						}
 
 						// Input-Felder für bessere PDF-Darstellung optimieren
-						const inputs = headerElement.querySelectorAll('input');
-						inputs.forEach(input => {
-							input.style.width = input.classList.contains('w-10') ? '30px' : '90px';
-							input.style.backgroundColor = '#3A4154';
-							input.style.padding = '2px 4px';
-							input.style.fontSize = '11px';
+						const inputs = headerElement.querySelectorAll("input");
+						inputs.forEach((input) => {
+							input.style.width = input.classList.contains("w-10")
+								? "30px"
+								: "90px";
+							input.style.backgroundColor = "#3A4154";
+							input.style.padding = "2px 4px";
+							input.style.fontSize = "11px";
 						});
 					}
 
 					// Status Lichter
-					const statusLights = cellClone.querySelectorAll('.status-light');
-					statusLights.forEach(light => {
-						if (!light.classList.contains('active')) {
-							light.style.display = 'none'; // Nur aktiven Status anzeigen
+					const statusLights = cellClone.querySelectorAll(".status-light");
+					statusLights.forEach((light) => {
+						if (!light.classList.contains("active")) {
+							light.style.display = "none"; // Nur aktiven Status anzeigen
 						} else {
-							light.style.boxShadow = 'none';
-							light.style.transform = 'none'; // Entferne Skalierung
+							light.style.boxShadow = "none";
+							light.style.transform = "none"; // Entferne Skalierung
 						}
 					});
 
 					// Aircraft ID optimieren
-					const aircraftId = cellClone.querySelector('.aircraft-id');
+					const aircraftId = cellClone.querySelector(".aircraft-id");
 					if (aircraftId) {
-						aircraftId.style.fontSize = '16px';
-						aircraftId.style.padding = '4px 0';
-						aircraftId.style.borderBottomWidth = '1px';
+						aircraftId.style.fontSize = "16px";
+						aircraftId.style.padding = "4px 0";
+						aircraftId.style.borderBottomWidth = "1px";
 					}
 
 					// Info-Grid optimieren
-					const infoGrid = cellClone.querySelector('.info-grid');
+					const infoGrid = cellClone.querySelector(".info-grid");
 					if (infoGrid) {
-						infoGrid.style.fontSize = '12px';
-						infoGrid.style.gap = '3px';
-						infoGrid.style.maxWidth = '100%';
+						infoGrid.style.fontSize = "12px";
+						infoGrid.style.gap = "3px";
+						infoGrid.style.maxWidth = "100%";
 					}
 
 					// Entferne Notizbereich wenn nicht gewünscht
 					if (!includeNotes) {
-						const notesContainer = cellClone.querySelector('.notes-container');
+						const notesContainer = cellClone.querySelector(".notes-container");
 						if (notesContainer) notesContainer.remove();
 					} else {
 						// Notizen optimieren
-						const notesContainer = cellClone.querySelector('.notes-container');
+						const notesContainer = cellClone.querySelector(".notes-container");
 						if (notesContainer) {
-							notesContainer.style.minHeight = '40px';
-							const notesLabel = notesContainer.querySelector('label');
-							if (notesLabel) notesLabel.style.fontSize = '11px';
-							const textarea = notesContainer.querySelector('textarea');
+							notesContainer.style.minHeight = "40px";
+							const notesLabel = notesContainer.querySelector("label");
+							if (notesLabel) notesLabel.style.fontSize = "11px";
+							const textarea = notesContainer.querySelector("textarea");
 							if (textarea) {
-								textarea.style.fontSize = '11px';
-								textarea.style.minHeight = '30px';
+								textarea.style.fontSize = "11px";
+								textarea.style.minHeight = "30px";
 							}
 						}
 					}
 
 					// Entferne Status-Selector aus dem Export
-					const statusSelector = cellClone.querySelector('select');
-					if (statusSelector && statusSelector.parentElement) statusSelector.parentElement.remove();
+					const statusSelector = cellClone.querySelector("select");
+					if (statusSelector && statusSelector.parentElement)
+						statusSelector.parentElement.remove();
 
 					// Hauptbereich für PDF optimieren
-					const mainArea = cellClone.querySelector('.p-4');
+					const mainArea = cellClone.querySelector(".p-4");
 					if (mainArea) {
-						mainArea.style.backgroundColor = 'white';
-						mainArea.style.color = 'black';
-						mainArea.style.borderBottomLeftRadius = '8px';
-						mainArea.style.borderBottomRightRadius = '8px';
-						mainArea.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-						mainArea.style.padding = '8px 10px';
+						mainArea.style.backgroundColor = "white";
+						mainArea.style.color = "black";
+						mainArea.style.borderBottomLeftRadius = "8px";
+						mainArea.style.borderBottomRightRadius = "8px";
+						mainArea.style.boxShadow = "0 2px 4px rgba(0,0,0,0.1)";
+						mainArea.style.padding = "8px 10px";
 					}
 
 					gridContainer.appendChild(cellClone);
@@ -1038,32 +1055,32 @@ document.addEventListener("DOMContentLoaded", () => {
 				exportContainer.appendChild(gridContainer);
 
 				// Styles für den Export
-				exportContainer.style.padding = '20px';
-				exportContainer.style.backgroundColor = 'white';
-				exportContainer.style.width = '100%';
-				exportContainer.style.margin = '0 auto';
-				exportContainer.style.maxWidth = landscapeMode ? '1100px' : '900px';
+				exportContainer.style.padding = "20px";
+				exportContainer.style.backgroundColor = "white";
+				exportContainer.style.width = "100%";
+				exportContainer.style.margin = "0 auto";
+				exportContainer.style.maxWidth = landscapeMode ? "1100px" : "900px";
 
 				// Konfiguriere und generiere PDF
 				const options = {
 					margin: [10, 10],
 					filename: `${filename}.pdf`,
-					image: { type: 'jpeg', quality: 0.98 },
-					html2canvas: { 
-						scale: 2, 
+					image: { type: "jpeg", quality: 0.98 },
+					html2canvas: {
+						scale: 2,
 						logging: false,
 						letterRendering: true,
 						useCORS: true,
 						allowTaint: true,
-						width: landscapeMode ? 1100 : 900
+						width: landscapeMode ? 1100 : 900,
 					},
-					jsPDF: { 
-						unit: 'mm', 
-						format: 'a4', 
-						orientation: landscapeMode ? 'landscape' : 'portrait',
+					jsPDF: {
+						unit: "mm",
+						format: "a4",
+						orientation: landscapeMode ? "landscape" : "portrait",
 						compress: true,
-						precision: 2
-					}
+						precision: 2,
+					},
 				};
 
 				// Erzeuge und downloade PDF
