@@ -620,10 +620,23 @@ document.addEventListener("DOMContentLoaded", () => {
 			settingsFileInput.addEventListener("change", loadSettingsFromFile);
 		}
 
-		// PDF Export-Button
+		// PDF Export-Button mit verbessertem Event-Listener
 		const exportPdfBtn = document.getElementById("exportPdfBtn");
 		if (exportPdfBtn) {
-			exportPdfBtn.addEventListener("click", exportToPDF);
+			exportPdfBtn.addEventListener("click", function (event) {
+				console.log("PDF-Export-Button wurde geklickt"); // Debug-Ausgabe
+				try {
+					exportToPDF();
+				} catch (error) {
+					console.error("Fehler beim Aufrufen der PDF-Export-Funktion:", error);
+					showNotification(
+						"PDF-Export fehlgeschlagen: " + error.message,
+						"error"
+					);
+				}
+			});
+		} else {
+			console.error("PDF-Export-Button konnte nicht gefunden werden");
 		}
 
 		// Save und Load Buttons - Keine doppelten Deklarationen mehr
@@ -1267,4 +1280,349 @@ document.addEventListener("DOMContentLoaded", () => {
 	document.addEventListener("DOMContentLoaded", function () {
 		setTimeout(adjustScaling, 100);
 	});
+
+	/**
+	 * Lädt Einstellungen aus einer ausgewählten Datei
+	 * @param {Event} event - Das auslösende Event
+	 */
+	function loadSettingsFromFile(event) {
+		try {
+			const file = event.target.files[0];
+			if (!file) {
+				showNotification("Keine Datei ausgewählt", "error");
+				return;
+			}
+
+			const reader = new FileReader();
+			reader.onload = function (e) {
+				try {
+					const settingsData = JSON.parse(e.target.result);
+
+					// Einstellungen übernehmen
+					if (settingsData) {
+						if (checkElement("tilesCount")) {
+							document.getElementById("tilesCount").value =
+								settingsData.tilesCount || 8;
+						}
+						if (checkElement("secondaryTilesCount")) {
+							document.getElementById("secondaryTilesCount").value =
+								settingsData.secondaryTilesCount || 0;
+						}
+						if (checkElement("layoutType")) {
+							document.getElementById("layoutType").value =
+								settingsData.layout || 4;
+						}
+
+						// Einstellungen ins uiSettings-Objekt übertragen
+						uiSettings.tilesCount = settingsData.tilesCount || 8;
+						uiSettings.secondaryTilesCount =
+							settingsData.secondaryTilesCount || 0;
+						uiSettings.layout = settingsData.layout || 4;
+
+						// Kachelwerte setzen, falls vorhanden
+						if (
+							settingsData.tileValues &&
+							Array.isArray(settingsData.tileValues)
+						) {
+							settingsData.tileValues.forEach((tileValue) => {
+								// Position setzen
+								const positionInput = document.getElementById(
+									`hangar-position-${tileValue.cellId}`
+								);
+								if (positionInput) {
+									positionInput.value = tileValue.position || "";
+								}
+
+								// Manuelle Eingabe setzen
+								const container =
+									tileValue.cellId < 100
+										? "#hangarGrid"
+										: "#secondaryHangarGrid";
+								const index =
+									tileValue.cellId < 100
+										? tileValue.cellId
+										: tileValue.cellId - 100;
+
+								const cells = document.querySelectorAll(
+									`${container} .hangar-cell`
+								);
+								if (cells.length >= index) {
+									const manualInput = cells[index - 1]?.querySelector(
+										'input[placeholder="Manual Input"]'
+									);
+									if (manualInput) {
+										manualInput.value = tileValue.manualInput || "";
+									}
+								}
+							});
+						}
+
+						// Einstellungen anwenden
+						uiSettings.apply();
+						showNotification("Einstellungen erfolgreich geladen", "success");
+					} else {
+						showNotification("Fehler: Ungültiges Einstellungsformat", "error");
+					}
+				} catch (error) {
+					console.error("Fehler beim Parsen der Einstellungsdatei:", error);
+					showNotification(
+						`Fehler beim Laden der Einstellungen: ${error.message}`,
+						"error"
+					);
+				}
+			};
+
+			reader.readAsText(file);
+
+			// Input zurücksetzen
+			event.target.value = "";
+		} catch (error) {
+			console.error("Fehler beim Laden der Einstellungsdatei:", error);
+			showNotification(
+				`Fehler beim Laden der Einstellungsdatei: ${error.message}`,
+				"error"
+			);
+		}
+	}
+
+	/**
+	 * Exportiert den aktuellen Hangarplan als PDF-Datei
+	 * WICHTIG: Diese Funktion muss VOR setupUIEventListeners definiert sein!
+	 */
+	function exportToPDF() {
+		try {
+			console.log("PDF-Export-Funktion wurde aufgerufen"); // Debug-Ausgabe
+
+			const filename =
+				document.getElementById("pdfFilename").value || "Hangar_Plan";
+			const includeNotes = document.getElementById("includeNotes").checked;
+			const landscapeMode = document.getElementById("landscapeMode").checked;
+
+			// Erstelle eine Kopie des hangarGrid für den Export
+			const originalGrid = document.getElementById("hangarGrid");
+			if (!originalGrid) {
+				throw new Error("Hangar Grid nicht gefunden!");
+			}
+
+			const exportContainer = document.createElement("div");
+			exportContainer.className = "pdf-content";
+
+			// Füge Titel hinzu
+			const title = document.createElement("h1");
+			title.textContent =
+				document.getElementById("projectName").value || "Hangar Plan";
+			title.style.fontSize = "24px";
+			title.style.fontWeight = "bold";
+			title.style.marginBottom = "15px";
+			title.style.textAlign = "center";
+			title.style.color = "#2D3142";
+			exportContainer.appendChild(title);
+
+			// Datum hinzufügen
+			const dateElement = document.createElement("p");
+			dateElement.textContent = "Date: " + new Date().toLocaleDateString();
+			dateElement.style.fontSize = "14px";
+			dateElement.style.marginBottom = "20px";
+			dateElement.style.textAlign = "center";
+			dateElement.style.color = "#4F5D75";
+			exportContainer.appendChild(dateElement);
+
+			// Grid-Container erstellen mit angepasstem Layout für PDF
+			const gridContainer = document.createElement("div");
+			gridContainer.style.display = "grid";
+
+			// Angepasste Spaltenanzahl je nach Modus und Anzahl der Kacheln
+			const visibleCells = Array.from(originalGrid.children).filter(
+				(cell) => !cell.classList.contains("hidden")
+			);
+			const cellCount = visibleCells.length;
+
+			// Bestimme optimale Spaltenanzahl basierend auf Anzahl der sichtbaren Zellen
+			let columns;
+			if (landscapeMode) {
+				columns =
+					cellCount <= 2
+						? cellCount
+						: cellCount <= 4
+						? 2
+						: cellCount <= 6
+						? 3
+						: 4;
+			} else {
+				columns = cellCount <= 2 ? cellCount : 2; // Im Hochformat maximal 2 Spalten
+			}
+
+			gridContainer.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+			gridContainer.style.gap = "10px";
+			gridContainer.style.width = "100%";
+			gridContainer.style.maxWidth = landscapeMode ? "1000px" : "800px";
+			gridContainer.style.margin = "0 auto";
+
+			// Nur sichtbare Kacheln kopieren
+			visibleCells.forEach((cell) => {
+				const cellClone = cell.cloneNode(true);
+				cellClone.style.breakInside = "avoid";
+				cellClone.style.pageBreakInside = "avoid";
+				cellClone.style.width = "100%";
+
+				// Vereinfache und optimiere für PDF
+				const headerElement = cellClone.querySelector(
+					'[class*="bg-industrial-medium"]'
+				);
+				if (headerElement) {
+					headerElement.style.backgroundColor = "#4F5D75";
+					headerElement.style.color = "white";
+					headerElement.style.padding = "8px";
+					headerElement.style.borderTopLeftRadius = "8px";
+					headerElement.style.borderTopRightRadius = "8px";
+
+					// Position-Anzeige optimieren
+					const positionElement = headerElement.querySelector(
+						'[class*="text-xs text-white"]'
+					);
+					if (positionElement) {
+						positionElement.style.fontSize = "11px";
+						positionElement.style.whiteSpace = "nowrap";
+					}
+
+					// Input-Felder für bessere PDF-Darstellung optimieren
+					const inputs = headerElement.querySelectorAll("input");
+					inputs.forEach((input) => {
+						input.style.width = input.classList.contains("w-10")
+							? "30px"
+							: "90px";
+						input.style.backgroundColor = "#3A4154";
+						input.style.padding = "2px 4px";
+						input.style.fontSize = "11px";
+					});
+				}
+
+				// Status Lichter
+				const statusLights = cellClone.querySelectorAll(".status-light");
+				statusLights.forEach((light) => {
+					if (!light.classList.contains("active")) {
+						light.style.display = "none"; // Nur aktiven Status anzeigen
+					} else {
+						light.style.boxShadow = "none";
+						light.style.transform = "none"; // Entferne Skalierung
+					}
+				});
+
+				// Aircraft ID optimieren
+				const aircraftId = cellClone.querySelector(".aircraft-id");
+				if (aircraftId) {
+					aircraftId.style.fontSize = "16px";
+					aircraftId.style.padding = "4px 0";
+					aircraftId.style.borderBottomWidth = "1px";
+				}
+
+				// Info-Grid optimieren
+				const infoGrid = cellClone.querySelector(".info-grid");
+				if (infoGrid) {
+					infoGrid.style.fontSize = "12px";
+					infoGrid.style.gap = "3px";
+					infoGrid.style.maxWidth = "100%";
+				}
+
+				// Entferne Notizbereich wenn nicht gewünscht
+				if (!includeNotes) {
+					const notesContainer = cellClone.querySelector(".notes-container");
+					if (notesContainer) notesContainer.remove();
+				} else {
+					// Notizen optimieren
+					const notesContainer = cellClone.querySelector(".notes-container");
+					if (notesContainer) {
+						notesContainer.style.minHeight = "40px";
+						const notesLabel = notesContainer.querySelector("label");
+						if (notesLabel) notesLabel.style.fontSize = "11px";
+						const textarea = notesContainer.querySelector("textarea");
+						if (textarea) {
+							textarea.style.fontSize = "11px";
+							textarea.style.minHeight = "30px";
+						}
+					}
+				}
+
+				// Entferne Status-Selector aus dem Export
+				const statusSelector = cellClone.querySelector("select");
+				if (statusSelector) statusSelector.parentElement.remove();
+
+				// Hauptbereich für PDF optimieren
+				const mainArea = cellClone.querySelector(".p-4");
+				if (mainArea) {
+					mainArea.style.backgroundColor = "white";
+					mainArea.style.color = "black";
+					mainArea.style.borderBottomLeftRadius = "8px";
+					mainArea.style.borderBottomRightRadius = "8px";
+					mainArea.style.boxShadow = "0 2px 4px rgba(0,0,0,0.1)";
+					mainArea.style.padding = "8px 10px";
+				}
+
+				gridContainer.appendChild(cellClone);
+			});
+
+			exportContainer.appendChild(gridContainer);
+
+			// Styles für den Export
+			exportContainer.style.padding = "20px";
+			exportContainer.style.backgroundColor = "white";
+			exportContainer.style.width = "100%";
+			exportContainer.style.margin = "0 auto";
+			exportContainer.style.maxWidth = landscapeMode ? "1100px" : "900px";
+
+			// Überprüfe, ob html2pdf verfügbar ist
+			if (typeof html2pdf !== "function") {
+				showNotification(
+					"PDF-Bibliothek (html2pdf) ist nicht geladen. Bitte Seite neu laden.",
+					"error"
+				);
+				return;
+			}
+
+			// Konfiguriere und generiere PDF
+			const options = {
+				margin: [10, 10],
+				filename: `${filename}.pdf`,
+				image: { type: "jpeg", quality: 0.98 },
+				html2canvas: {
+					scale: 2,
+					logging: false,
+					letterRendering: true,
+					useCORS: true,
+					allowTaint: true,
+					width: landscapeMode ? 1100 : 900,
+				},
+				jsPDF: {
+					unit: "mm",
+					format: "a4",
+					orientation: landscapeMode ? "landscape" : "portrait",
+					compress: true,
+					precision: 2,
+				},
+			};
+
+			// Zeige Benachrichtigung während der Generierung
+			showNotification("PDF wird generiert, bitte warten...", "info");
+
+			// Erzeuge und downloade PDF
+			html2pdf()
+				.from(exportContainer)
+				.set(options)
+				.save()
+				.then(() => {
+					// Bei erfolgreicher Erstellung Erfolgsmeldung anzeigen
+					showNotification("PDF erfolgreich erstellt!", "success");
+				})
+				.catch((error) => {
+					console.error("Fehler bei PDF-Erstellung:", error);
+					showNotification(
+						"Fehler bei der PDF-Erstellung: " + error.message,
+						"error"
+					);
+				});
+		} catch (error) {
+			console.error("Fehler beim PDF-Export:", error);
+			showNotification("PDF-Export fehlgeschlagen: " + error.message, "error");
+		}
+	}
 });
