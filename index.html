@@ -289,7 +289,9 @@
 				transform: translateX(-50%) scaleY(var(--inv-scale));
 				background-color: #bfc0c0;
 				padding: 0 10px;
-				font-size: calc(12px * var(--inv-scale)); /* Skaliert die Schriftgröße richtig */
+				font-size: calc(
+					12px * var(--inv-scale)
+				); /* Skaliert die Schriftgröße richtig */
 				color: #2d3142;
 				white-space: nowrap;
 			}
@@ -1299,7 +1301,7 @@
 											data-status="maintenance"></span>
 										<span
 											class="status-light bg-status-red"
-										data-cell="11"
+											data-cell="11"
 											data-status="aog"></span>
 									</div>
 									<div class="flex items-center">
@@ -1316,131 +1318,133 @@
 										type="text"
 										placeholder="Manual Input"
 										class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
-							</div>
-
-							<div class="p-4 flex-grow flex flex-col">
-								<input
-									type="text"
-									id="aircraft-11"
-									placeholder="Aircraft ID"
-									class="aircraft-id" />
-
-								<div class="info-grid mb-3">
-									<div class="info-label">Arrival:</div>
-									<div id="arrival-time-11" class="info-value">--:--</div>
-
-									<div class="info-label">Departure:</div>
-									<div id="departure-time-11" class="info-value">--:--</div>
-
-									<div class="info-label">Position:</div>
-									<div id="position-11" class="info-value">--</div>
-
-									<div class="info-label">Towing Status:</div>
-									<div id="tow-status-11" class="tow-status tow-on-position">
-										On Position
-									</div>
 								</div>
 
-								<div class="notes-container">
-									<label
-										class="block text-sm text-industrial-dark font-medium mb-1"
-										>Notes:</label
-									>
-									<textarea
-										id="notes-11"
-										class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
-								</div>
-
-								<div class="mt-auto">
-									<select
-										id="status-11"
-										class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
-										<option value="ready">Ready</option>
-										<option value="maintenance">Maintenance</option>
-										<option value="aog">AOG</option>
-									</select>
-								</div>
-							</div>
-						</div>
-
-						<!-- Kachel 12 -->
-						<div
-							class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
-							<div
-								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-								<div class="status-container">
-									<span
-										class="status-light bg-status-green"
-										data-cell="12"
-										data-status="ready"></span>
-									<span
-										class="status-light bg-status-yellow"
-										data-cell="12"
-										data-status="maintenance"></span>
-									<span
-										class="status-light bg-status-red"
-										data-cell="12"
-										data-status="aog"></span>
-								</div>
-								<div class="flex items-center">
-									<span class="text-xs text-white font-medium mr-2"
-										>Position:</span
-									>
+								<div class="p-4 flex-grow flex flex-col">
 									<input
 										type="text"
-										placeholder="3D"
-										id="hangar-position-12"
-										class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
-								</div>
-								<input
-									type="text"
-									placeholder="Manual Input"
-									class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
-							</div>
+										id="aircraft-11"
+										placeholder="Aircraft ID"
+										class="aircraft-id" />
 
-							<div class="p-4 flex-grow flex flex-col">
-								<input
-									type="text"
-									id="aircraft-12"
-									placeholder="Aircraft ID"
-									class="aircraft-id" />
+									<div class="info-grid mb-3">
+										<div class="info-label">Arrival:</div>
+										<div id="arrival-time-11" class="info-value">--:--</div>
 
-								<div class="info-grid mb-3">
-									<div class="info-label">Arrival:</div>
-									<div id="arrival-time-12" class="info-value">--:--</div>
+										<div class="info-label">Departure:</div>
+										<div id="departure-time-11" class="info-value">--:--</div>
 
-									<div class="info-label">Departure:</div>
-									<div id="departure-time-12" class="info-value">--:--</div>
+										<div class="info-label">Position:</div>
+										<div id="position-11" class="info-value">--</div>
 
-									<div class="info-label">Position:</div>
-									<div id="position-12" class="info-value">--</div>
+										<div class="info-label">Towing Status:</div>
+										<div id="tow-status-11" class="tow-status tow-on-position">
+											On Position
+										</div>
+									</div>
 
-									<div class="info-label">Towing Status:</div>
-									<div id="tow-status-12" class="tow-status tow-initiated">
-										Initiated
+									<div class="notes-container">
+										<label
+											class="block text-sm text-industrial-dark font-medium mb-1"
+											>Notes:</label
+										>
+										<textarea
+											id="notes-11"
+											class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
+									</div>
+
+									<div class="mt-auto">
+										<select
+											id="status-11"
+											class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
+											<option value="ready">Ready</option>
+											<option value="maintenance">Maintenance</option>
+											<option value="aog">AOG</option>
+										</select>
 									</div>
 								</div>
+							</div>
 
-								<div class="notes-container">
-									<label
-										class="block text-sm text-industrial-dark font-medium mb-1"
-										>Notes:</label
-									>
-									<textarea
-										id="notes-12"
-										class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
+							<!-- Kachel 12 -->
+							<div
+								class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
+								<div
+									class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
+									<div class="status-container">
+										<span
+											class="status-light bg-status-green"
+											data-cell="12"
+											data-status="ready"></span>
+										<span
+											class="status-light bg-status-yellow"
+											data-cell="12"
+											data-status="maintenance"></span>
+										<span
+											class="status-light bg-status-red"
+											data-cell="12"
+											data-status="aog"></span>
+									</div>
+									<div class="flex items-center">
+										<span class="text-xs text-white font-medium mr-2"
+											>Position:</span
+										>
+										<input
+											type="text"
+											placeholder="3D"
+											id="hangar-position-12"
+											class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
+									</div>
+									<input
+										type="text"
+										placeholder="Manual Input"
+										class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
 								</div>
 
-								<div class="mt-auto">
-									<select
-										id="status-12"
-										class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
-										<option value="ready">Ready</option>
-										<option value="maintenance">Maintenance</option>
-										<option value="aog">AOG</option>
-									</select>
+								<div class="p-4 flex-grow flex flex-col">
+									<input
+										type="text"
+										id="aircraft-12"
+										placeholder="Aircraft ID"
+										class="aircraft-id" />
+
+									<div class="info-grid mb-3">
+										<div class="info-label">Arrival:</div>
+										<div id="arrival-time-12" class="info-value">--:--</div>
+
+										<div class="info-label">Departure:</div>
+										<div id="departure-time-12" class="info-value">--:--</div>
+
+										<div class="info-label">Position:</div>
+										<div id="position-12" class="info-value">--</div>
+
+										<div class="info-label">Towing Status:</div>
+										<div id="tow-status-12" class="tow-status tow-initiated">
+											Initiated
+										</div>
+									</div>
+
+									<div class="notes-container">
+										<label
+											class="block text-sm text-industrial-dark font-medium mb-1"
+											>Notes:</label
+										>
+										<textarea
+											id="notes-12"
+											class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
+									</div>
+
+									<div class="mt-auto">
+										<select
+											id="status-12"
+											class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
+											<option value="ready">Ready</option>
+											<option value="maintenance">Maintenance</option>
+											<option value="aog">AOG</option>
+										</select>
+									</div>
 								</div>
 							</div>
+							<!-- Kachel 12 schließender div-Tag hinzugefügt -->
 						</div>
 					</div>
 
@@ -1670,7 +1674,8 @@
 					accept=".json"
 					class="hidden" />
 			</div>
-		</div> <!-- Schließender div für "flex h-screen" -->
+		</div>
+		<!-- Schließender div für "flex h-screen" -->
 
 		<!-- Modales Fenster für Laden -->
 		<div
