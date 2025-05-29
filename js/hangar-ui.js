@@ -597,6 +597,26 @@ function adjustScaling() {
 		if (secondaryGrid && secondaryGrid.style.display !== "none") {
 			Object.assign(secondaryGrid.style, gridConfig);
 		}
+
+		// Neue Logik: Berechne und setze die nicht-skalierbaren Abstände für die Sektionen
+		// Dies kompensiert den Skalierungseffekt, damit die Abstände immer gleich bleiben
+		const sectionDivider = document.querySelector(".section-divider");
+		if (sectionDivider) {
+			// Berechne den angepassten Abstand basierend auf Skalierungsfaktor
+			// Verwende Math.ceil, um sicherzustellen, dass der Abstand immer groß genug ist
+			const adjustedSpacing = Math.ceil(12 / scaleFactor);
+			sectionDivider.style.margin = `${adjustedSpacing}px 0`;
+		}
+
+		// Aktualisiere auch die Abschnittsbeschriftungen
+		const sectionLabels = document.querySelectorAll(".section-label");
+		sectionLabels.forEach((label) => {
+			const adjustedSpacing = Math.ceil(12 / scaleFactor);
+			if (!label.classList.contains("section-label-first")) {
+				label.style.marginTop = `${adjustedSpacing}px`;
+			}
+			label.style.marginBottom = `${adjustedSpacing}px`;
+		});
 	} catch (error) {
 		console.error("Fehler bei der Skalierungsanpassung:", error);
 	}
@@ -704,4 +724,15 @@ window.hangarUI = {
 	updateStatusLights,
 	checkElement,
 	debug,
+	initSectionLayout: function () {
+		const firstSectionLabel = document.querySelector(
+			".section-label:first-of-type"
+		);
+		if (firstSectionLabel) {
+			firstSectionLabel.classList.add("section-label-first");
+		}
+
+		// Initiale Anpassung der Skalierung vornehmen
+		window.hangarUI.adjustScaling();
+	},
 };

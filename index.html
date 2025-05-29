@@ -36,6 +36,7 @@
 				--card-base-width: 200px;
 				--card-min-width: 200px;
 				--section-spacing: 12px;
+				--fixed-section-spacing: 12px; /* Neu: Konstante für nicht-skalierbare Abstände */
 			}
 
 			body {
@@ -271,52 +272,52 @@
 				width: 100%;
 				height: 2px;
 				background-color: #4f5d75;
-				margin: var(--section-spacing) 0;
+				/* Entfernen der festen Margins und Verwendung der dynamischen Abstände */
+				margin: 12px 0;
 				position: relative;
 				transform-origin: center;
+				/* Verhindert, dass der Divider vom Skalierungsfaktor beeinflusst wird */
+				transform: scaleY(var(--inv-scale));
 			}
 
+			/* Anpassung für das Label im Section Divider */
 			.section-divider::after {
 				content: "Section Divider";
 				position: absolute;
 				top: -10px;
 				left: 50%;
-				transform: translateX(-50%);
+				transform: translateX(-50%) scaleY(var(--inv-scale));
 				background-color: #bfc0c0;
 				padding: 0 10px;
-				font-size: calc(
-					12px * var(--inv-scale)
-				); /* Anpassung der Schriftgröße */
+				font-size: calc(12px * var(--inv-scale)); /* Skaliert die Schriftgröße richtig */
 				color: #2d3142;
 				white-space: nowrap;
 			}
 
+			/* Verbesserte Sektionsbeschriftungen */
 			.section-label {
 				font-size: 16px;
 				font-weight: 500;
 				color: white;
-				margin-bottom: var(--section-spacing);
-				margin-top: var(--section-spacing);
+				/* Dynamische Margins statt fester Werte */
+				margin-bottom: 12px;
+				margin-top: 12px;
 				padding-left: 5px;
+				/* Kompensieren der Skalierung */
+				transform: scale(var(--inv-scale));
+				transform-origin: left center;
 			}
 
 			/* Erste Section Label hat keinen oberen Abstand */
-			.section-label:first-of-type {
-				margin-top: 0;
+			.section-label-first {
+				margin-top: 0 !important;
 			}
 
-			/* Responsive Design und Skalierung */
-			.content-container {
-				min-width: 900px; /* Reduzierte Mindestbreite */
+			/* Spezielle Klasse für den Container der Sections */
+			.section-container {
 				width: 100%;
-				transition: width 0.3s ease;
-			}
-
-			.sidebar-container {
-				min-width: 250px;
-				width: 18%;
-				max-width: 290px;
-				transition: all 0.3s ease;
+				/* Keine Skalierung für die Container selbst */
+				transform: none;
 			}
 
 			/* Verbesserte und verfeinerte Media Queries für dynamische Anpassung */
@@ -355,313 +356,6 @@
 				}
 			}
 
-			@media print {
-				.no-print {
-					display: none !important;
-				}
-
-				.print-only {
-					display: block !important;
-				}
-
-				body {
-					width: 100% !important;
-					margin: 0 !important;
-					padding: 0 !important;
-				}
-
-				.pdf-content {
-					width: 100% !important;
-					page-break-inside: avoid;
-				}
-
-				.hangar-cell {
-					page-break-inside: avoid;
-				}
-			}
-
-			.print-only {
-				display: none;
-			}
-
-			/* Einklappbares Menü Styles - vollständig überarbeitet */
-			.sidebar-container {
-				min-width: 250px;
-				width: 18%;
-				max-width: 290px;
-				transition: all 0.3s ease;
-				position: relative;
-			}
-
-			.sidebar-container.collapsed {
-				min-width: 0;
-				width: 0;
-				max-width: 0;
-				overflow: hidden !important; /* Geändert zurück zu hidden, aber mit !important */
-				padding: 0;
-			}
-
-			/* Toggle-Button-Styling grundlegend überarbeitet */
-			.menu-toggle {
-				position: relative; /* Statt fixed */
-				width: 30px;
-				height: 30px;
-				background-color: #ef8354;
-				border: 2px solid white;
-				border-radius: 50%;
-				display: flex;
-				justify-content: center;
-				align-items: center;
-				cursor: pointer;
-				z-index: 9999;
-				color: white;
-				font-weight: bold;
-				box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
-				transition: all 0.3s ease;
-				margin-right: 20px; /* Fester Abstand nach rechts */
-			}
-
-			.menu-toggle:hover {
-				transform: scale(1.1);
-			}
-
-			/* Button im eingeklappten Zustand - nur Rotation */
-			.sidebar-collapsed .menu-toggle {
-				transform: rotate(180deg);
-			}
-
-			/* Project Controls Bereich */
-			.project-controls {
-				padding: 1rem;
-				border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-				background-color: transparent; /* Entferne den speziellen Hintergrund */
-				display: flex;
-				flex-direction: column;
-				gap: 0.5rem;
-			}
-
-			.project-controls .edit-mode-container {
-				display: flex;
-				align-items: center;
-				justify-content: space-between;
-				margin-bottom: 0.5rem;
-			}
-
-			.project-controls .save-load-container {
-				display: flex;
-				align-items: center;
-				gap: 0.5rem;
-			}
-
-			.project-controls .save-load-container button {
-				flex: 1;
-			}
-
-			/* Verbesserte Menü-Konsistenz */
-			/* Section-Titel-Stil für alle Menübereiche vereinheitlichen */
-			.sidebar-section-title {
-				font-size: 1.125rem;
-				font-weight: 500;
-				margin-bottom: 0.75rem;
-				color: white;
-			}
-
-			/* Einheitliche Menüabschnitte */
-			.sidebar-section {
-				padding: 1rem;
-				border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-			}
-
-			/* Spezielle dunklere Header-Sektion für Haupttitel */
-			.sidebar-header {
-				padding: 1rem;
-				background-color: #2d3142; /* Industrial-dark als Standard */
-				border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-			}
-
-			.mode-toggle-container {
-				display: flex;
-				align-items: center;
-				margin-bottom: 0.75rem;
-			}
-
-			.mode-toggle {
-				margin-left: auto;
-				margin-right: 0;
-			}
-			/* Status-Container kompakter und selbstständiger */
-			.status-container {
-				display: flex;
-				align-items: center;
-				gap: 4px;
-				padding: 2px 5px;
-				border-radius: 10px;
-				background-color: rgba(45, 49, 66, 0.6);
-				flex-shrink: 0;
-			}
-
-			/* Kompakteres Layout für Position-Bereich */
-			.bg-industrial-medium.px-3.py-2 .flex.items-center {
-				flex-shrink: 1;
-				min-width: 0;
-				margin: 0 4px;
-			}
-
-			/* Position Label nur bei ausreichend Platz anzeigen */
-			.bg-industrial-medium.px-3.py-2 .flex.items-center span.text-xs {
-				margin-right: 4px;
-				white-space: nowrap;
-				overflow: hidden;
-				flex-shrink: 1;
-			}
-
-			/* Kompakteres Positions-Eingabefeld */
-			.bg-industrial-medium.px-3.py-2 input[id^="hangar-position"] {
-				height: 22px;
-				width: 56px;
-				min-width: 56px;
-				border-radius: 0.375rem;
-				padding: 0 3px;
-				text-align: center;
-				flex-shrink: 0;
-			}
-
-			/* Verbessertes Manual Input Feld */
-			.bg-industrial-medium.px-3.py-2 input[placeholder="Manual Input"] {
-				height: 22px;
-				max-width: 70px;
-				min-width: 45px;
-				font-size: 10px;
-				padding: 0 5px;
-				border-radius: 0.375rem;
-				flex-grow: 0;
-				flex-shrink: 1;
-				text-overflow: ellipsis;
-			}
-
-			/* Früher beginnende Breakpoints mit feinerer Abstufung und Header-Anpassungen */
-			@media (max-width: 1800px) {
-				:root {
-					--scale-factor: 0.95;
-				}
-
-				.bg-industrial-medium.px-3.py-2 input[placeholder="Manual Input"] {
-					max-width: 65px;
-				}
-			}
-
-			@media (max-width: 1650px) {
-				:root {
-					--scale-factor: 0.92;
-				}
-
-				.bg-industrial-medium.px-3.py-2 input[placeholder="Manual Input"] {
-					max-width: 60px;
-				}
-			}
-
-			@media (max-width: 1550px) {
-				:root {
-					--scale-factor: 0.88;
-				}
-
-				.bg-industrial-medium.px-3.py-2 input[placeholder="Manual Input"] {
-					max-width: 55px;
-				}
-
-				/* Position-Text ausblenden bei kleineren Bildschirmen */
-				.bg-industrial-medium.px-3.py-2 .flex.items-center span.text-xs {
-					display: none;
-				}
-			}
-
-			@media (max-width: 1450px) {
-				:root {
-					--scale-factor: 0.85;
-				}
-
-				.bg-industrial-medium.px-3.py-2 {
-					padding: 0.25rem 0.5rem;
-				}
-			}
-
-			@media (max-width: 1350px) {
-				:root {
-					--scale-factor: 0.8;
-				}
-
-				.bg-industrial-medium.px-3.py-2 input[placeholder="Manual Input"] {
-					max-width: 50px;
-				}
-			}
-
-			@media (max-width: 1200px) {
-				:root {
-					--scale-factor: 0.75;
-				}
-
-				.bg-industrial-medium.px-3.py-2 input[placeholder="Manual Input"] {
-					max-width: 45px;
-				}
-			}
-
-			/* Verbesserte Skalierung und Responsive Design */
-			.scaling-container {
-				transform-origin: top left;
-				transform: scale(var(--scale-factor));
-				width: calc(100% / var(--scale-factor));
-				height: calc(100% / var(--scale-factor));
-				transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
-			}
-
-			.content-container {
-				min-width: 900px; /* Reduzierte Mindestbreite */
-			}
-
-			.sidebar-container {
-				min-width: 250px;
-				width: 18%;
-				max-width: 290px;
-				transition: all 0.3s ease;
-			}
-
-			/* Verbesserte und verfeinerte Media Queries für dynamische Anpassung */
-			@media (max-width: 1800px) {
-				:root {
-					--scale-factor: 0.95;
-					--grid-gap: 24px; /* Mindestens 24px Zwischenraum */
-				}
-			}
-
-			@media (max-width: 1650px) {
-				:root {
-					--scale-factor: 0.9;
-					--grid-gap: 24px; /* Mindestens 24px Zwischenraum */
-				}
-			}
-
-			@media (max-width: 1500px) {
-				:root {
-					--scale-factor: 0.85;
-					--grid-gap: 24px; /* Mindestens 24px Zwischenraum */
-				}
-			}
-
-			@media (max-width: 1350px) {
-				:root {
-					--scale-factor: 0.8;
-					--grid-gap: 24px; /* Mindestens 24px Zwischenraum */
-				}
-			}
-
-			@media (max-width: 1200px) {
-				:root {
-					--scale-factor: 0.75;
-					--grid-gap: 24px; /* Mindestens 24px Zwischenraum */
-				}
-			}
-
-			/* Rest der bestehenden Stile und Media Queries */
 			/* Kompakteres Header-Layout mit verbesserter responsiver Anpassung */
 			.bg-industrial-medium.px-3.py-2 {
 				padding: 0.35rem 0.6rem;
@@ -781,846 +475,847 @@
 				<!-- Hangar-Kacheln Bereich -->
 				<div
 					class="flex-grow bg-industrial-light p-6 overflow-auto hangar-container">
-					<!-- Abschnitt 1 Label mit konsistentem Abstand -->
-					<div class="section-label">Primary Section</div>
-					<div id="hangarGrid" class="grid grid-cols-4 gap-4">
-						<!-- 8 Hangar-Kacheln hier -->
-						<!-- Kachel 1 -->
-						<div
-							class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
-							<!-- Header mit Statusleiste -->
+					<!-- Abschnitt 1 Container -->
+					<div class="section-container">
+						<div class="section-label">Primary Section</div>
+						<div id="hangarGrid" class="grid grid-cols-4 gap-4">
+							<!-- 8 Hangar-Kacheln hier -->
+							<!-- Kachel 1 -->
 							<div
-								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-								<div class="status-container">
-									<span
-										class="status-light bg-status-green"
-										data-cell="1"
-										data-status="ready"></span>
-									<span
-										class="status-light bg-status-yellow"
-										data-cell="1"
-										data-status="maintenance"></span>
-									<span
-										class="status-light bg-status-red"
-										data-cell="1"
-										data-status="aog"></span>
-								</div>
-								<div class="flex items-center">
-									<span class="text-xs text-white font-medium mr-2"
-										>Position:</span
-									>
+								class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
+								<!-- Header mit Statusleiste -->
+								<div
+									class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
+									<div class="status-container">
+										<span
+											class="status-light bg-status-green"
+											data-cell="1"
+											data-status="ready"></span>
+										<span
+											class="status-light bg-status-yellow"
+											data-cell="1"
+											data-status="maintenance"></span>
+										<span
+											class="status-light bg-status-red"
+											data-cell="1"
+											data-status="aog"></span>
+									</div>
+									<div class="flex items-center">
+										<span class="text-xs text-white font-medium mr-2"
+											>Position:</span
+										>
+										<input
+											type="text"
+											placeholder="1A"
+											id="hangar-position-1"
+											class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
+									</div>
 									<input
 										type="text"
-										placeholder="1A"
-										id="hangar-position-1"
-										class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
-								</div>
-								<input
-									type="text"
-									placeholder="Manual Input"
-									class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
-							</div>
-
-							<!-- Hauptbereich -->
-							<div class="p-4 flex-grow flex flex-col">
-								<input
-									type="text"
-									id="aircraft-1"
-									placeholder="Aircraft ID"
-									class="aircraft-id" />
-
-								<!-- Einheitliche Ausrichtung für Infos -->
-								<div class="info-grid mb-3">
-									<div class="info-label">Arrival:</div>
-									<div id="arrival-time-1" class="info-value">--:--</div>
-
-									<div class="info-label">Departure:</div>
-									<div id="departure-time-1" class="info-value">--:--</div>
-
-									<div class="info-label">Position:</div>
-									<div id="position-1" class="info-value">--</div>
-
-									<div class="info-label">Towing Status:</div>
-									<div id="tow-status-1" class="tow-status tow-initiated">
-										Initiated
-									</div>
+										placeholder="Manual Input"
+										class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
 								</div>
 
-								<!-- Notizen mit flexibler Höhe -->
-								<div class="notes-container">
-									<label
-										class="block text-sm text-industrial-dark font-medium mb-1"
-										>Notes:</label
-									>
-									<textarea
-										id="notes-1"
-										class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
-								</div>
-
-								<div class="mt-auto">
-									<select
-										id="status-1"
-										class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
-										<option value="ready">Ready</option>
-										<option value="maintenance">Maintenance</option>
-										<option value="aog">AOG</option>
-									</select>
-								</div>
-							</div>
-						</div>
-
-						<!-- Kachel 2 mit optimiertem Layout -->
-						<div
-							class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
-							<div
-								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-								<div class="status-container">
-									<span
-										class="status-light bg-status-green"
-										data-cell="2"
-										data-status="ready"></span>
-									<span
-										class="status-light bg-status-yellow"
-										data-cell="2"
-										data-status="maintenance"></span>
-									<span
-										class="status-light bg-status-red"
-										data-cell="2"
-										data-status="aog"></span>
-								</div>
-								<div class="flex items-center">
-									<span class="text-xs text-white font-medium mr-2"
-										>Position:</span
-									>
+								<!-- Hauptbereich -->
+								<div class="p-4 flex-grow flex flex-col">
 									<input
 										type="text"
-										placeholder="1B"
-										id="hangar-position-2"
-										class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
-								</div>
-								<input
-									type="text"
-									placeholder="Manual Input"
-									class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
-							</div>
+										id="aircraft-1"
+										placeholder="Aircraft ID"
+										class="aircraft-id" />
 
-							<div class="p-4 flex-grow flex flex-col">
-								<input
-									type="text"
-									id="aircraft-2"
-									placeholder="Aircraft ID"
-									class="aircraft-id" />
+									<!-- Einheitliche Ausrichtung für Infos -->
+									<div class="info-grid mb-3">
+										<div class="info-label">Arrival:</div>
+										<div id="arrival-time-1" class="info-value">--:--</div>
 
-								<!-- Einheitliche Ausrichtung für Infos -->
-								<div class="info-grid mb-3">
-									<div class="info-label">Arrival:</div>
-									<div id="arrival-time-2" class="info-value">--:--</div>
+										<div class="info-label">Departure:</div>
+										<div id="departure-time-1" class="info-value">--:--</div>
 
-									<div class="info-label">Departure:</div>
-									<div id="departure-time-2" class="info-value">--:--</div>
+										<div class="info-label">Position:</div>
+										<div id="position-1" class="info-value">--</div>
 
-									<div class="info-label">Position:</div>
-									<div id="position-2" class="info-value">--</div>
+										<div class="info-label">Towing Status:</div>
+										<div id="tow-status-1" class="tow-status tow-initiated">
+											Initiated
+										</div>
+									</div>
 
-									<div class="info-label">Towing Status:</div>
-									<div id="tow-status-2" class="tow-status tow-ongoing">
-										In Progress
+									<!-- Notizen mit flexibler Höhe -->
+									<div class="notes-container">
+										<label
+											class="block text-sm text-industrial-dark font-medium mb-1"
+											>Notes:</label
+										>
+										<textarea
+											id="notes-1"
+											class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
+									</div>
+
+									<div class="mt-auto">
+										<select
+											id="status-1"
+											class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
+											<option value="ready">Ready</option>
+											<option value="maintenance">Maintenance</option>
+											<option value="aog">AOG</option>
+										</select>
 									</div>
 								</div>
-
-								<!-- Notizen mit flexibler Höhe -->
-								<div class="notes-container">
-									<label
-										class="block text-sm text-industrial-dark font-medium mb-1"
-										>Notes:</label
-									>
-									<textarea
-										id="notes-2"
-										class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
-								</div>
-
-								<div class="mt-auto">
-									<select
-										id="status-2"
-										class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
-										<option value="ready">Ready</option>
-										<option value="maintenance">Maintenance</option>
-										<option value="aog">AOG</option>
-									</select>
-								</div>
 							</div>
-						</div>
 
-						<!-- Kachel 3 mit optimiertem Layout -->
-						<div
-							class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
+							<!-- Kachel 2 mit optimiertem Layout -->
 							<div
-								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-								<div class="status-container">
-									<span
-										class="status-light bg-status-green"
-										data-cell="3"
-										data-status="ready"></span>
-									<span
-										class="status-light bg-status-yellow"
-										data-cell="3"
-										data-status="maintenance"></span>
-									<span
-										class="status-light bg-status-red"
-										data-cell="3"
-										data-status="aog"></span>
-								</div>
-								<div class="flex items-center">
-									<span class="text-xs text-white font-medium mr-2"
-										>Position:</span
-									>
+								class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
+								<div
+									class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
+									<div class="status-container">
+										<span
+											class="status-light bg-status-green"
+											data-cell="2"
+											data-status="ready"></span>
+										<span
+											class="status-light bg-status-yellow"
+											data-cell="2"
+											data-status="maintenance"></span>
+										<span
+											class="status-light bg-status-red"
+											data-cell="2"
+											data-status="aog"></span>
+									</div>
+									<div class="flex items-center">
+										<span class="text-xs text-white font-medium mr-2"
+											>Position:</span
+										>
+										<input
+											type="text"
+											placeholder="1B"
+											id="hangar-position-2"
+											class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
+									</div>
 									<input
 										type="text"
-										placeholder="2A"
-										id="hangar-position-3"
-										class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
-								</div>
-								<input
-									type="text"
-									placeholder="Manual Input"
-									class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
-							</div>
-
-							<div class="p-4 flex-grow flex flex-col">
-								<input
-									type="text"
-									id="aircraft-3"
-									placeholder="Aircraft ID"
-									class="aircraft-id" />
-
-								<!-- Einheitliche Ausrichtung für Infos -->
-								<div class="info-grid mb-3">
-									<div class="info-label">Arrival:</div>
-									<div id="arrival-time-3" class="info-value">--:--</div>
-
-									<div class="info-label">Departure:</div>
-									<div id="departure-time-3" class="info-value">--:--</div>
-
-									<div class="info-label">Position:</div>
-									<div id="position-3" class="info-value">--</div>
-
-									<div class="info-label">Towing Status:</div>
-									<div id="tow-status-3" class="tow-status tow-on-position">
-										On Position
-									</div>
+										placeholder="Manual Input"
+										class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
 								</div>
 
-								<!-- Notizen mit flexibler Höhe -->
-								<div class="notes-container">
-									<label
-										class="block text-sm text-industrial-dark font-medium mb-1"
-										>Notes:</label
-									>
-									<textarea
-										id="notes-3"
-										class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
-								</div>
-
-								<div class="mt-auto">
-									<select
-										id="status-3"
-										class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
-										<option value="ready">Ready</option>
-										<option value="maintenance">Maintenance</option>
-										<option value="aog">AOG</option>
-									</select>
-								</div>
-							</div>
-						</div>
-
-						<!-- Kachel 4 mit optimiertem Layout + Notizfeld -->
-						<div
-							class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
-							<div
-								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-								<div class="status-container">
-									<span
-										class="status-light bg-status-green"
-										data-cell="4"
-										data-status="ready"></span>
-									<span
-										class="status-light bg-status-yellow"
-										data-cell="4"
-										data-status="maintenance"></span>
-									<span
-										class="status-light bg-status-red"
-										data-cell="4"
-										data-status="aog"></span>
-								</div>
-								<div class="flex items-center">
-									<span class="text-xs text-white font-medium mr-2"
-										>Position:</span
-									>
+								<div class="p-4 flex-grow flex flex-col">
 									<input
 										type="text"
-										placeholder="2B"
-										id="hangar-position-4"
-										class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
-								</div>
-								<input
-									type="text"
-									placeholder="Manual Input"
-									class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
-							</div>
+										id="aircraft-2"
+										placeholder="Aircraft ID"
+										class="aircraft-id" />
 
-							<div class="p-4 flex-grow flex flex-col">
-								<input
-									type="text"
-									id="aircraft-4"
-									placeholder="Aircraft ID"
-									class="aircraft-id" />
+									<!-- Einheitliche Ausrichtung für Infos -->
+									<div class="info-grid mb-3">
+										<div class="info-label">Arrival:</div>
+										<div id="arrival-time-2" class="info-value">--:--</div>
 
-								<!-- Einheitliche Ausrichtung für Infos -->
-								<div class="info-grid mb-3">
-									<div class="info-label">Arrival:</div>
-									<div id="arrival-time-4" class="info-value">--:--</div>
+										<div class="info-label">Departure:</div>
+										<div id="departure-time-2" class="info-value">--:--</div>
 
-									<div class="info-label">Departure:</div>
-									<div id="departure-time-4" class="info-value">--:--</div>
+										<div class="info-label">Position:</div>
+										<div id="position-2" class="info-value">--</div>
 
-									<div class="info-label">Position:</div>
-									<div id="position-4" class="info-value">--</div>
+										<div class="info-label">Towing Status:</div>
+										<div id="tow-status-2" class="tow-status tow-ongoing">
+											In Progress
+										</div>
+									</div>
 
-									<div class="info-label">Towing Status:</div>
-									<div id="tow-status-4" class="tow-status tow-initiated">
-										Initiated
+									<!-- Notizen mit flexibler Höhe -->
+									<div class="notes-container">
+										<label
+											class="block text-sm text-industrial-dark font-medium mb-1"
+											>Notes:</label
+										>
+										<textarea
+											id="notes-2"
+											class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
+									</div>
+
+									<div class="mt-auto">
+										<select
+											id="status-2"
+											class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
+											<option value="ready">Ready</option>
+											<option value="maintenance">Maintenance</option>
+											<option value="aog">AOG</option>
+										</select>
 									</div>
 								</div>
-
-								<!-- Notizen mit flexibler Höhe -->
-								<div class="notes-container">
-									<label
-										class="block text-sm text-industrial-dark font-medium mb-1"
-										>Notes:</label
-									>
-									<textarea
-										id="notes-4"
-										class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
-								</div>
-
-								<div class="mt-auto">
-									<select
-										id="status-4"
-										class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
-										<option value="ready">Ready</option>
-										<option value="maintenance">Maintenance</option>
-										<option value="aog">AOG</option>
-									</select>
-								</div>
 							</div>
-						</div>
 
-						<!-- Kachel 5-8 mit dem gleichen optimierten Layout -->
-						<!-- Kachel 5 -->
-						<div
-							class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
-							<!-- Header-Bereich wie bei Kachel 1-4 -->
+							<!-- Kachel 3 mit optimiertem Layout -->
 							<div
-								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-								<div class="status-container">
-									<span
-										class="status-light bg-status-green"
-										data-cell="5"
-										data-status="ready"></span>
-									<span
-										class="status-light bg-status-yellow"
-										data-cell="5"
-										data-status="maintenance"></span>
-									<span
-										class="status-light bg-status-red"
-										data-cell="5"
-										data-status="aog"></span>
-								</div>
-								<div class="flex items-center">
-									<span class="text-xs text-white font-medium mr-2"
-										>Position:</span
-									>
+								class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
+								<div
+									class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
+									<div class="status-container">
+										<span
+											class="status-light bg-status-green"
+											data-cell="3"
+											data-status="ready"></span>
+										<span
+											class="status-light bg-status-yellow"
+											data-cell="3"
+											data-status="maintenance"></span>
+										<span
+											class="status-light bg-status-red"
+											data-cell="3"
+											data-status="aog"></span>
+									</div>
+									<div class="flex items-center">
+										<span class="text-xs text-white font-medium mr-2"
+											>Position:</span
+										>
+										<input
+											type="text"
+											placeholder="2A"
+											id="hangar-position-3"
+											class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
+									</div>
 									<input
 										type="text"
-										placeholder="2C"
-										id="hangar-position-5"
-										class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
-								</div>
-								<input
-									type="text"
-									placeholder="Manual Input"
-									class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
-							</div>
-
-							<!-- Hauptbereich mit Infos und Notizfeld -->
-							<div class="p-4 flex-grow flex flex-col">
-								<input
-									type="text"
-									id="aircraft-5"
-									placeholder="Aircraft ID"
-									class="aircraft-id" />
-
-								<div class="info-grid mb-3">
-									<div class="info-label">Arrival:</div>
-									<div id="arrival-time-5" class="info-value">--:--</div>
-									<div class="info-label">Departure:</div>
-									<div id="departure-time-5" class="info-value">--:--</div>
-									<div class="info-label">Position:</div>
-									<div id="position-5" class="info-value">--</div>
-									<div class="info-label">Towing Status:</div>
-									<div id="tow-status-5" class="tow-status tow-ongoing">
-										In Progress
-									</div>
+										placeholder="Manual Input"
+										class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
 								</div>
 
-								<!-- Notizfeld hinzugefügt -->
-								<div class="notes-container">
-									<label
-										class="block text-sm text-industrial-dark font-medium mb-1"
-										>Notes:</label
-									>
-									<textarea
-										id="notes-5"
-										class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
-								</div>
-
-								<div class="mt-auto">
-									<select
-										id="status-5"
-										class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
-										<option value="ready">Ready</option>
-										<option value="maintenance">Maintenance</option>
-										<option value="aog">AOG</option>
-									</select>
-								</div>
-							</div>
-						</div>
-
-						<!-- Kachel 6 -->
-						<div
-							class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
-							<!-- Header-Bereich -->
-							<div
-								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-								<div class="status-container">
-									<span
-										class="status-light bg-status-green"
-										data-cell="6"
-										data-status="ready"></span>
-									<span
-										class="status-light bg-status-yellow"
-										data-cell="6"
-										data-status="maintenance"></span>
-									<span
-										class="status-light bg-status-red"
-										data-cell="6"
-										data-status="aog"></span>
-								</div>
-								<div class="flex items-center">
-									<span class="text-xs text-white font-medium mr-2"
-										>Position:</span
-									>
+								<div class="p-4 flex-grow flex flex-col">
 									<input
 										type="text"
-										placeholder="2D"
-										id="hangar-position-6"
-										class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
-								</div>
-								<input
-									type="text"
-									placeholder="Manual Input"
-									class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
-							</div>
+										id="aircraft-3"
+										placeholder="Aircraft ID"
+										class="aircraft-id" />
 
-							<!-- Hauptbereich -->
-							<div class="p-4 flex-grow flex flex-col">
-								<input
-									type="text"
-									id="aircraft-6"
-									placeholder="Aircraft ID"
-									class="aircraft-id" />
+									<!-- Einheitliche Ausrichtung für Infos -->
+									<div class="info-grid mb-3">
+										<div class="info-label">Arrival:</div>
+										<div id="arrival-time-3" class="info-value">--:--</div>
 
-								<div class="info-grid mb-3">
-									<div class="info-label">Arrival:</div>
-									<div id="arrival-time-6" class="info-value">--:--</div>
-									<div class="info-label">Departure:</div>
-									<div id="departure-time-6" class="info-value">--:--</div>
-									<div class="info-label">Position:</div>
-									<div id="position-6" class="info-value">--</div>
-									<div class="info-label">Towing Status:</div>
-									<div id="tow-status-6" class="tow-status tow-on-position">
-										On Position
+										<div class="info-label">Departure:</div>
+										<div id="departure-time-3" class="info-value">--:--</div>
+
+										<div class="info-label">Position:</div>
+										<div id="position-3" class="info-value">--</div>
+
+										<div class="info-label">Towing Status:</div>
+										<div id="tow-status-3" class="tow-status tow-on-position">
+											On Position
+										</div>
+									</div>
+
+									<!-- Notizen mit flexibler Höhe -->
+									<div class="notes-container">
+										<label
+											class="block text-sm text-industrial-dark font-medium mb-1"
+											>Notes:</label
+										>
+										<textarea
+											id="notes-3"
+											class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
+									</div>
+
+									<div class="mt-auto">
+										<select
+											id="status-3"
+											class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
+											<option value="ready">Ready</option>
+											<option value="maintenance">Maintenance</option>
+											<option value="aog">AOG</option>
+										</select>
 									</div>
 								</div>
-
-								<!-- Notizen mit flexibler Höhe -->
-								<div class="notes-container">
-									<label
-										class="block text-sm text-industrial-dark font-medium mb-1"
-										>Notes:</label
-									>
-									<textarea
-										id="notes-6"
-										class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
-								</div>
-
-								<div class="mt-auto">
-									<select
-										id="status-6"
-										class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
-										<option value="ready">Ready</option>
-										<option value="maintenance">Maintenance</option>
-										<option value="aog">AOG</option>
-									</select>
-								</div>
 							</div>
-						</div>
 
-						<!-- Kachel 7 -->
-						<div
-							class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
-							<!-- Header-Bereich -->
+							<!-- Kachel 4 mit optimiertem Layout + Notizfeld -->
 							<div
-								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-								<div class="status-container">
-									<span
-										class="status-light bg-status-green"
-										data-cell="7"
-										data-status="ready"></span>
-									<span
-										class="status-light bg-status-yellow"
-										data-cell="7"
-										data-status="maintenance"></span>
-									<span
-										class="status-light bg-status-red"
-										data-cell="7"
-										data-status="aog"></span>
-								</div>
-								<div class="flex items-center">
-									<span class="text-xs text-white font-medium mr-2"
-										>Position:</span
-									>
+								class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
+								<div
+									class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
+									<div class="status-container">
+										<span
+											class="status-light bg-status-green"
+											data-cell="4"
+											data-status="ready"></span>
+										<span
+											class="status-light bg-status-yellow"
+											data-cell="4"
+											data-status="maintenance"></span>
+										<span
+											class="status-light bg-status-red"
+											data-cell="4"
+											data-status="aog"></span>
+									</div>
+									<div class="flex items-center">
+										<span class="text-xs text-white font-medium mr-2"
+											>Position:</span
+										>
+										<input
+											type="text"
+											placeholder="2B"
+											id="hangar-position-4"
+											class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
+									</div>
 									<input
 										type="text"
-										placeholder="2E"
-										id="hangar-position-7"
-										class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
-								</div>
-								<input
-									type="text"
-									placeholder="Manual Input"
-									class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
-							</div>
-
-							<!-- Hauptbereich -->
-							<div class="p-4 flex-grow flex flex-col">
-								<input
-									type="text"
-									id="aircraft-7"
-									placeholder="Aircraft ID"
-									class="aircraft-id" />
-
-								<div class="info-grid mb-3">
-									<div class="info-label">Arrival:</div>
-									<div id="arrival-time-7" class="info-value">--:--</div>
-									<div class="info-label">Departure:</div>
-									<div id="departure-time-7" class="info-value">--:--</div>
-									<div class="info-label">Position:</div>
-									<div id="position-7" class="info-value">--</div>
-									<div class="info-label">Towing Status:</div>
-									<div id="tow-status-7" class="tow-status tow-initiated">
-										Initiated
-									</div>
+										placeholder="Manual Input"
+										class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
 								</div>
 
-								<div class="notes-container">
-									<label
-										class="block text-sm text-industrial-dark font-medium mb-1"
-										>Notes:</label
-									>
-									<textarea
-										id="notes-7"
-										class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
-								</div>
-
-								<div class="mt-auto">
-									<select
-										id="status-7"
-										class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
-										<option value="ready">Ready</option>
-										<option value="maintenance">Maintenance</option>
-										<option value="aog">AOG</option>
-									</select>
-								</div>
-							</div>
-						</div>
-
-						<!-- Kachel 8 -->
-						<div
-							class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
-							<!-- Header-Bereich -->
-							<div
-								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-								<div class="status-container">
-									<span
-										class="status-light bg-status-green"
-										data-cell="8"
-										data-status="ready"></span>
-									<span
-										class="status-light bg-status-yellow"
-										data-cell="8"
-										data-status="maintenance"></span>
-									<span
-										class="status-light bg-status-red"
-										data-cell="8"
-										data-status="aog"></span>
-								</div>
-								<div class="flex items-center">
-									<span class="text-xs text-white font-medium mr-2"
-										>Position:</span
-									>
+								<div class="p-4 flex-grow flex flex-col">
 									<input
 										type="text"
-										placeholder="2F"
-										id="hangar-position-8"
-										class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
-								</div>
-								<input
-									type="text"
-									placeholder="Manual Input"
-									class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
-							</div>
+										id="aircraft-4"
+										placeholder="Aircraft ID"
+										class="aircraft-id" />
 
-							<!-- Hauptbereich -->
-							<div class="p-4 flex-grow flex flex-col">
-								<input
-									type="text"
-									id="aircraft-8"
-									placeholder="Aircraft ID"
-									class="aircraft-id" />
+									<!-- Einheitliche Ausrichtung für Infos -->
+									<div class="info-grid mb-3">
+										<div class="info-label">Arrival:</div>
+										<div id="arrival-time-4" class="info-value">--:--</div>
 
-								<div class="info-grid mb-3">
-									<div class="info-label">Arrival:</div>
-									<div id="arrival-time-8" class="info-value">--:--</div>
-									<div class="info-label">Departure:</div>
-									<div id="departure-time-8" class="info-value">--:--</div>
-									<div class="info-label">Position:</div>
-									<div id="position-8" class="info-value">--</div>
-									<div class="info-label">Towing Status:</div>
-									<div id="tow-status-8" class="tow-status tow-ongoing">
-										In Progress
+										<div class="info-label">Departure:</div>
+										<div id="departure-time-4" class="info-value">--:--</div>
+
+										<div class="info-label">Position:</div>
+										<div id="position-4" class="info-value">--</div>
+
+										<div class="info-label">Towing Status:</div>
+										<div id="tow-status-4" class="tow-status tow-initiated">
+											Initiated
+										</div>
+									</div>
+
+									<!-- Notizen mit flexibler Höhe -->
+									<div class="notes-container">
+										<label
+											class="block text-sm text-industrial-dark font-medium mb-1"
+											>Notes:</label
+										>
+										<textarea
+											id="notes-4"
+											class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
+									</div>
+
+									<div class="mt-auto">
+										<select
+											id="status-4"
+											class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
+											<option value="ready">Ready</option>
+											<option value="maintenance">Maintenance</option>
+											<option value="aog">AOG</option>
+										</select>
 									</div>
 								</div>
-
-								<div class="notes-container">
-									<label
-										class="block text-sm text-industrial-dark font-medium mb-1"
-										>Notes:</label
-									>
-									<textarea
-										id="notes-8"
-										class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
-								</div>
-
-								<div class="mt-auto">
-									<select
-										id="status-8"
-										class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
-										<option value="ready">Ready</option>
-										<option value="maintenance">Maintenance</option>
-										<option value="aog">AOG</option>
-									</select>
-								</div>
 							</div>
-						</div>
 
-						<!-- Kachel 9 -->
-						<div
-							class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
+							<!-- Kachel 5-8 mit dem gleichen optimierten Layout -->
+							<!-- Kachel 5 -->
 							<div
-								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-								<div class="status-container">
-									<span
-										class="status-light bg-status-green"
-										data-cell="9"
-										data-status="ready"></span>
-									<span
-										class="status-light bg-status-yellow"
-										data-cell="9"
-										data-status="maintenance"></span>
-									<span
-										class="status-light bg-status-red"
-										data-cell="9"
-										data-status="aog"></span>
-								</div>
-								<div class="flex items-center">
-									<span class="text-xs text-white font-medium mr-2"
-										>Position:</span
-									>
+								class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
+								<!-- Header-Bereich wie bei Kachel 1-4 -->
+								<div
+									class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
+									<div class="status-container">
+										<span
+											class="status-light bg-status-green"
+											data-cell="5"
+											data-status="ready"></span>
+										<span
+											class="status-light bg-status-yellow"
+											data-cell="5"
+											data-status="maintenance"></span>
+										<span
+											class="status-light bg-status-red"
+											data-cell="5"
+											data-status="aog"></span>
+									</div>
+									<div class="flex items-center">
+										<span class="text-xs text-white font-medium mr-2"
+											>Position:</span
+										>
+										<input
+											type="text"
+											placeholder="2C"
+											id="hangar-position-5"
+											class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
+									</div>
 									<input
 										type="text"
-										placeholder="3A"
-										id="hangar-position-9"
-										class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
-								</div>
-								<input
-									type="text"
-									placeholder="Manual Input"
-									class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
-							</div>
-
-							<div class="p-4 flex-grow flex flex-col">
-								<input
-									type="text"
-									id="aircraft-9"
-									placeholder="Aircraft ID"
-									class="aircraft-id" />
-
-								<div class="info-grid mb-3">
-									<div class="info-label">Arrival:</div>
-									<div id="arrival-time-9" class="info-value">--:--</div>
-									<div class="info-label">Departure:</div>
-									<div id="departure-time-9" class="info-value">--:--</div>
-									<div class="info-label">Position:</div>
-									<div id="position-9" class="info-value">--</div>
-									<div class="info-label">Towing Status:</div>
-									<div id="tow-status-9" class="tow-status tow-initiated">
-										Initiated
-									</div>
+										placeholder="Manual Input"
+										class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
 								</div>
 
-								<div class="notes-container">
-									<label
-										class="block text-sm text-industrial-dark font-medium mb-1"
-										>Notes:</label
-									>
-									<textarea
-										id="notes-9"
-										class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
-								</div>
-
-								<div class="mt-auto">
-									<select
-										id="status-9"
-										class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
-										<option value="ready">Ready</option>
-										<option value="maintenance">Maintenance</option>
-										<option value="aog">AOG</option>
-									</select>
-								</div>
-							</div>
-						</div>
-
-						<!-- Kachel 10 -->
-						<div
-							class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
-							<div
-								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-								<div class="status-container">
-									<span
-										class="status-light bg-status-green"
-										data-cell="10"
-										data-status="ready"></span>
-									<span
-										class="status-light bg-status-yellow"
-										data-cell="10"
-										data-status="maintenance"></span>
-									<span
-										class="status-light bg-status-red"
-										data-cell="10"
-										data-status="aog"></span>
-								</div>
-								<div class="flex items-center">
-									<span class="text-xs text-white font-medium mr-2"
-										>Position:</span
-									>
+								<!-- Hauptbereich mit Infos und Notizfeld -->
+								<div class="p-4 flex-grow flex flex-col">
 									<input
 										type="text"
-										placeholder="3B"
-										id="hangar-position-10"
-										class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
-								</div>
-								<input
-									type="text"
-									placeholder="Manual Input"
-									class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
-							</div>
+										id="aircraft-5"
+										placeholder="Aircraft ID"
+										class="aircraft-id" />
 
-							<div class="p-4 flex-grow flex flex-col">
-								<input
-									type="text"
-									id="aircraft-10"
-									placeholder="Aircraft ID"
-									class="aircraft-id" />
+									<div class="info-grid mb-3">
+										<div class="info-label">Arrival:</div>
+										<div id="arrival-time-5" class="info-value">--:--</div>
+										<div class="info-label">Departure:</div>
+										<div id="departure-time-5" class="info-value">--:--</div>
+										<div class="info-label">Position:</div>
+										<div id="position-5" class="info-value">--</div>
+										<div class="info-label">Towing Status:</div>
+										<div id="tow-status-5" class="tow-status tow-ongoing">
+											In Progress
+										</div>
+									</div>
 
-								<div class="info-grid mb-3">
-									<div class="info-label">Arrival:</div>
-									<div id="arrival-time-10" class="info-value">--:--</div>
-									<div class="info-label">Departure:</div>
-									<div id="departure-time-10" class="info-value">--:--</div>
-									<div class="info-label">Position:</div>
-									<div id="position-10" class="info-value">--</div>
-									<div class="info-label">Towing Status:</div>
-									<div id="tow-status-10" class="tow-status tow-ongoing">
-										In Progress
+									<!-- Notizfeld hinzugefügt -->
+									<div class="notes-container">
+										<label
+											class="block text-sm text-industrial-dark font-medium mb-1"
+											>Notes:</label
+										>
+										<textarea
+											id="notes-5"
+											class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
+									</div>
+
+									<div class="mt-auto">
+										<select
+											id="status-5"
+											class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
+											<option value="ready">Ready</option>
+											<option value="maintenance">Maintenance</option>
+											<option value="aog">AOG</option>
+										</select>
 									</div>
 								</div>
+							</div>
 
-								<div class="notes-container">
-									<label
-										class="block text-sm text-industrial-dark font-medium mb-1"
-										>Notes:</label
-									>
-									<textarea
-										id="notes-10"
-										class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
+							<!-- Kachel 6 -->
+							<div
+								class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
+								<!-- Header-Bereich -->
+								<div
+									class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
+									<div class="status-container">
+										<span
+											class="status-light bg-status-green"
+											data-cell="6"
+											data-status="ready"></span>
+										<span
+											class="status-light bg-status-yellow"
+											data-cell="6"
+											data-status="maintenance"></span>
+										<span
+											class="status-light bg-status-red"
+											data-cell="6"
+											data-status="aog"></span>
+									</div>
+									<div class="flex items-center">
+										<span class="text-xs text-white font-medium mr-2"
+											>Position:</span
+										>
+										<input
+											type="text"
+											placeholder="2D"
+											id="hangar-position-6"
+											class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
+									</div>
+									<input
+										type="text"
+										placeholder="Manual Input"
+										class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
 								</div>
 
-								<div class="mt-auto">
-									<select
-										id="status-10"
-										class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
-										<option value="ready">Ready</option>
-										<option value="maintenance">Maintenance</option>
-										<option value="aog">AOG</option>
-									</select>
+								<!-- Hauptbereich -->
+								<div class="p-4 flex-grow flex flex-col">
+									<input
+										type="text"
+										id="aircraft-6"
+										placeholder="Aircraft ID"
+										class="aircraft-id" />
+
+									<div class="info-grid mb-3">
+										<div class="info-label">Arrival:</div>
+										<div id="arrival-time-6" class="info-value">--:--</div>
+										<div class="info-label">Departure:</div>
+										<div id="departure-time-6" class="info-value">--:--</div>
+										<div class="info-label">Position:</div>
+										<div id="position-6" class="info-value">--</div>
+										<div class="info-label">Towing Status:</div>
+										<div id="tow-status-6" class="tow-status tow-on-position">
+											On Position
+										</div>
+									</div>
+
+									<!-- Notizen mit flexibler Höhe -->
+									<div class="notes-container">
+										<label
+											class="block text-sm text-industrial-dark font-medium mb-1"
+											>Notes:</label
+										>
+										<textarea
+											id="notes-6"
+											class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
+									</div>
+
+									<div class="mt-auto">
+										<select
+											id="status-6"
+											class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
+											<option value="ready">Ready</option>
+											<option value="maintenance">Maintenance</option>
+											<option value="aog">AOG</option>
+										</select>
+									</div>
 								</div>
 							</div>
-						</div>
 
-						<!-- Kachel 11 -->
-						<div
-							class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
+							<!-- Kachel 7 -->
 							<div
-								class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-								<div class="status-container">
-									<span
-										class="status-light bg-status-green"
+								class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
+								<!-- Header-Bereich -->
+								<div
+									class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
+									<div class="status-container">
+										<span
+											class="status-light bg-status-green"
+											data-cell="7"
+											data-status="ready"></span>
+										<span
+											class="status-light bg-status-yellow"
+											data-cell="7"
+											data-status="maintenance"></span>
+										<span
+											class="status-light bg-status-red"
+											data-cell="7"
+											data-status="aog"></span>
+									</div>
+									<div class="flex items-center">
+										<span class="text-xs text-white font-medium mr-2"
+											>Position:</span
+										>
+										<input
+											type="text"
+											placeholder="2E"
+											id="hangar-position-7"
+											class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
+									</div>
+									<input
+										type="text"
+										placeholder="Manual Input"
+										class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
+								</div>
+
+								<!-- Hauptbereich -->
+								<div class="p-4 flex-grow flex flex-col">
+									<input
+										type="text"
+										id="aircraft-7"
+										placeholder="Aircraft ID"
+										class="aircraft-id" />
+
+									<div class="info-grid mb-3">
+										<div class="info-label">Arrival:</div>
+										<div id="arrival-time-7" class="info-value">--:--</div>
+										<div class="info-label">Departure:</div>
+										<div id="departure-time-7" class="info-value">--:--</div>
+										<div class="info-label">Position:</div>
+										<div id="position-7" class="info-value">--</div>
+										<div class="info-label">Towing Status:</div>
+										<div id="tow-status-7" class="tow-status tow-initiated">
+											Initiated
+										</div>
+									</div>
+
+									<div class="notes-container">
+										<label
+											class="block text-sm text-industrial-dark font-medium mb-1"
+											>Notes:</label
+										>
+										<textarea
+											id="notes-7"
+											class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
+									</div>
+
+									<div class="mt-auto">
+										<select
+											id="status-7"
+											class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
+											<option value="ready">Ready</option>
+											<option value="maintenance">Maintenance</option>
+											<option value="aog">AOG</option>
+										</select>
+									</div>
+								</div>
+							</div>
+
+							<!-- Kachel 8 -->
+							<div
+								class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
+								<!-- Header-Bereich -->
+								<div
+									class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
+									<div class="status-container">
+										<span
+											class="status-light bg-status-green"
+											data-cell="8"
+											data-status="ready"></span>
+										<span
+											class="status-light bg-status-yellow"
+											data-cell="8"
+											data-status="maintenance"></span>
+										<span
+											class="status-light bg-status-red"
+											data-cell="8"
+											data-status="aog"></span>
+									</div>
+									<div class="flex items-center">
+										<span class="text-xs text-white font-medium mr-2"
+											>Position:</span
+										>
+										<input
+											type="text"
+											placeholder="2F"
+											id="hangar-position-8"
+											class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
+									</div>
+									<input
+										type="text"
+										placeholder="Manual Input"
+										class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
+								</div>
+
+								<!-- Hauptbereich -->
+								<div class="p-4 flex-grow flex flex-col">
+									<input
+										type="text"
+										id="aircraft-8"
+										placeholder="Aircraft ID"
+										class="aircraft-id" />
+
+									<div class="info-grid mb-3">
+										<div class="info-label">Arrival:</div>
+										<div id="arrival-time-8" class="info-value">--:--</div>
+										<div class="info-label">Departure:</div>
+										<div id="departure-time-8" class="info-value">--:--</div>
+										<div class="info-label">Position:</div>
+										<div id="position-8" class="info-value">--</div>
+										<div class="info-label">Towing Status:</div>
+										<div id="tow-status-8" class="tow-status tow-ongoing">
+											In Progress
+										</div>
+									</div>
+
+									<div class="notes-container">
+										<label
+											class="block text-sm text-industrial-dark font-medium mb-1"
+											>Notes:</label
+										>
+										<textarea
+											id="notes-8"
+											class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
+									</div>
+
+									<div class="mt-auto">
+										<select
+											id="status-8"
+											class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
+											<option value="ready">Ready</option>
+											<option value="maintenance">Maintenance</option>
+											<option value="aog">AOG</option>
+										</select>
+									</div>
+								</div>
+							</div>
+
+							<!-- Kachel 9 -->
+							<div
+								class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
+								<div
+									class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
+									<div class="status-container">
+										<span
+											class="status-light bg-status-green"
+											data-cell="9"
+											data-status="ready"></span>
+										<span
+											class="status-light bg-status-yellow"
+											data-cell="9"
+											data-status="maintenance"></span>
+										<span
+											class="status-light bg-status-red"
+											data-cell="9"
+											data-status="aog"></span>
+									</div>
+									<div class="flex items-center">
+										<span class="text-xs text-white font-medium mr-2"
+											>Position:</span
+										>
+										<input
+											type="text"
+											placeholder="3A"
+											id="hangar-position-9"
+											class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
+									</div>
+									<input
+										type="text"
+										placeholder="Manual Input"
+										class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
+								</div>
+
+								<div class="p-4 flex-grow flex flex-col">
+									<input
+										type="text"
+										id="aircraft-9"
+										placeholder="Aircraft ID"
+										class="aircraft-id" />
+
+									<div class="info-grid mb-3">
+										<div class="info-label">Arrival:</div>
+										<div id="arrival-time-9" class="info-value">--:--</div>
+										<div class="info-label">Departure:</div>
+										<div id="departure-time-9" class="info-value">--:--</div>
+										<div class="info-label">Position:</div>
+										<div id="position-9" class="info-value">--</div>
+										<div class="info-label">Towing Status:</div>
+										<div id="tow-status-9" class="tow-status tow-initiated">
+											Initiated
+										</div>
+									</div>
+
+									<div class="notes-container">
+										<label
+											class="block text-sm text-industrial-dark font-medium mb-1"
+											>Notes:</label
+										>
+										<textarea
+											id="notes-9"
+											class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
+									</div>
+
+									<div class="mt-auto">
+										<select
+											id="status-9"
+											class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
+											<option value="ready">Ready</option>
+											<option value="maintenance">Maintenance</option>
+											<option value="aog">AOG</option>
+										</select>
+									</div>
+								</div>
+							</div>
+
+							<!-- Kachel 10 -->
+							<div
+								class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
+								<div
+									class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
+									<div class="status-container">
+										<span
+											class="status-light bg-status-green"
+											data-cell="10"
+											data-status="ready"></span>
+										<span
+											class="status-light bg-status-yellow"
+											data-cell="10"
+											data-status="maintenance"></span>
+										<span
+											class="status-light bg-status-red"
+											data-cell="10"
+											data-status="aog"></span>
+									</div>
+									<div class="flex items-center">
+										<span class="text-xs text-white font-medium mr-2"
+											>Position:</span
+										>
+										<input
+											type="text"
+											placeholder="3B"
+											id="hangar-position-10"
+											class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
+									</div>
+									<input
+										type="text"
+										placeholder="Manual Input"
+										class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
+								</div>
+
+								<div class="p-4 flex-grow flex flex-col">
+									<input
+										type="text"
+										id="aircraft-10"
+										placeholder="Aircraft ID"
+										class="aircraft-id" />
+
+									<div class="info-grid mb-3">
+										<div class="info-label">Arrival:</div>
+										<div id="arrival-time-10" class="info-value">--:--</div>
+										<div class="info-label">Departure:</div>
+										<div id="departure-time-10" class="info-value">--:--</div>
+										<div class="info-label">Position:</div>
+										<div id="position-10" class="info-value">--</div>
+										<div class="info-label">Towing Status:</div>
+										<div id="tow-status-10" class="tow-status tow-ongoing">
+											In Progress
+										</div>
+									</div>
+
+									<div class="notes-container">
+										<label
+											class="block text-sm text-industrial-dark font-medium mb-1"
+											>Notes:</label
+										>
+										<textarea
+											id="notes-10"
+											class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
+									</div>
+
+									<div class="mt-auto">
+										<select
+											id="status-10"
+											class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
+											<option value="ready">Ready</option>
+											<option value="maintenance">Maintenance</option>
+											<option value="aog">AOG</option>
+										</select>
+									</div>
+								</div>
+							</div>
+
+							<!-- Kachel 11 -->
+							<div
+								class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
+								<div
+									class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
+									<div class="status-container">
+										<span
+											class="status-light bg-status-green"
+											data-cell="11"
+											data-status="ready"></span>
+										<span
+											class="status-light bg-status-yellow"
+											data-cell="11"
+											data-status="maintenance"></span>
+										<span
+											class="status-light bg-status-red"
 										data-cell="11"
-										data-status="ready"></span>
-									<span
-										class="status-light bg-status-yellow"
-										data-cell="11"
-										data-status="maintenance"></span>
-									<span
-										class="status-light bg-status-red"
-										data-cell="11"
-										data-status="aog"></span>
-								</div>
-								<div class="flex items-center">
-									<span class="text-xs text-white font-medium mr-2"
-										>Position:</span
-									>
+											data-status="aog"></span>
+									</div>
+									<div class="flex items-center">
+										<span class="text-xs text-white font-medium mr-2"
+											>Position:</span
+										>
+										<input
+											type="text"
+											placeholder="3C"
+											id="hangar-position-11"
+											class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
+									</div>
 									<input
 										type="text"
-										placeholder="3C"
-										id="hangar-position-11"
-										class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
-								</div>
-								<input
-									type="text"
-									placeholder="Manual Input"
-									class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
+										placeholder="Manual Input"
+										class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
 							</div>
 
 							<div class="p-4 flex-grow flex flex-col">
@@ -1752,10 +1447,12 @@
 					<!-- Horizontale Trennlinie mit gleichmäßigem Abstand -->
 					<div class="section-divider"></div>
 
-					<!-- Abschnitt 2 Label mit konsistentem Abstand -->
-					<div class="section-label">Secondary Section</div>
-					<div id="secondaryHangarGrid" class="grid grid-cols-4 gap-4">
-						<!-- Hier werden dynamisch weitere Kacheln eingefügt -->
+					<!-- Abschnitt 2 Container -->
+					<div class="section-container">
+						<div class="section-label">Secondary Section</div>
+						<div id="secondaryHangarGrid" class="grid grid-cols-4 gap-4">
+							<!-- Hier werden dynamisch weitere Kacheln eingefügt -->
+						</div>
 					</div>
 				</div>
 			</div>
@@ -1973,7 +1670,7 @@
 					accept=".json"
 					class="hidden" />
 			</div>
-		</div>
+		</div> <!-- Schließender div für "flex h-screen" -->
 
 		<!-- Modales Fenster für Laden -->
 		<div
