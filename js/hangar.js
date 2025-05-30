@@ -131,14 +131,44 @@ document.addEventListener("DOMContentLoaded", () => {
 				}
 			})();
 
-			// Dateidialog-Modus immer aktivieren ohne Wahlmöglichkeit
-			localStorage.setItem("useFileSystemAccess", "true");
+			// Dateidialog-Modus immer aktivieren und prüfen ob unterstützt wird
+			const isFileSystemAPISupported = "showSaveFilePicker" in window;
+			console.log(
+				`File System Access API wird ${
+					isFileSystemAPISupported ? "" : "NICHT "
+				}unterstützt`
+			);
 
-			// Anfangszustand des Menüs korrekt setzen
-			document.body.classList.remove("sidebar-collapsed");
-			const sidebarMenu = document.getElementById("sidebarMenu");
-			if (sidebarMenu) {
-				sidebarMenu.classList.remove("collapsed");
+			// Den lokalen Speicher aktualisieren mit dem Support-Status
+			localStorage.setItem(
+				"useFileSystemAccess",
+				isFileSystemAPISupported.toString()
+			);
+
+			// Zeige eine Benachrichtigung über den API-Support-Status
+			if (!isFileSystemAPISupported) {
+				window.showNotification(
+					"Ihr Browser unterstützt nicht die File System Access API. Es wird ein Standard-Download verwendet.",
+					"warning",
+					5000
+				);
+			}
+
+			// Letzter Zustand des Menüs wiederherstellen oder standardmäßig einblenden
+			const sidebarCollapsed =
+				localStorage.getItem("sidebarCollapsed") === "true";
+			if (sidebarCollapsed) {
+				document.body.classList.add("sidebar-collapsed");
+				const menuToggle = document.getElementById("menuToggle");
+				if (menuToggle && menuToggle.querySelector("span")) {
+					menuToggle.querySelector("span").textContent = "«";
+				}
+			} else {
+				document.body.classList.remove("sidebar-collapsed");
+				const menuToggle = document.getElementById("menuToggle");
+				if (menuToggle && menuToggle.querySelector("span")) {
+					menuToggle.querySelector("span").textContent = "»";
+				}
 			}
 
 			// Initial die Skalierung anpassen

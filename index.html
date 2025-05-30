@@ -276,8 +276,8 @@
 				margin: 12px 0;
 				position: relative;
 				transform-origin: center;
-				/* Verhindert, dass der Divider vom Skalierungsfaktor beeinflusst wird */
-				transform: scaleY(var(--inv-scale));
+				/* Angepasste Transformation für besseres Skalierungsverhalten */
+				transform: scaleY(1);
 			}
 
 			/* Anpassung für das Label im Section Divider */
@@ -286,12 +286,10 @@
 				position: absolute;
 				top: -10px;
 				left: 50%;
-				transform: translateX(-50%) scaleY(var(--inv-scale));
+				transform: translateX(-50%);
 				background-color: #bfc0c0;
 				padding: 0 10px;
-				font-size: calc(
-					12px * var(--inv-scale)
-				); /* Skaliert die Schriftgröße richtig */
+				font-size: 12px;
 				color: #2d3142;
 				white-space: nowrap;
 			}
@@ -457,6 +455,41 @@
 			.mode-toggle {
 				margin-left: auto;
 				margin-right: 0;
+			}
+
+			/* Sidebar Collapse-Verhalten */
+			.sidebar-container {
+				width: 300px;
+				transition: transform 0.3s ease, width 0.3s ease;
+				transform: translateX(0);
+				overflow-y: auto;
+				max-height: 100vh;
+			}
+
+			/* Eingeklappte Sidebar */
+			.sidebar-collapsed .sidebar-container {
+				transform: translateX(100%);
+				width: 0;
+			}
+
+			/* Content-Anpassung bei eingeklappter Sidebar */
+			.content-container {
+				transition: width 0.3s ease, max-width 0.3s ease;
+			}
+
+			.sidebar-collapsed .content-container {
+				width: 100% !important;
+				max-width: 100% !important;
+			}
+
+			/* Menu Toggle Button Rotation */
+			.menu-toggle span {
+				transition: transform 0.3s ease;
+				display: block;
+			}
+
+			.sidebar-collapsed .menu-toggle span {
+				transform: rotate(180deg);
 			}
 		</style>
 	</head>
@@ -1725,8 +1758,7 @@
 		<!-- Ausgelagerte JavaScript-Dateien -->
 		<script src="js/helpers.js"></script>
 		<script src="js/folderManager.js"></script>
-		<script src="js/databaseManager.js"></script>
-		<script src="js/projectManager.js"></script>
+		<script src="js/fileManager.js"></script>
 		<script src="js/hangar-ui.js"></script>
 		<script src="js/hangar-data.js"></script>
 		<script src="js/hangar-events.js"></script>

@@ -132,6 +132,165 @@ function importHangarPlanFromJson(event) {
 }
 
 /**
+ * Importiert einen Hangarplan aus einer JSON-Datei mit FileSystem API
+ */
+async function importHangarPlanWithFilePicker() {
+	try {
+		// Prüfen ob Browser File System API unterstützt und verwenden
+		const isFileSystemAPISupported = "showOpenFilePicker" in window;
+		const useFileSystem =
+			localStorage.getItem("useFileSystemAccess") === "true";
+
+		console.log(
+			`Import mit FilePicker, API unterstützt: ${isFileSystemAPISupported}, verwenden: ${useFileSystem}`
+		);
+
+		let jsonData = null;
+
+		if (useFileSystem && isFileSystemAPISupported) {
+			try {
+				// FilePicker Optionen konfigurieren
+				const options = {
+					types: [
+						{
+							description: "JSON Files",
+							accept: { "application/json": [".json"] },
+						},
+					],
+					multiple: false,
+				};
+
+				// Dialog öffnen
+				const [fileHandle] = await window.showOpenFilePicker(options);
+				const file = await fileHandle.getFile();
+
+				// Datei lesen
+				jsonData = await file.text();
+			} catch (error) {
+				if (error.name === "AbortError") {
+					console.log("Benutzer hat den Dialog abgebrochen");
+					return;
+				}
+
+				// Fallback bei Fehler
+				console.error("Fehler beim Öffnen mit File System API:", error);
+				window.showNotification(
+					"Dateiauswahl konnte nicht geöffnet werden, nutze Standard-Dialog",
+					"warning"
+				);
+
+				// Fallback zum regulären File Input
+				return importHangarPlanFallback();
+			}
+		} else {
+			// Fallback wenn API nicht unterstützt wird
+			return importHangarPlanFallback();
+		}
+
+		// Verarbeite den geladenen Dateiinhalt
+		if (jsonData) {
+			const data = JSON.parse(jsonData);
+
+			// Anwenden auf die Anwendung
+			applyLoadedHangarPlan(data);
+		}
+	} catch (error) {
+		console.error("Fehler beim Importieren des Hangarplans:", error);
+		window.showNotification(`Import-Fehler: ${error.message}`, "error");
+	}
+}
+
+/**
+ * Fallback für den Import mit regulärem File Input
+ * @private
+ */
+function importHangarPlanFallback() {
+	return new Promise((resolve, reject) => {
+		// Dateiauswahldialog erstellen
+		const fileInput = document.createElement("input");
+		fileInput.type = "file";
+		fileInput.accept = ".json";
+		fileInput.style.display = "none";
+		document.body.appendChild(fileInput);
+
+		fileInput.onchange = (event) => {
+			try {
+				const file = event.target.files[0];
+				if (!file) {
+					resolve();
+					return;
+				}
+
+				const reader = new FileReader();
+				reader.onload = (e) => {
+					try {
+						const data = JSON.parse(e.target.result);
+						applyLoadedHangarPlan(data);
+						resolve(data);
+					} catch (error) {
+						console.error("Fehler beim Verarbeiten der Datei:", error);
+						window.showNotification(`Import-Fehler: ${error.message}`, "error");
+						reject(error);
+					}
+				};
+
+				reader.readAsText(file);
+			} catch (error) {
+				reject(error);
+			} finally {
+				document.body.removeChild(fileInput);
+			}
+		};
+
+		fileInput.click();
+	});
+}
+
+/**
+ * Wendet den importierten Hangarplan auf die Anwendung an
+ * @private
+ */
+function applyLoadedHangarPlan(data) {
+	// Projektname setzen
+	if (data.metadata && data.metadata.projectName) {
+		document.getElementById("projectName").value = data.metadata.projectName;
+
+		// Auch die versteckte ID setzen, falls vorhanden
+		if (data.id && document.getElementById("projectId")) {
+			document.getElementById("projectId").value = data.id;
+		}
+	}
+
+	// Einstellungen übernehmen und anwenden
+	if (data.settings) {
+		if (window.hangarUI.checkElement("tilesCount")) {
+			document.getElementById("tilesCount").value =
+				data.settings.tilesCount || 8;
+		}
+		if (window.hangarUI.checkElement("secondaryTilesCount")) {
+			document.getElementById("secondaryTilesCount").value =
+				data.settings.secondaryTilesCount || 0;
+		}
+		if (window.hangarUI.checkElement("layoutType")) {
+			document.getElementById("layoutType").value = data.settings.layout || 4;
+		}
+
+		// Einstellungen anwenden
+		window.hangarUI.uiSettings.tilesCount = data.settings.tilesCount || 8;
+		window.hangarUI.uiSettings.secondaryTilesCount =
+			data.settings.secondaryTilesCount || 0;
+		window.hangarUI.uiSettings.layout = data.settings.layout || 4;
+		window.hangarUI.uiSettings.apply();
+	}
+
+	// Kachelndaten anwenden
+	applyLoadedTileData(data);
+
+	window.showNotification("Hangarplan erfolgreich geladen", "success");
+	return data;
+}
+
+/**
  * Sammelt Daten von allen Kacheln in einem Container
  * @param {string} containerSelector - CSS-Selektor für den Container
  * @returns {Array} - Array mit Kacheldaten
@@ -407,48 +566,118 @@ function resetAllFields() {
 }
 
 /**
- * Speichern in die Datenbank
- * @returns {Promise<string|null>} ID des gespeicherten Projekts oder null bei Fehler
+ * Speichert das aktuelle Projekt mit dem FileManager
+ * @returns {Promise<boolean>} Erfolg des Speichervorgangs
  */
-async function saveProjectToDatabase() {
+async function saveProjectToFile() {
 	try {
+		console.log("Beginne Speichervorgang...");
+
+		// Sammle alle Daten
 		const projectData = collectAllHangarData();
+		if (!projectData) {
+			throw new Error("Konnte keine Daten sammeln");
+		}
 
-		// In Datenbank speichern
-		const dbManager = window.databaseManager;
-		const projectId = await dbManager.saveProject(projectData);
+		console.log("Daten gesammelt:", projectData.id);
 
-		// Erfolgsmeldung anzeigen
-		showNotification(
-			"Projekt erfolgreich in der Datenbank gespeichert",
-			"success"
-		);
+		// FileManager verwenden
+		const fileManager = window.fileManager;
+		if (!fileManager) {
+			throw new Error("FileManager nicht verfügbar");
+		}
 
-		return projectId;
+		// Projekt speichern
+		const success = await fileManager.saveProject(projectData);
+		if (success) {
+			console.log("Projekt erfolgreich gespeichert");
+		}
+
+		return success;
 	} catch (error) {
-		console.error("Fehler beim Speichern in der Datenbank:", error);
+		console.error("Fehler beim Speichern:", error);
 		showNotification(`Speichern fehlgeschlagen: ${error.message}`, "error");
-		return null;
+		return false;
 	}
 }
 
 /**
- * Generiert einen Zeitstempel für Dateinamen
- * @returns {string} Formatierter Zeitstempel
+ * Lädt ein Projekt aus einer Datei
+ * @returns {Promise<boolean>} Erfolg des Ladevorgangs
  */
-function generateTimestamp() {
-	const now = new Date();
-	const year = now.getFullYear();
-	const month = String(now.getMonth() + 1).padStart(2, "0");
-	const day = String(now.getDate()).padStart(2, "0");
-	const hours = String(now.getHours()).padStart(2, "0");
-	const minutes = String(now.getMinutes()).padStart(2, "0");
-	const seconds = String(now.getSeconds()).padStart(2, "0");
+async function loadProjectFromFile() {
+	try {
+		// FileManager verwenden
+		const fileManager = window.fileManager;
+		if (!fileManager) {
+			throw new Error("FileManager nicht verfügbar");
+		}
 
-	return `HangarPlan_${year}-${month}-${day}_${hours}-${minutes}-${seconds}`;
+		// Projekt laden
+		const projectData = await fileManager.loadProject();
+		if (!projectData) {
+			return false;
+		}
+
+		// Projekt anwenden
+		return await applyProjectData(projectData);
+	} catch (error) {
+		console.error("Fehler beim Laden:", error);
+		showNotification(`Laden fehlgeschlagen: ${error.message}`, "error");
+		return false;
+	}
 }
 
-// Exportiere Funktionen als globales Objekt
+/**
+ * Wendet Projektdaten auf die Benutzeroberfläche an
+ * @param {Object} projectData - Die anzuwendenden Projektdaten
+ * @returns {Promise<boolean>} Erfolg des Anwendens
+ */
+async function applyProjectData(projectData) {
+	try {
+		// Projektname setzen
+		if (projectData.metadata && projectData.metadata.projectName) {
+			document.getElementById("projectName").value =
+				projectData.metadata.projectName;
+		}
+
+		// Einstellungen übernehmen
+		if (projectData.settings) {
+			if (window.hangarUI.checkElement("tilesCount")) {
+				document.getElementById("tilesCount").value =
+					projectData.settings.tilesCount || 8;
+			}
+			if (window.hangarUI.checkElement("secondaryTilesCount")) {
+				document.getElementById("secondaryTilesCount").value =
+					projectData.settings.secondaryTilesCount || 0;
+			}
+			if (window.hangarUI.checkElement("layoutType")) {
+				document.getElementById("layoutType").value =
+					projectData.settings.layout || 4;
+			}
+
+			// Einstellungen anwenden
+			window.hangarUI.uiSettings.tilesCount =
+				projectData.settings.tilesCount || 8;
+			window.hangarUI.uiSettings.secondaryTilesCount =
+				projectData.settings.secondaryTilesCount || 0;
+			window.hangarUI.uiSettings.layout = projectData.settings.layout || 4;
+			window.hangarUI.uiSettings.apply();
+		}
+
+		// Kacheldaten anwenden
+		applyLoadedTileData(projectData);
+
+		showNotification("Projekt erfolgreich geladen", "success");
+		return true;
+	} catch (error) {
+		console.error("Fehler beim Anwenden des Projekts:", error);
+		showNotification(`Fehler beim Anwenden: ${error.message}`, "error");
+		return false;
+	}
+}
+
+// Exportiere aktualisierte Funktionen
 window.hangarData = {
 	hangarData,
 	collectAllHangarData,
@@ -457,8 +686,9 @@ window.hangarData = {
 	applyLoadedTileData,
 	applyTileData,
 	resetAllFields,
-	saveProjectToDatabase,
-	generateTimestamp,
+	saveProjectToFile,
+	loadProjectFromFile,
+	applyProjectData,
 };
 
 /**

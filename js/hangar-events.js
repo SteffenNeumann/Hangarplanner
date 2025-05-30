@@ -59,7 +59,7 @@ function setupUIEventListeners() {
 		const saveBtn = document.getElementById("saveBtn");
 		if (saveBtn) {
 			saveBtn.addEventListener("click", function () {
-				window.hangarData.saveProjectToDatabase();
+				window.hangarData.saveProjectToFile();
 			});
 		}
 
@@ -187,31 +187,60 @@ function toggleEditMode() {
  * Blendet das Seitenmenü ein/aus
  */
 function toggleSidebar() {
+	// Toggle der Sidebar-Collapsed-Klasse am Body-Element
 	document.body.classList.toggle("sidebar-collapsed");
+
+	// Referenz zum Sidebar-Menu
 	const sidebarMenu = document.getElementById("sidebarMenu");
 
-	if (sidebarMenu) {
-		sidebarMenu.classList.toggle("collapsed");
+	// Visuelles Feedback zum Toggle-Button
+	const menuToggle = document.getElementById("menuToggle");
+	if (menuToggle) {
+		const toggleSpan = menuToggle.querySelector("span");
+		if (toggleSpan) {
+			// Text-Inhalt des Toggle-Buttons je nach Zustand ändern
+			toggleSpan.textContent = document.body.classList.contains(
+				"sidebar-collapsed"
+			)
+				? "«"
+				: "»";
+		}
 	}
 
-	// Skalierung neu berechnen nach Menü-Toggle
+	// Skalierung neu berechnen nach Menü-Toggle mit ausreichender Verzögerung
 	setTimeout(window.hangarUI.adjustScaling, 300);
+
+	// Speichern des aktuellen Sidebar-Zustands im localStorage
+	localStorage.setItem(
+		"sidebarCollapsed",
+		document.body.classList.contains("sidebar-collapsed")
+	);
+
+	console.log(
+		"Sidebar Toggle: " +
+			(document.body.classList.contains("sidebar-collapsed")
+				? "collapsed"
+				: "expanded")
+	);
 }
 
 /**
  * Zeigt den Dialog zum Laden eines Projekts
  */
 function showLoadDialog() {
-	// Wenn ein Projektmanager existiert, diesen verwenden
-	if (window.projectManager) {
-		window.projectManager.showProjectManager();
-	} else {
-		// Fallback zum klassischen Load-Dialog
-		const loadModal = document.getElementById("loadModal");
-		if (loadModal) {
-			loadModal.classList.remove("hidden");
+	console.log("Lade-Dialog öffnen");
+
+	// Direktes Laden mit dem FileManager
+	window.hangarData.loadProjectFromFile().catch((error) => {
+		// Nur Fehler loggen, wenn es kein AbortError ist
+		if (error.name !== "AbortError") {
+			console.error("Fehler beim Laden:", error);
+			window.showNotification(
+				`Laden fehlgeschlagen: ${error.message}`,
+				"error"
+			);
 		}
-	}
+	});
 }
 
 /**

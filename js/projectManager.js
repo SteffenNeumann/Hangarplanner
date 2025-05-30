@@ -316,21 +316,37 @@ class ProjectManager {
 	 */
 	async exportProject(projectId) {
 		try {
+			console.log(`Exportiere Projekt ${projectId}`);
+		
 			// Prüfen, ob File System Access verwendet werden soll
-			const useFileSystem =
-				localStorage.getItem("useFileSystemAccess") === "true";
+			const useFileSystem = document.getElementById("useFileSystemToggle")?.checked || 
+			                      localStorage.getItem("useFileSystemAccess") === "true";
+		
+			console.log(`Exportiere mit File System API: ${useFileSystem}`);
 
-			await this.dbManager.exportProject(projectId, useFileSystem);
-
-			if (!useFileSystem) {
-				window.showNotification("Projekt wurde exportiert", "success");
+			// Direkte Anzeige für Benutzer
+			window.showNotification("Projekt wird exportiert...", "info", 2000);
+		
+			// Export durchführen
+			const success = await this.dbManager.exportProject(projectId, useFileSystem);
+		
+			if (success) {
+				console.log("Export erfolgreich");
+			} else {
+				console.warn("Export möglicherweise nicht vollständig erfolgreich");
 			}
+		
+			// Projekte neu laden
+			await this.refreshProjects();
+		
+			return success;
 		} catch (error) {
 			console.error("Fehler beim Exportieren des Projekts:", error);
 			window.showNotification(
 				`Export fehlgeschlagen: ${error.message}`,
 				"error"
 			);
+			return false;
 		}
 	}
 
@@ -361,200 +377,18 @@ class ProjectManager {
 	}
 
 	/**
-	 * Importiert ein Projekt aus einer JSON-Datei
+	 * Importiert ein Projekt aus einer JSON-Datei mit Filepicker
 	 */
 	importProject() {
-		// Dateiauswahldialog erstellen und öffnen
-		const fileInput = document.createElement("input");
-		fileInput.type = "file";
-		fileInput.accept = ".json";
-		fileInput.style.display = "none";
-		document.body.appendChild(fileInput);
-
-		fileInput.onchange = async (event) => {
-			try {
-				const file = event.target.files[0];
-				if (!file) return;
-
-				const reader = new FileReader();
-				reader.onload = async (e) => {
-					try {
-						const projectId = await this.dbManager.importProject(
-							e.target.result
-						);
-						window.showNotification(
-							"Projekt erfolgreich importiert",
-							"success"
-						);
-						this.refreshProjects();
-					} catch (error) {
-						console.error("Fehler beim Importieren des Projekts:", error);
-						window.showNotification(
-							`Import fehlgeschlagen: ${error.message}`,
-							"error"
-						);
-					}
-				};
-				reader.readAsText(file);
-			} finally {
-				// Aufräumen
-				document.body.removeChild(fileInput);
-			}
-		};
-
-		fileInput.click();
-	}
-
-	/**
-	 * Erstellt ein neues Projekt
-	 */
-	createNewProject() {
-		// Dialog zum Eingeben des Projektnamens anzeigen
-		const projectName = prompt(
-			"Bitte geben Sie einen Namen für das neue Projekt ein:"
-		);
-		if (!projectName) return; // Abgebrochen
-
-		// Neues Projekt erstellen (mit der existierenden createNewProject-Funktion)
-		if (typeof window.createNewProjectInDatabase === "function") {
-			window.createNewProjectInDatabase(projectName);
-			this.closeManager();
-		} else {
-			console.error("createNewProjectInDatabase-Funktion nicht gefunden");
-			window.showNotification(
-				"Fehler: Funktion zum Erstellen neuer Projekte nicht gefunden",
-				"error"
-			);
-		}
-	}
-
-	/**
-	 * Exportiert alle Projekte als gepackte JSON-Datei (Backup)
-	 */
-	async exportAllProjects() {
 		try {
-			const projects = await this.dbManager.listProjects();
-
-			if (projects.length === 0) {
-				window.showNotification(
-					"Keine Projekte zum Exportieren vorhanden",
-					"info"
-				);
-				return;
-			}
-
-			const backup = {
-				metadata: {
-					exportDate: new Date().toISOString(),
-					version: "1.0",
-					projectCount: projects.length,
-				},
-				projects: projects,
-			};
-
-			const jsonStr = JSON.stringify(backup, null, 2);
-			const filename = `HangarPlanner_Backup_${new Date()
-				.toISOString()
-				.slice(0, 10)}.json`;
-
-			// Datei zum Download anbieten
-			window.downloadFile(jsonStr, filename);
-
-			window.showNotification(
-				`Backup mit ${projects.length} Projekten erstellt`,
-				"success"
-			);
-		} catch (error) {
-			console.error("Fehler beim Erstellen des Backups:", error);
-			window.showNotification(
-				`Backup fehlgeschlagen: ${error.message}`,
-				"error"
-			);
-		}
-	}
-
-	/**
-	 * Importiert ein Backup aus einer Datei
-	 */
-	importBackup() {
-		// Dateiauswahldialog erstellen und öffnen
-		const fileInput = document.createElement("input");
-		fileInput.type = "file";
-		fileInput.accept = ".json";
-		fileInput.style.display = "none";
-		document.body.appendChild(fileInput);
-
-		fileInput.onchange = async (event) => {
-			try {
-				const file = event.target.files[0];
-				if (!file) return;
-
-				const reader = new FileReader();
-				reader.onload = async (e) => {
-					try {
-						await this.importProjectBackup(e.target.result);
-					} catch (error) {
-						console.error("Fehler beim Importieren des Backups:", error);
-						window.showNotification(
-							`Backup-Import fehlgeschlagen: ${error.message}`,
-							"error"
-						);
-					}
-				};
-				reader.readAsText(file);
-			} finally {
-				// Aufräumen
-				document.body.removeChild(fileInput);
-			}
-		};
-
-		fileInput.click();
-	}
-
-	// Füge eine Methode zum Importieren des Backups hinzu
-	async importProjectBackup(backupData) {
-		try {
-			// Wenn String eingegeben wurde, parsen
-			const data =
-				typeof backupData === "string" ? JSON.parse(backupData) : backupData;
-
-			if (!data.projects || !Array.isArray(data.projects)) {
-				throw new Error("Ungültiges Backup-Format");
-			}
-
-			// Zähler für erfolgreiche Importe
-			let imported = 0;
-
-			// Projekte einzeln importieren
-			for (const project of data.projects) {
-				try {
-					await this.dbManager.saveProject(project);
-					imported++;
-				} catch (err) {
-					console.error(
-						`Fehler beim Importieren von Projekt ${project.id}:`,
-						err
-					);
-				}
-			}
-
-			window.showNotification(
-				`${imported} von ${data.projects.length} Projekten importiert`,
-				"success"
-			);
-			this.refreshProjects();
-
-			return imported;
-		} catch (error) {
-			console.error("Fehler beim Importieren des Backups:", error);
-			window.showNotification(
-				`Import fehlgeschlagen: ${error.message}`,
-				"error"
-			);
-			return 0;
-		}
-	}
-}
-
-// Erstelle eine globale Instanz
-window.projectManager = new ProjectManager(window.databaseManager);
+			// Prüfen, ob File System Access API verwendet werden soll
+			const useFileSystem = document.getElementById("useFileSystemToggle")?.checked || 
+								  localStorage.getItem("useFileSystemAccess") === "true";
+			
+			console.log(`Projekt importieren mit File System API: ${useFileSystem}`);
+			
+			// Importiere mit verbessertem Filepicker
+			if (this.dbManager && this.dbManager.importProjectWithFilePicker) {
+				this.dbManager.importProjectWithFilePicker(useFileSystem)
+					.then(projectId => {
+						if

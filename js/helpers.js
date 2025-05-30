@@ -94,7 +94,34 @@ function downloadFile(content, filename) {
 	document.body.removeChild(downloadLink);
 }
 
+/**
+ * Überprüft die Browser-Unterstützung für verschiedene APIs
+ * @returns {Object} Ein Objekt mit Informationen über unterstützte Features
+ */
+function checkBrowserSupport() {
+	const support = {
+		fileSystem: "showSaveFilePicker" in window,
+		indexedDB: "indexedDB" in window,
+		localStorage: "localStorage" in window,
+		permissions: "permissions" in navigator,
+	};
+
+	console.log("Browser API Support:", support);
+
+	// Als Meldung anzeigen, wenn Debug aktiviert ist
+	if (localStorage.getItem("debugMode") === "true") {
+		let message = "Browser-Unterstützung:\n";
+		for (const [key, value] of Object.entries(support)) {
+			message += `- ${key}: ${value ? "✓" : "✗"}\n`;
+		}
+		showNotification(message, "info", 5000);
+	}
+
+	return support;
+}
+
 // Exportiere die Funktionen als globale Variablen
 window.showNotification = showNotification;
 window.generateTimestamp = generateTimestamp;
 window.downloadFile = downloadFile;
+window.checkBrowserSupport = checkBrowserSupport;

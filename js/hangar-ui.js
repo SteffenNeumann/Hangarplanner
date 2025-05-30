@@ -9,43 +9,10 @@ const uiSettings = {
 	secondaryTilesCount: 0,
 	layout: 4,
 
-	// Lädt Einstellungen aus der Datenbank und fallback auf localStorage
+	// Lädt Einstellungen aus dem LocalStorage
 	load: async function () {
 		try {
-			// Zuerst versuchen, aus der IndexedDB zu laden
-			const dbManager = window.databaseManager;
-			if (dbManager) {
-				try {
-					const dbSettings = await dbManager.loadSettings("ui");
-					if (dbSettings && dbSettings.data) {
-						// Einstellungen aus der Datenbank laden
-						this.tilesCount = dbSettings.data.tilesCount || 8;
-						this.secondaryTilesCount = dbSettings.data.secondaryTilesCount || 0;
-						this.layout = dbSettings.data.layout || 4;
-
-						// UI-Elemente aktualisieren
-						this.updateUIControls();
-
-						// Kachelwerte anwenden, falls vorhanden
-						if (
-							dbSettings.data.tileValues &&
-							Array.isArray(dbSettings.data.tileValues)
-						) {
-							this.applyTileValues(dbSettings.data.tileValues);
-						}
-
-						console.log("Einstellungen aus IndexedDB geladen");
-						return true;
-					}
-				} catch (dbError) {
-					console.warn(
-						"Konnte Einstellungen nicht aus IndexedDB laden, versuche localStorage",
-						dbError
-					);
-				}
-			}
-
-			// Fallback: Aus localStorage laden
+			// Aus localStorage laden
 			const savedSettingsJSON = localStorage.getItem("hangarPlannerSettings");
 			if (savedSettingsJSON) {
 				const settings = JSON.parse(savedSettingsJSON);
@@ -61,9 +28,6 @@ const uiSettings = {
 					this.applyTileValues(settings.tileValues);
 				}
 
-				// Optional: Migrieren zu IndexedDB für zukünftige Verwendung
-				this.save(false);
-
 				return true;
 			}
 		} catch (error) {
@@ -72,7 +36,7 @@ const uiSettings = {
 		return false;
 	},
 
-	// Speichert Einstellungen in localStorage und IndexedDB
+	// Speichert Einstellungen in localStorage und optional als Datei
 	save: async function (exportToFile = false) {
 		try {
 			// Aktuelle Werte aus den Eingabefeldern holen
@@ -107,100 +71,40 @@ const uiSettings = {
 				lastSaved: new Date().toISOString(),
 			};
 
-			// Im LocalStorage speichern als Fallback
+			// Im LocalStorage speichern
 			localStorage.setItem(
 				"hangarPlannerSettings",
 				JSON.stringify(settingsData)
 			);
 
-			// In IndexedDB speichern
-			const dbManager = window.databaseManager;
-			if (dbManager) {
-				try {
-					await dbManager.saveSettings({
-						id: "ui", // Konstante ID für UI-Einstellungen
-						data: settingsData,
-					});
-					console.log("Einstellungen in IndexedDB gespeichert");
-				} catch (dbError) {
-					console.warn(
-						"Konnte Einstellungen nicht in IndexedDB speichern:",
-						dbError
-					);
-				}
-			}
-
 			// Optional als Datei exportieren wenn gewünscht
-			if (exportToFile) {
-				const filePaths = {
-					settingsDir: "settings",
-				};
+			if (exportToFile && window.fileManager) {
+				const fileName = "HangarPlan_Settings";
 
-				const projectName = checkElement("projectName")
-					? document.getElementById("projectName").value
-					: "HangarPlan";
-				const fileName = `${projectName}_Settings`;
+				try {
+					await window.fileManager.saveProject({
+						metadata: {
+							projectName: "HangarPlan_Settings",
+							exportDate: new Date().toISOString(),
+						},
+						settings: settingsData,
+					});
 
-				// Prüfe, ob die moderne File System Access API unterstützt wird
-				if (window.showSaveFilePicker) {
-					// Aktualisierter Pfad zum Speichern der Einstellungen
-					const startInDirectory = filePaths.settingsDir;
-
-					// Konfiguriere die Optionen für den File Picker
-					const options = {
-						suggestedName: `${fileName}.json`,
-						types: [
-							{
-								description: "JSON Settings Files",
-								accept: { "application/json": [".json"] },
-							},
-						],
-						// Aktualisierter Startverzeichnis-Pfad für Einstellungen
-						startIn: startInDirectory,
-					};
-
-					showSaveFilePicker(options)
-						.then(async (fileHandle) => {
-							const writable = await fileHandle.createWritable();
-							await writable.write(JSON.stringify(settingsData, null, 2));
-							await writable.close();
-							showNotification(
-								"Einstellungen erfolgreich gespeichert!",
-								"success"
-							);
-						})
-						.catch((error) => {
-							if (error.name !== "AbortError") {
-								console.error(
-									"Fehler beim Speichern mit File System API:",
-									error
-								);
-								// Fallback zum regulären Download
-								downloadFile(settingsData, `${fileName}.json`);
-								showNotification(
-									`Einstellungen wurden heruntergeladen. Bitte in ${filePaths.settingsDir}/ speichern.`,
-									"info",
-									5000
-								);
-							}
-						});
-				} else {
-					// Fallback für Browser ohne File System Access API
-					downloadFile(settingsData, `${fileName}.json`);
-					showNotification(
-						`Einstellungen wurden heruntergeladen. Bitte in ${filePaths.settingsDir}/ speichern.`,
-						"info",
-						5000
-					);
+					showNotification("Einstellungen erfolgreich gespeichert!", "success");
+				} catch (error) {
+					if (error.name !== "AbortError") {
+						console.error("Fehler beim Speichern der Einstellungen:", error);
+						showNotification(
+							`Fehler beim Speichern: ${error.message}`,
+							"error"
+						);
+					}
 				}
 			}
 			return true;
 		} catch (error) {
 			console.error("Fehler beim Speichern der Einstellungen:", error);
-			showNotification(
-				`Fehler beim Speichern der Einstellungen: ${error.message}`,
-				"error"
-			);
+			showNotification(`Fehler beim Speichern: ${error.message}`, "error");
 			return false;
 		}
 	},
@@ -546,7 +450,7 @@ function adjustScaling() {
 		const isSidebarCollapsed =
 			document.body.classList.contains("sidebar-collapsed");
 		const windowWidth = window.innerWidth;
-		const sidebarWidth = isSidebarCollapsed ? 0 : 290;
+		const sidebarWidth = isSidebarCollapsed ? 0 : 300; // Angepasst auf die tatsächliche Breite
 		const availableWidth = windowWidth - sidebarWidth;
 
 		// Content-Container Breite anpassen
@@ -598,25 +502,24 @@ function adjustScaling() {
 			Object.assign(secondaryGrid.style, gridConfig);
 		}
 
-		// Neue Logik: Berechne und setze die nicht-skalierbaren Abstände für die Sektionen
-		// Dies kompensiert den Skalierungseffekt, damit die Abstände immer gleich bleiben
+		// Verbesserte Behandlung des Section Dividers
 		const sectionDivider = document.querySelector(".section-divider");
 		if (sectionDivider) {
-			// Berechne den angepassten Abstand basierend auf Skalierungsfaktor
-			// Verwende Math.ceil, um sicherzustellen, dass der Abstand immer groß genug ist
-			const adjustedSpacing = Math.ceil(12 / scaleFactor);
+			// Statt Transformation besser Abstände anpassen
+			const adjustedSpacing = Math.ceil(12 * scaleFactor);
 			sectionDivider.style.margin = `${adjustedSpacing}px 0`;
+			sectionDivider.style.transform = "none"; // Keine Skalierung mehr, nur Abstandsanpassung
 		}
 
-		// Aktualisiere auch die Abschnittsbeschriftungen
-		const sectionLabels = document.querySelectorAll(".section-label");
-		sectionLabels.forEach((label) => {
-			const adjustedSpacing = Math.ceil(12 / scaleFactor);
-			if (!label.classList.contains("section-label-first")) {
-				label.style.marginTop = `${adjustedSpacing}px`;
+		// Nach dem Toggle-Zustand der Sidebar prüfen und visuell anpassen
+		const menuToggleBtn = document.getElementById("menuToggle");
+		if (menuToggleBtn) {
+			if (isSidebarCollapsed) {
+				menuToggleBtn.classList.add("rotated");
+			} else {
+				menuToggleBtn.classList.remove("rotated");
 			}
-			label.style.marginBottom = `${adjustedSpacing}px`;
-		});
+		}
 	} catch (error) {
 		console.error("Fehler bei der Skalierungsanpassung:", error);
 	}
