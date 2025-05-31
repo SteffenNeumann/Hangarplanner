@@ -181,18 +181,16 @@ const uiSettings = {
 			const positionValue = positionInput ? positionInput.value : "";
 
 			// Debug-Ausgabe zur Fehlersuche
-			console.log(
+			debug(
 				`Sammle Daten für Kachel ${cellId}: Position=${positionValue}, Manual=${manualInputValue}`
 			);
 
-			// Wenn mindestens ein Wert vorhanden ist, speichern
-			if (positionValue || manualInputValue) {
-				tileValues.push({
-					cellId: cellId,
-					position: positionValue,
-					manualInput: manualInputValue,
-				});
-			}
+			// Immer speichern, auch wenn keine Werte vorhanden sind
+			tileValues.push({
+				cellId: cellId,
+				position: positionValue || "",
+				manualInput: manualInputValue || "",
+			});
 		});
 
 		debug(`${cells.length} Kacheln aus ${containerSelector} verarbeitet`);
@@ -222,6 +220,30 @@ const uiSettings = {
 			);
 			if (positionInput) {
 				positionInput.value = tileValue.position || "";
+				// Debug-Ausgabe hinzufügen
+				debug(
+					`Position für Kachel ${tileValue.cellId} erfolgreich gesetzt: ${tileValue.position}`
+				);
+			} else {
+				// Wenn Element nicht gefunden, verzögert erneut versuchen
+				debug(
+					`Position für Kachel ${tileValue.cellId} konnte initial nicht gesetzt werden, versuche verzögert`
+				);
+				setTimeout(() => {
+					const delayedPositionInput = document.getElementById(
+						`hangar-position-${tileValue.cellId}`
+					);
+					if (delayedPositionInput) {
+						delayedPositionInput.value = tileValue.position || "";
+						debug(
+							`Position für Kachel ${tileValue.cellId} verzögert gesetzt: ${tileValue.position}`
+						);
+					} else {
+						console.warn(
+							`Positionsfeld für Kachel ${tileValue.cellId} nicht gefunden!`
+						);
+					}
+				}, 500);
 			}
 
 			// Manuelle Eingabe setzen - explizit über ID
@@ -297,6 +319,19 @@ function updateSecondaryTiles(count, layout) {
 		// Klone die Vorlage-Kachel
 		const cellClone = templateCell.cloneNode(true);
 
+		// Spezifische Anpassungen für sekundäre Kacheln
+		// Position-Input finden oder ggf. erstellen
+		const posInput = cellClone.querySelector('input[id^="hangar-position-"]');
+		if (posInput) {
+			posInput.id = `hangar-position-${cellId}`;
+			posInput.value = ""; // Leeres Feld für neue sekundäre Kacheln
+		} else {
+			console.warn(
+				`Position-Input in Template für Kachel ${cellId} nicht gefunden`
+			);
+			// Da dies später in updateCellAttributes behandelt wird, lassen wir es hier bei der Warnung
+		}
+
 		// IDs und andere Attribute aktualisieren
 		updateCellAttributes(cellClone, cellId);
 
@@ -306,6 +341,73 @@ function updateSecondaryTiles(count, layout) {
 
 	// Initialisiere Status-Handler für neue Kacheln
 	setupSecondaryTileEventListeners();
+
+	// Verzögertes Anwenden der gespeicherten Werte auf sekundäre Kacheln
+	setTimeout(() => {
+		loadSecondaryTileValues();
+
+		// Trigger ein CustomEvent, um andere Komponenten zu informieren, dass sekundäre Kacheln erstellt wurden
+		const event = new CustomEvent("secondaryTilesCreated", {
+			detail: { count: count },
+		});
+		document.dispatchEvent(event);
+	}, 200);
+}
+
+/**
+ * Lädt speziell die Positionswerte für sekundäre Kacheln
+ */
+function loadSecondaryTileValues() {
+	const savedSettingsJSON = localStorage.getItem("hangarPlannerSettings");
+	if (!savedSettingsJSON) return;
+
+	try {
+		const settings = JSON.parse(savedSettingsJSON);
+		if (!settings.tileValues || !Array.isArray(settings.tileValues)) return;
+
+		// Filtere nur die sekundären Kacheln (ID >= 101)
+		const secondaryTileValues = settings.tileValues.filter(
+			(tile) => tile.cellId >= 101
+		);
+		console.log(`Lade ${secondaryTileValues.length} sekundäre Kachelwerte`);
+
+		// Wende Werte auf sekundäre Kacheln an
+		secondaryTileValues.forEach((tileValue) => {
+			const posInput = document.getElementById(
+				`hangar-position-${tileValue.cellId}`
+			);
+			if (posInput && tileValue.position) {
+				posInput.value = tileValue.position;
+				console.log(
+					`Sekundäre Position für Kachel ${tileValue.cellId} gesetzt: ${tileValue.position}`
+				);
+			} else if (!posInput && tileValue.position) {
+				// Wenn das Element nicht gefunden wurde, speichern wir die Info für spätere Versuche
+				console.warn(
+					`Element für sekundäre Kachel ${tileValue.cellId} noch nicht gefunden, merke Position: ${tileValue.position}`
+				);
+
+				// Verzögerter erneuter Versuch
+				setTimeout(() => {
+					const delayedInput = document.getElementById(
+						`hangar-position-${tileValue.cellId}`
+					);
+					if (delayedInput) {
+						delayedInput.value = tileValue.position;
+						console.log(
+							`Verzögert: Sekundäre Position für Kachel ${tileValue.cellId} gesetzt: ${tileValue.position}`
+						);
+					}
+				}, 300);
+			} else {
+				console.warn(
+					`Konnte Position für sekundäre Kachel ${tileValue.cellId} nicht setzen, Element nicht gefunden oder kein Wert vorhanden`
+				);
+			}
+		});
+	} catch (error) {
+		console.error("Fehler beim Laden der sekundären Kachelwerte:", error);
+	}
 }
 
 /**
@@ -335,9 +437,37 @@ function updateCellAttributes(cell, cellId) {
 		light.setAttribute("data-cell", cellId);
 	});
 
-	// Einheitliche Breite für Positionseingabefeld (w-16) und spezifische ID setzen
-	const positionInput = cell.querySelector('input[id^="hangar-position-"]');
+	// Verbesserte Suche nach dem Positionseingabefeld - wichtig für sekundäre Kacheln
+	let positionInput = cell.querySelector('input[id^="hangar-position-"]');
+
+	// Wenn mit der alten ID nichts gefunden wurde, versuchen wir es mit anderen Selektoren
+	if (!positionInput) {
+		// Suche nach dem ersten Textfeld in der Kachel
+		const inputs = cell.querySelectorAll('input[type="text"]');
+		for (const input of inputs) {
+			// Wenn es nicht das Manual Input ist, dann ist es wahrscheinlich das Positionsfeld
+			if (!input.placeholder || input.placeholder !== "Manual Input") {
+				positionInput = input;
+				break;
+			}
+		}
+
+		// Falls immer noch nichts gefunden wurde, suche nach dem ersten Input im Header
+		if (!positionInput) {
+			const headerContainer = cell.querySelector(".bg-industrial-medium");
+			if (headerContainer) {
+				const positionContainer =
+					headerContainer.querySelector(".flex.items-center");
+				if (positionContainer) {
+					positionInput = positionContainer.querySelector("input");
+				}
+			}
+		}
+	}
+
+	// Position eingabefeld gefunden - konfigurieren
 	if (positionInput) {
+		// Standardklassen entfernen und neue zuweisen
 		positionInput.classList.remove(
 			...Array.from(positionInput.classList).filter((cls) => /^w-\d+/.test(cls))
 		);
@@ -347,16 +477,94 @@ function updateCellAttributes(cell, cellId) {
 		positionInput.id = `hangar-position-${cellId}`;
 		console.log(`ID für Position-Eingabe gesetzt: ${positionInput.id}`);
 
+		// Alte Event-Listener entfernen, um doppelte Aufrufe zu vermeiden
+		positionInput.removeEventListener("blur", positionInput._saveHandler);
+		positionInput.removeEventListener("change", positionInput._saveHandler);
+
 		// Event-Handler für automatisches Speichern
-		positionInput.addEventListener("blur", function () {
+		positionInput._saveHandler = function () {
 			console.log(`Position in Kachel ${cellId} geändert: ${this.value}`);
-			// Automatisches Speichern auslösen
+			// Speichern mit höherer Priorität
 			if (typeof window.hangarUI.uiSettings.save === "function") {
-				setTimeout(() => window.hangarUI.uiSettings.save(), 100);
+				// Positionswert im localStorage speichern
+				const savedSettingsJSON = localStorage.getItem("hangarPlannerSettings");
+				if (savedSettingsJSON) {
+					try {
+						const settings = JSON.parse(savedSettingsJSON);
+						if (settings.tileValues && Array.isArray(settings.tileValues)) {
+							// Vorhandene Einträge aktualisieren oder neuen hinzufügen
+							const existingTileIndex = settings.tileValues.findIndex(
+								(t) => t.cellId === cellId
+							);
+							if (existingTileIndex >= 0) {
+								settings.tileValues[existingTileIndex].position = this.value;
+							} else {
+								settings.tileValues.push({
+									cellId: cellId,
+									position: this.value,
+									manualInput: "",
+								});
+							}
+
+							// Aktualisierte Einstellungen im localStorage speichern
+							localStorage.setItem(
+								"hangarPlannerSettings",
+								JSON.stringify(settings)
+							);
+							console.log(
+								`Position für Kachel ${cellId} direkt im localStorage aktualisiert`
+							);
+						}
+					} catch (e) {
+						console.error(
+							"Fehler beim direkten Aktualisieren der Position:",
+							e
+						);
+					}
+				}
+
+				// Vollständiges Speichern mit allen Daten
+				setTimeout(() => window.hangarUI.uiSettings.save(), 50);
 			}
-		});
+		};
+
+		// Event-Listener für sofortiges Speichern
+		positionInput.addEventListener("blur", positionInput._saveHandler);
+		positionInput.addEventListener("change", positionInput._saveHandler);
 	} else {
-		console.warn(`Kein Position-Eingabefeld in Kachel ${cellId} gefunden`);
+		console.warn(
+			`Kein Position-Eingabefeld in Kachel ${cellId} gefunden - versuche ein neues zu erstellen`
+		);
+
+		// Versuchen wir ein neues Positionsfeld zu erstellen
+		const headerContainer = cell.querySelector(".bg-industrial-medium");
+		if (headerContainer) {
+			const positionContainer =
+				headerContainer.querySelector(".flex.items-center") ||
+				headerContainer.querySelector(".position-container");
+
+			if (positionContainer) {
+				positionInput = document.createElement("input");
+				positionInput.id = `hangar-position-${cellId}`;
+				positionInput.type = "text";
+				positionInput.className = "w-16 position-field";
+				positionInput.placeholder = "Position";
+
+				positionContainer.appendChild(positionInput);
+
+				// Event-Handler für automatisches Speichern
+				positionInput.addEventListener("blur", function () {
+					console.log(
+						`Position in neuer Kachel ${cellId} geändert: ${this.value}`
+					);
+					if (typeof window.hangarUI.uiSettings.save === "function") {
+						setTimeout(() => window.hangarUI.uiSettings.save(), 100);
+					}
+				});
+
+				console.log(`Neues Positionseingabefeld für Kachel ${cellId} erstellt`);
+			}
+		}
 	}
 
 	// Einheitliche Breite für Manual Input und eindeutige ID + Event-Handler

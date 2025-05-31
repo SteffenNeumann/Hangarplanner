@@ -289,8 +289,181 @@ function initializeUI() {
 			// Status-Selektoren initialisieren
 			initializeStatusSelectors();
 
+			// Verzögerte Nachprüfung der Positionswerte für alle Kacheln
+			setTimeout(() => {
+				// Lade nochmal die Einstellungen aus dem LocalStorage
+				const savedSettingsJSON = localStorage.getItem("hangarPlannerSettings");
+				if (savedSettingsJSON) {
+					try {
+						const settings = JSON.parse(savedSettingsJSON);
+						if (settings.tileValues && Array.isArray(settings.tileValues)) {
+							// Nur Positionswerte explizit setzen und prüfen
+							console.log(
+								"Positionswerte werden erneut auf alle Kacheln angewendet"
+							);
+							settings.tileValues.forEach((tileValue) => {
+								// Aktuelle Wert im DOM prüfen
+								const posInput = document.getElementById(
+									`hangar-position-${tileValue.cellId}`
+								);
+								if (posInput && tileValue.position) {
+									// Nur wenn Wert im DOM leer oder anders ist als gespeichert
+									if (
+										!posInput.value ||
+										posInput.value !== tileValue.position
+									) {
+										console.log(
+											`Korrigiere Position für Kachel ${tileValue.cellId}: '${posInput.value}' -> '${tileValue.position}'`
+										);
+										posInput.value = tileValue.position;
+									}
+								}
+							});
+
+							// Event-Handler für sofortige Speicherung auf allen Position-Inputs
+							document
+								.querySelectorAll('input[id^="hangar-position-"]')
+								.forEach((input) => {
+									const cellId = parseInt(input.id.split("-")[2]);
+
+									// Alte Event-Handler entfernen
+									input.removeEventListener("blur", input._directSaveHandler);
+
+									// Neuen Handler hinzufügen
+									input._directSaveHandler = function () {
+										console.log(
+											`Direktes Speichern der Position für Kachel ${cellId}: ${this.value}`
+										);
+										// Positionswert im localStorage aktualisieren
+										const savedSettings = JSON.parse(
+											localStorage.getItem("hangarPlannerSettings") || "{}"
+										);
+										if (!savedSettings.tileValues)
+											savedSettings.tileValues = [];
+
+										const existingTileIndex =
+											savedSettings.tileValues.findIndex(
+												(t) => t.cellId === cellId
+											);
+										if (existingTileIndex >= 0) {
+											savedSettings.tileValues[existingTileIndex].position =
+												this.value;
+										} else {
+											savedSettings.tileValues.push({
+												cellId: cellId,
+												position: this.value,
+												manualInput: "",
+											});
+										}
+
+										localStorage.setItem(
+											"hangarPlannerSettings",
+											JSON.stringify(savedSettings)
+										);
+									};
+
+									input.addEventListener("blur", input._directSaveHandler);
+								});
+						}
+					} catch (e) {
+						console.error(
+							"Fehler beim erneuten Anwenden der Positionswerte:",
+							e
+						);
+					}
+				}
+			}, 1000);
+
 			console.log("Displayoptionen wurden initialisiert");
 		}, 300);
+
+		// Event-Listener für neu erstellte sekundäre Kacheln hinzufügen
+		document.addEventListener("secondaryTilesCreated", (event) => {
+			console.log(`Sekundäre Kacheln erstellt: ${event.detail.count}`);
+
+			// Verzögerte Anwendung der Positionswerte auf sekundäre Kacheln
+			setTimeout(() => {
+				const savedSettingsJSON = localStorage.getItem("hangarPlannerSettings");
+				if (!savedSettingsJSON) return;
+
+				try {
+					const settings = JSON.parse(savedSettingsJSON);
+					if (!settings.tileValues || !Array.isArray(settings.tileValues))
+						return;
+
+					// Filtere nur die sekundären Kacheln (ID >= 101)
+					const secondaryTileValues = settings.tileValues.filter(
+						(tile) => tile.cellId >= 101
+					);
+
+					// Werte auf sekundäre Kacheln anwenden
+					secondaryTileValues.forEach((tileValue) => {
+						const posInput = document.getElementById(
+							`hangar-position-${tileValue.cellId}`
+						);
+						if (posInput && tileValue.position) {
+							// Bewahre den Wert nur auf, wenn er gesetzt ist
+							if (tileValue.position.trim() !== "") {
+								posInput.value = tileValue.position;
+								console.log(
+									`Event-Handler: Sekundäre Position für Kachel ${tileValue.cellId} gesetzt: ${tileValue.position}`
+								);
+							}
+						}
+					});
+
+					// Spezielles Event-Handling für sofortiges Speichern bei Änderung
+					document
+						.querySelectorAll(
+							'#secondaryHangarGrid input[id^="hangar-position-"]'
+						)
+						.forEach((input) => {
+							const cellId = parseInt(input.id.split("-")[2]);
+
+							// Alte Event-Handler entfernen
+							input.removeEventListener("change", input._saveOnChangeHandler);
+
+							// Neuen Handler für sofortiges Speichern bei Änderung hinzufügen
+							input._saveOnChangeHandler = function () {
+								console.log(
+									`Sofortiges Speichern für sekundäre Kachel ${cellId}: ${this.value}`
+								);
+								const settings = JSON.parse(
+									localStorage.getItem("hangarPlannerSettings") || "{}"
+								);
+
+								if (!settings.tileValues) settings.tileValues = [];
+
+								const tileIndex = settings.tileValues.findIndex(
+									(t) => t.cellId === cellId
+								);
+								if (tileIndex >= 0) {
+									settings.tileValues[tileIndex].position = this.value;
+								} else {
+									settings.tileValues.push({
+										cellId: cellId,
+										position: this.value,
+										manualInput: "",
+									});
+								}
+
+								localStorage.setItem(
+									"hangarPlannerSettings",
+									JSON.stringify(settings)
+								);
+							};
+
+							// Event-Handler für Änderungen hinzufügen
+							input.addEventListener("change", input._saveOnChangeHandler);
+						});
+				} catch (error) {
+					console.error(
+						"Fehler beim Verarbeiten der sekundären Kachelwerte:",
+						error
+					);
+				}
+			}, 100); // Kurze Verzögerung, um sicherzustellen, dass alle DOM-Elemente bereit sind
+		});
 
 		return true;
 	} catch (error) {
