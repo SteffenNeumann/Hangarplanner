@@ -169,11 +169,86 @@ function setupUIEventListeners() {
 			}
 		});
 
+		// Status-Selektoren für primäre Kacheln initialisieren
+		initializeStatusSelectors();
+
 		console.log("Alle Event-Listener erfolgreich eingerichtet");
 		return true;
 	} catch (error) {
 		console.error("Fehler beim Einrichten der Event-Listener:", error);
 		return false;
+	}
+}
+
+/**
+ * Initialisiert die Event-Listener für alle Status-Selektoren
+ * und setzt den initialen Status
+ */
+function initializeStatusSelectors() {
+	// Für alle Status-Selektoren (sowohl primär als auch sekundär)
+	document.querySelectorAll('select[id^="status-"]').forEach((select) => {
+		const cellId = parseInt(select.id.split("-")[1]);
+
+		// Event-Listener für Statusänderungen
+		select.onchange = function () {
+			if (
+				window.hangarUI &&
+				typeof window.hangarUI.updateStatusLights === "function"
+			) {
+				window.hangarUI.updateStatusLights(cellId);
+			} else {
+				updateStatusLights(cellId);
+			}
+		};
+
+		// Initialen Status setzen
+		if (
+			window.hangarUI &&
+			typeof window.hangarUI.updateStatusLights === "function"
+		) {
+			window.hangarUI.updateStatusLights(cellId);
+		} else {
+			updateStatusLights(cellId);
+		}
+	});
+
+	console.log("Status-Selektoren initialisiert");
+}
+
+/**
+ * Lokale Hilfsfunktion für Statusaktualisierung (Fallback)
+ * @param {number} cellId - ID der Kachel
+ */
+function updateStatusLights(cellId) {
+	try {
+		// Status-Auswahl finden
+		const statusSelect = document.getElementById(`status-${cellId}`);
+		if (!statusSelect) return;
+
+		const selectedStatus = statusSelect.value;
+
+		// Alle Statuslichter für diese Kachel finden
+		const statusLights = document.querySelectorAll(
+			`.status-light[data-cell="${cellId}"]`
+		);
+
+		// Alle Lichter zurücksetzen (dimmen)
+		statusLights.forEach((light) => {
+			light.classList.remove("active");
+		});
+
+		// Ausgewähltes Licht aktivieren
+		const activeLight = document.querySelector(
+			`.status-light[data-cell="${cellId}"][data-status="${selectedStatus}"]`
+		);
+		if (activeLight) {
+			activeLight.classList.add("active");
+		}
+	} catch (error) {
+		console.error(
+			`Fehler beim Aktualisieren der Statuslichter für Kachel ${cellId}:`,
+			error
+		);
 	}
 }
 
@@ -210,6 +285,9 @@ function initializeUI() {
 				// Einstellungen anwenden
 				window.hangarUI.uiSettings.apply();
 			}
+
+			// Status-Selektoren initialisieren
+			initializeStatusSelectors();
 
 			console.log("Displayoptionen wurden initialisiert");
 		}, 300);

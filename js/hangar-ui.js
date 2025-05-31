@@ -448,7 +448,7 @@ function setupSecondaryTileEventListeners() {
 }
 
 /**
- * Verbesserte Funktion zur dynamischen Anpassung der Skalierung und Container-Breite
+ * Verbesserte Funktion zur dynamischen Anpassung der Grid-Abstände ohne Skalierung der Kacheln
  */
 function adjustScaling() {
 	try {
@@ -465,56 +465,65 @@ function adjustScaling() {
 			contentContainer.style.maxWidth = `${availableWidth}px`;
 		}
 
-		// Skalierungsfaktor bestimmen - noch stärker reduziert
-		let scaleFactor;
-		if (availableWidth > 1800) scaleFactor = 0.9; // Weiter reduziert
-		else if (availableWidth > 1650) scaleFactor = 0.8; // Weiter reduziert
-		else if (availableWidth > 1500) scaleFactor = 0.7; // Weiter reduziert
-		else if (availableWidth > 1350) scaleFactor = 0.6; // Weiter reduziert
-		else if (availableWidth > 1200) scaleFactor = 0.5; // Weiter reduziert
-		else scaleFactor = 0.45; // Weiter reduziert
-
-		// Skalierungsfaktor als CSS-Variable setzen
-		document.documentElement.style.setProperty("--scale-factor", scaleFactor);
-		document.documentElement.style.setProperty("--inv-scale", 1 / scaleFactor);
+		// Konstante Sektionsabstände definieren (kein Skalierungsfaktor mehr)
+		const sectionSpacing = 16; // Fester Wert für alle Sektionsabstände
 		document.documentElement.style.setProperty(
 			"--section-spacing",
-			`${12 * scaleFactor}px`
+			`${sectionSpacing}px`
+		);
+		document.documentElement.style.setProperty(
+			"--fixed-section-spacing",
+			`${sectionSpacing}px`
 		);
 
-		// Angepasste Grid-Abstände für kleinere Kacheln
+		// Grid-Abstände dynamisch anpassen ohne Skalierung der Kacheln
 		let gridGap;
-		if (availableWidth > 1500) gridGap = 12; // Weiter reduziert
-		else if (availableWidth > 1350) gridGap = 10; // Weiter reduziert
-		else if (availableWidth > 1200) gridGap = 8; // Weiter reduziert
-		else gridGap = 6; // Weiter reduziert
+		if (availableWidth > 1800) gridGap = 20;
+		else if (availableWidth > 1650) gridGap = 16;
+		else if (availableWidth > 1500) gridGap = 14;
+		else if (availableWidth > 1350) gridGap = 12;
+		else if (availableWidth > 1200) gridGap = 10;
+		else gridGap = 8;
 
 		document.documentElement.style.setProperty("--grid-gap", `${gridGap}px`);
 
-		// WICHTIG: CSS-Variablen für Kachelgrößen direkt aktualisieren
-		const cardBaseWidth = 128; // Basisgröße
+		// WICHTIG: Feste Kachelgrößen definieren - nicht mehr dynamisch
+		const cardBaseWidth = 180; // Erhöhte feste Basisgröße
+		const cardMinWidth = 180; // Garantierte Mindestbreite
+		const cardMaxWidth = 280; // Maximale Breite begrenzen
+
 		document.documentElement.style.setProperty(
 			"--card-base-width",
 			`${cardBaseWidth}px`
 		);
 		document.documentElement.style.setProperty(
 			"--card-min-width",
-			`${cardBaseWidth}px`
+			`${cardMinWidth}px`
 		);
 
-		// Grid-Layout anpassen
-		const layout = window.hangarUI.uiSettings.layout || 4;
+		// Grid-Layout dynamisch anpassen basierend auf verfügbarer Breite
+		// Anzahl der Spalten reduzieren statt Kacheln zu verkleinern
+		let layout = window.hangarUI.uiSettings.layout || 4;
+
+		// Dynamische Spaltenanzahl basierend auf verfügbarer Breite
+		// und Mindestgröße der Kacheln berechnen
+		const maxColumns = Math.floor(
+			(availableWidth - gridGap) / (cardMinWidth + gridGap)
+		);
+		layout = Math.min(layout, Math.max(1, maxColumns));
+
 		const hangarGrid = document.getElementById("hangarGrid");
 		const secondaryGrid = document.getElementById("secondaryHangarGrid");
 
-		// Gemeinsame Eigenschaften für beide Grids
+		// Gemeinsame Eigenschaften für beide Grids - Keine Skalierung mehr
 		const gridConfig = {
-			transform: `scale(${scaleFactor})`,
-			transformOrigin: "top left",
-			width: `calc(100% / ${scaleFactor})`,
-			gridTemplateColumns: `repeat(${layout}, minmax(${cardBaseWidth}px, 1fr))`, // Direkte Größe setzen
+			transform: "none", // Kein Skalieren mehr
+			width: "100%", // Volle Breite ohne Skalierungskompensation
+			gridTemplateColumns: `repeat(${layout}, minmax(${cardMinWidth}px, ${cardMaxWidth}px))`, // Feste Größen
 			gap: `${gridGap}px`,
 			display: "grid",
+			justifyContent: "center", // Horizontale Zentrierung des Grids
+			margin: "0 auto", // Zusätzliche Zentrierung im Container
 		};
 
 		// Primären Grid konfigurieren
@@ -527,34 +536,31 @@ function adjustScaling() {
 			Object.assign(secondaryGrid.style, gridConfig);
 		}
 
-		// HINZUGEFÜGT: Direktes Anpassen der Kachelgröße
-		applyTileSizes(cardBaseWidth);
+		// Direkte Kachelgrößen beibehalten mit festen Werten
+		applyTileSizes(cardMinWidth, cardMaxWidth);
 
-		// Verbesserte Behandlung des Section Dividers
+		// Verbesserte Behandlung des Section Dividers - konsistente Abstände
 		const sectionDivider = document.querySelector(".section-divider");
 		if (sectionDivider) {
-			const adjustedSpacing = Math.ceil(12 * scaleFactor);
-			sectionDivider.style.margin = `${adjustedSpacing}px 0`;
-			sectionDivider.style.transform = "none"; // Keine Skalierung mehr, nur Abstandsanpassung
+			sectionDivider.style.margin = `${sectionSpacing}px 0`;
+			sectionDivider.style.transform = "none";
 		}
 
-		// Abstände für alle Sektionsbeschriftungen
+		// Konsistente Abstände für alle Sektionsbeschriftungen
 		const sectionLabels = document.querySelectorAll(".section-label");
 		sectionLabels.forEach((label) => {
 			if (!label.classList.contains("section-label-first")) {
-				const adjustedSpacing = Math.ceil(12 * scaleFactor);
-				label.style.marginTop = `${adjustedSpacing}px`;
+				label.style.marginTop = `${sectionSpacing}px`;
 			}
-			label.style.marginBottom = `${Math.ceil(12 * scaleFactor)}px`;
+			label.style.marginBottom = `${sectionSpacing}px`;
 		});
 
-		// Abstand zwischen den Sektionscontainern anpassen
+		// Sekundäre Sektion mit gleichem Abstand
 		const secondarySection = document.querySelector(
 			".section-container:nth-of-type(2)"
 		);
 		if (secondarySection) {
-			const adjustedSpacing = Math.ceil(20 * scaleFactor);
-			secondarySection.style.marginTop = `${adjustedSpacing}px`;
+			secondarySection.style.marginTop = `${sectionSpacing}px`;
 		}
 
 		// Nach dem Toggle-Zustand der Sidebar prüfen und visuell anpassen
@@ -567,48 +573,79 @@ function adjustScaling() {
 			}
 		}
 
-		// HINZUGEFÜGT: Manual Inputs responsiv anpassen mit kleineren Werten
+		// Manual Inputs anpassen (ohne Skalierung, nur responsives Layout)
 		adjustManualInputWidths();
 	} catch (error) {
-		console.error("Fehler bei der Skalierungsanpassung:", error);
+		console.error("Fehler bei der Layout-Anpassung:", error);
 	}
 }
 
 /**
- * Neue Funktion: Wendet die Größenanpassungen direkt auf Kacheln an
- * @param {number} baseSize - Die Basisgröße für Kacheln in Pixeln
+ * Wendet die Größenanpassungen direkt auf Kacheln an
+ * @param {number} minWidth - Minimale Breite für Kacheln
+ * @param {number} maxWidth - Maximale Breite für Kacheln
  */
-function applyTileSizes(baseSize) {
+function applyTileSizes(minWidth, maxWidth) {
 	try {
 		// Alle Kacheln auswählen
 		const cells = document.querySelectorAll(".hangar-cell");
 
 		cells.forEach((cell) => {
-			// Direkt die Größe der Kacheln anpassen
-			cell.style.minWidth = `${baseSize}px`;
+			// Feste Größen zuweisen ohne Skalierung
+			cell.style.minWidth = `${minWidth}px`;
 			cell.style.width = "100%";
-			cell.style.maxWidth = `${baseSize * 2.2}px`; // Maximale Breite begrenzen
-			cell.style.flexBasis = `${baseSize}px`;
+			cell.style.maxWidth = `${maxWidth}px`;
 
-			// Kompaktere innere Abstände
+			// Flex-Basis auf auto für besseres Grid-Verhalten
+			cell.style.flexBasis = "auto";
+
+			// Zentrieren in der Zelle
+			cell.style.margin = "0 auto";
+			cell.style.justifySelf = "center";
+
+			// Kompaktere innere Abstände für kleinere Kacheln
 			const contentDiv = cell.querySelector("div.p-4");
 			if (contentDiv) {
 				contentDiv.style.padding = "0.75rem";
 			}
 
-			// Kleinere Schriftgrößen für Beschriftungen
+			// Vergrößerte Schriftgrößen für Aircraft ID
 			const aircraftId = cell.querySelector(".aircraft-id");
 			if (aircraftId) {
-				aircraftId.style.fontSize = "0.95rem";
-				aircraftId.style.padding = "0.3rem";
-				aircraftId.style.marginBottom = "0.5rem";
+				aircraftId.style.fontSize = "1.2rem"; // Größere Schriftgröße
+				aircraftId.style.fontWeight = "600"; // Etwas fettere Schrift
+				aircraftId.style.padding = "0.4rem"; // Mehr Polsterung
+				aircraftId.style.marginBottom = "0.6rem"; // Mehr Abstand nach unten
+				aircraftId.style.color = "#2d3142"; // Dunklere Farbe für besseren Kontrast
+			}
+
+			// Manual Input entfernen falls vorhanden (wie vom User gewünscht)
+			const manualInput = cell.querySelector(
+				'input[placeholder="Manual Input"]'
+			);
+			if (manualInput) {
+				const headerContainer = manualInput.closest(".bg-industrial-medium");
+				if (headerContainer) {
+					manualInput.remove();
+				}
+			}
+
+			// Notes-Labels entfernen und als Placeholder setzen
+			const notesContainer = cell.querySelector(".notes-container");
+			if (notesContainer) {
+				const label = notesContainer.querySelector("label");
+				if (label) {
+					label.remove();
+				}
+
+				const textarea = notesContainer.querySelector("textarea");
+				if (textarea) {
+					textarea.setAttribute("placeholder", "Notizen eingeben...");
+				}
 			}
 		});
 	} catch (error) {
-		console.error(
-			"Fehler bei der direkten Größenanpassung der Kacheln:",
-			error
-		);
+		console.error("Fehler bei der Größenanpassung der Kacheln:", error);
 	}
 }
 

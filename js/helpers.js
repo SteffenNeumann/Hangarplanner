@@ -120,8 +120,27 @@ function checkBrowserSupport() {
 	return support;
 }
 
-// Exportiere die Funktionen als globale Variablen
+// Funktion für den globalen Zugriff verfügbar machen
 window.showNotification = showNotification;
-window.generateTimestamp = generateTimestamp;
-window.downloadFile = downloadFile;
-window.checkBrowserSupport = checkBrowserSupport;
+
+/**
+ * Verzögert die Ausführung einer Funktion
+ * @param {Function} func - Die zu verzögernde Funktion
+ * @param {number} wait - Verzögerung in Millisekunden
+ * @returns {Function} - Verzögerte Funktion
+ */
+function debounce(func, wait) {
+	let timeout;
+	return function () {
+		const context = this;
+		const args = arguments;
+		clearTimeout(timeout);
+		timeout = setTimeout(() => func.apply(context, args), wait);
+	};
+}
+
+// Exportieren der Hilfsfunktionen
+window.helpers = {
+	showNotification,
+	debounce,
+};

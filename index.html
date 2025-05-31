@@ -289,18 +289,15 @@
 				transform: none;
 			}
 
-			/* Anpassung für das Label im Section Divider */
+			/* Entfernung der Beschriftung im Section Divider */
 			.section-divider::after {
-				content: "Section Divider";
+				content: "";
 				position: absolute;
 				top: -10px;
 				left: 50%;
 				transform: translateX(-50%);
-				background-color: #bfc0c0;
-				padding: 0 10px;
-				font-size: 12px;
-				color: #2d3142;
-				white-space: nowrap;
+				background-color: transparent;
+				padding: 0;
 			}
 
 			/* Verbesserte Sektionsbeschriftungen */
@@ -308,13 +305,12 @@
 				font-size: 16px;
 				font-weight: 500;
 				color: white;
-				/* Verwende die CSS-Variable für konsistente Abstände */
+				/* Konsistente Abstände zwischen Sektionen */
 				margin-bottom: var(--section-spacing, 12px);
 				margin-top: var(--section-spacing, 12px);
 				padding-left: 5px;
-				/* Kompensieren der Skalierung */
-				transform: scale(var(--inv-scale));
-				transform-origin: left center;
+				/* Keine Skalierung mehr */
+				transform: none;
 			}
 
 			/* Erste Section Label hat keinen oberen Abstand */
