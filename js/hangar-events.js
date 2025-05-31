@@ -201,6 +201,15 @@ function setupUIEventListeners() {
 			console.warn("Such-Elemente nicht gefunden");
 		}
 
+		// Event-Handler für den Flugdaten-Abruf Button
+		const fetchButton = document.getElementById("fetchFlightData");
+		if (fetchButton) {
+			fetchButton.addEventListener("click", handleFlightDataFetch);
+			console.log("Event-Listener für Flugdaten-Abruf eingerichtet");
+		} else {
+			console.warn("Fetch-Button für Flugdaten nicht gefunden!");
+		}
+
 		console.log("Alle Event-Listener erfolgreich eingerichtet");
 		return true;
 	} catch (error) {

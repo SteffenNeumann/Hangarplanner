@@ -998,102 +998,20 @@ const AmadeusAPI = (() => {
 	 */
 	const init = () => {
 		try {
-			// Fetch Flight Button Event Listener
+			// API-FASSADE WIRD VERWENDET - DEAKTIVIERE DIREKTE EVENT-HANDLER
+			console.log(
+				"Amadeus API Modul initialisiert - Event-Handler werden NICHT eingerichtet (API-Fassade wird verwendet)"
+			);
+
+			/*
+			// Fetch Flight Button Event Listener - DEAKTIVIERT
 			const fetchFlightBtn = document.getElementById("fetchFlightData");
 			if (fetchFlightBtn) {
-				fetchFlightBtn.addEventListener("click", async () => {
-					// Get input values from form
-					const currentDateInput = document.getElementById("currentDateInput");
-					const nextDateInput = document.getElementById("nextDateInput");
-
-					// Zuerst im dedizierten Suchfeld suchen
-					let searchInput = document.getElementById("searchAircraft");
-					let aircraftId = searchInput?.value?.trim();
-
-					// Wenn keine ID im Suchfeld gefunden wurde, suche nach einer aktiv ausgewählten Kachel
-					if (!aircraftId) {
-						const selectedCell = document.querySelector(
-							".hangar-cell.selected"
-						);
-						if (selectedCell) {
-							const cellId = selectedCell.getAttribute("data-cell-id");
-							if (cellId) {
-								const aircraftInput = document.getElementById(
-									`aircraft-${cellId}`
-								);
-								if (aircraftInput && aircraftInput.value.trim()) {
-									aircraftId = aircraftInput.value.trim();
-									console.log(
-										`Verwende Flugzeug-ID aus ausgewählter Kachel: ${aircraftId}`
-									);
-								}
-							}
-						}
-					}
-
-					const currentDate = currentDateInput?.value;
-					const nextDate = nextDateInput?.value;
-
-					if (!aircraftId) {
-						// Verbesserte Fehlermeldung mit Anleitung
-						updateFetchStatus(
-							"Bitte geben Sie eine Flugzeug-ID im Suchfeld ein oder wählen Sie eine Kachel aus",
-							true
-						);
-
-						// Visuelle Hervorhebung des Suchfelds
-						if (searchInput) {
-							searchInput.classList.add("error-highlight");
-							searchInput.focus();
-
-							// Animation entfernen nach 2 Sekunden
-							setTimeout(() => {
-								searchInput.classList.remove("error-highlight");
-							}, 2000);
-						}
-						return;
-					}
-
-					// Aktualisiere die Flugzeugdaten
-					await updateAircraftData(aircraftId, currentDate, nextDate);
-				});
-
-				if (config.debugMode) {
-					console.log("Amadeus API event listeners eingerichtet");
-				}
+				// Event-Handler deaktiviert, da API-Fassade verwendet wird
 			}
+			*/
 
-			// Verbindung zwischen Suchbutton und Flugdatenabruf herstellen
-			const searchBtn = document.getElementById("btnSearch");
-			if (searchBtn) {
-				searchBtn.addEventListener("click", () => {
-					const searchInput = document.getElementById("searchAircraft");
-					if (searchInput && searchInput.value.trim()) {
-						// Automatisch den Update-Data Button auslösen
-						const fetchFlightBtn = document.getElementById("fetchFlightData");
-						if (fetchFlightBtn) {
-							console.log(
-								"Suche nach Flugdaten für: " + searchInput.value.trim()
-							);
-							fetchFlightBtn.click();
-						}
-					}
-				});
-			}
-
-			// Eingabefeld für Flugzeugsuche mit Enter-Taste verbinden
-			const searchInput = document.getElementById("searchAircraft");
-			if (searchInput) {
-				searchInput.addEventListener("keypress", (event) => {
-					if (event.key === "Enter") {
-						event.preventDefault();
-						const searchBtn = document.getElementById("btnSearch");
-						if (searchBtn) {
-							searchBtn.click();
-						}
-					}
-				});
-			}
+			// Andere Init-Aufgaben durchführen
 
 			// Setze heutiges Datum als Standard, falls nicht bereits gesetzt
 			const currentDateInput = document.getElementById("currentDateInput");

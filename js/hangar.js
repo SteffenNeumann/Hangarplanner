@@ -125,14 +125,24 @@ function initialize() {
 
 // Funktion, um sicherzustellen, dass die API-Fassade korrekt verbunden ist
 function setupFlightDataEventHandlers() {
-	if (window.hangarEvents && window.hangarEvents.setupFlightDataEventHandlers) {
-		window.hangarEvents.setupFlightDataEventHandlers();
-	}
-
-	// Den "Fetch Flight Data"-Button direkt mit der API-Fassade verknüpfen
+	// WICHTIG: Zuerst den bestehenden Event-Handler vom fetchFlightBtn entfernen
 	const fetchFlightBtn = document.getElementById("fetchFlightData");
 	if (fetchFlightBtn) {
-		fetchFlightBtn.onclick = async function () {
+		// Alle bestehenden Event-Handler entfernen
+		const oldClone = fetchFlightBtn.cloneNode(true);
+		fetchFlightBtn.parentNode.replaceChild(oldClone, fetchFlightBtn);
+
+		// Referenz auf den neuen Button holen
+		const newFetchFlightBtn = document.getElementById("fetchFlightData");
+
+		// Direkten Event-Handler setzen, der explizit die API-Fassade nutzt
+		newFetchFlightBtn.onclick = async function (event) {
+			// Standardverhalten verhindern
+			event.preventDefault();
+
+			// Debug-Log
+			console.log("*** API-FASSADE WIRD DIREKT AUFGERUFEN ***");
+
 			const searchInput = document.getElementById("searchAircraft");
 			const currentDateInput = document.getElementById("currentDateInput");
 			const nextDateInput = document.getElementById("nextDateInput");
@@ -141,18 +151,31 @@ function setupFlightDataEventHandlers() {
 			const currentDate = currentDateInput?.value;
 			const nextDate = nextDateInput?.value;
 
-			console.log("Direkt verbundener API-Fassade-Aufruf für:", aircraftId);
+			if (!aircraftId) {
+				alert("Bitte geben Sie eine Flugzeug-ID ein");
+				return;
+			}
+
+			console.log(`API-Fassade wird verwendet für: ${aircraftId}`);
 
 			if (window.FlightDataAPI) {
-				await window.FlightDataAPI.updateAircraftData(
-					aircraftId,
-					currentDate,
-					nextDate
-				);
+				try {
+					await window.FlightDataAPI.updateAircraftData(
+						aircraftId,
+						currentDate,
+						nextDate
+					);
+					console.log("API-Fassade Aufruf erfolgreich abgeschlossen");
+				} catch (error) {
+					console.error("Fehler beim API-Fassaden-Aufruf:", error);
+				}
+			} else {
+				console.error("FlightDataAPI nicht verfügbar!");
 			}
 		};
+
 		console.log(
-			"Direkte API-Fassaden-Verbindung für Fetch-Button eingerichtet"
+			"Fetch-Button mit API-Fassade neu verbunden (alle anderen Handler entfernt)"
 		);
 	}
 }

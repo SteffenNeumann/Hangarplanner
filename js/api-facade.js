@@ -27,8 +27,21 @@ const FlightDataAPI = (() => {
 				);
 			}
 
-			// Provider-Selektor zur UI hinzufügen
+			// Provider-Selektor zur UI hinzufügen - mit verzögertem Versuch,
+			// falls DOM-Elemente noch nicht bereit sind
 			addProviderSelector();
+
+			// Falls beim ersten Mal nicht erfolgreich, nach kurzer Verzögerung erneut versuchen
+			setTimeout(() => {
+				const flightDataSection = document.querySelector("#flightDataContent");
+				if (
+					flightDataSection &&
+					!document.getElementById("apiProviderSelect")
+				) {
+					console.log("Zweiter Versuch, API-Provider-Selektor hinzuzufügen...");
+					addProviderSelector();
+				}
+			}, 500);
 
 			console.log(
 				`Flight Data API-Fassade initialisiert mit Provider: ${activeProvider}`
@@ -47,13 +60,32 @@ const FlightDataAPI = (() => {
 			const flightDataSection = document.querySelector("#flightDataContent");
 
 			if (!flightDataSection) {
-				console.warn("Flight Data Abschnitt nicht gefunden");
+				console.warn(
+					"Flight Data Abschnitt nicht gefunden. Element-ID #flightDataContent fehlt möglicherweise."
+				);
 				return;
 			}
 
 			// Provider-Auswahl vor dem Fetch-Button einfügen
 			const fetchButton = document.getElementById("fetchFlightData");
-			if (!fetchButton) return;
+			if (!fetchButton) {
+				console.warn(
+					"Fetch-Button nicht gefunden. Element-ID #fetchFlightData fehlt möglicherweise."
+				);
+				// Alternative: Am Anfang der Sektion einfügen, wenn der Button nicht gefunden wird
+				if (flightDataSection.firstChild) {
+					const providerSelectorContainer = createProviderSelector();
+					flightDataSection.insertBefore(
+						providerSelectorContainer,
+						flightDataSection.firstChild
+					);
+					console.log(
+						"API-Provider Selector am Anfang der Flight Data Sektion eingefügt"
+					);
+					return;
+				}
+				return;
+			}
 
 			// Überprüfen ob der Selektor bereits existiert
 			if (document.getElementById("apiProviderSelect")) {
@@ -61,22 +93,7 @@ const FlightDataAPI = (() => {
 				return;
 			}
 
-			const providerSelectorContainer = document.createElement("div");
-			providerSelectorContainer.className = "mb-3";
-			providerSelectorContainer.innerHTML = `
-            <label class="text-xs block mb-1">API-Provider:</label>
-            <select id="apiProviderSelect" class="w-full bg-industrial-dark text-white px-2 py-1 rounded form-control">
-                <option value="${PROVIDERS.AERODATABOX}" ${
-				activeProvider === PROVIDERS.AERODATABOX ? "selected" : ""
-			}>AeroDataBox API (empfohlen)</option>
-                <option value="${PROVIDERS.AMADEUS}" ${
-				activeProvider === PROVIDERS.AMADEUS ? "selected" : ""
-			}>Amadeus API (Backup)</option>
-            </select>
-            <p class="mt-1 text-xs text-gray-400">
-                API-Provider für Flugdaten
-            </p>
-        `;
+			const providerSelectorContainer = createProviderSelector();
 
 			// Element vor dem Fetch-Button einfügen
 			fetchButton.parentNode.insertBefore(
@@ -84,7 +101,36 @@ const FlightDataAPI = (() => {
 				fetchButton
 			);
 
-			// Event-Listener für Provider-Änderung
+			console.log("API-Provider Selector erfolgreich eingerichtet");
+		} catch (error) {
+			console.error("Fehler beim Hinzufügen des Provider-Selektors:", error);
+		}
+	};
+
+	/**
+	 * Erstellt das Provider-Selektor-Element
+	 * @returns {HTMLElement} Provider-Selektor-Container
+	 */
+	const createProviderSelector = () => {
+		const providerSelectorContainer = document.createElement("div");
+		providerSelectorContainer.className = "mb-3";
+		providerSelectorContainer.innerHTML = `
+            <label class="text-xs block mb-1">API-Provider:</label>
+            <select id="apiProviderSelect" class="w-full bg-industrial-dark text-white px-2 py-1 rounded form-control">
+                <option value="${PROVIDERS.AERODATABOX}" ${
+			activeProvider === PROVIDERS.AERODATABOX ? "selected" : ""
+		}>AeroDataBox API (empfohlen)</option>
+                <option value="${PROVIDERS.AMADEUS}" ${
+			activeProvider === PROVIDERS.AMADEUS ? "selected" : ""
+		}>Amadeus API (Backup)</option>
+            </select>
+            <p class="mt-1 text-xs text-gray-400">
+                API-Provider für Flugdaten
+            </p>
+        `;
+
+		// Event-Listener für Provider-Änderung
+		setTimeout(() => {
 			const selector = document.getElementById("apiProviderSelect");
 			if (selector) {
 				selector.addEventListener("change", (e) => {
@@ -99,15 +145,18 @@ const FlightDataAPI = (() => {
 					selector.parentNode.appendChild(feedbackMsg);
 
 					setTimeout(() => {
-						selector.parentNode.removeChild(feedbackMsg);
+						if (
+							selector.parentNode &&
+							feedbackMsg.parentNode === selector.parentNode
+						) {
+							selector.parentNode.removeChild(feedbackMsg);
+						}
 					}, 2000);
 				});
-
-				console.log("API-Provider Selector erfolgreich eingerichtet");
 			}
-		} catch (error) {
-			console.error("Fehler beim Hinzufügen des Provider-Selektors:", error);
-		}
+		}, 100);
+
+		return providerSelectorContainer;
 	};
 
 	/**
@@ -178,9 +227,13 @@ const FlightDataAPI = (() => {
 	const updateAircraftData = async (aircraftId, currentDate, nextDate) => {
 		if (!aircraftId) {
 			updateStatus("Bitte Flugzeugkennung eingeben", true);
-			return;
+			console.error("API-FASSADE: Fehler - Keine Flugzeugkennung angegeben");
+			return null;
 		}
 
+		console.log(
+			`API-FASSADE: Verwende ${activeProvider.toUpperCase()} für ${aircraftId}`
+		);
 		updateStatus(
 			`Flugdaten werden abgerufen für ${aircraftId} mit ${getProviderDisplayName(
 				activeProvider
@@ -191,47 +244,113 @@ const FlightDataAPI = (() => {
 			// API-Aufrufe an den aktiven Provider delegieren
 			let result;
 			if (activeProvider === PROVIDERS.AMADEUS && window.AmadeusAPI) {
+				console.log("API-FASSADE: Rufe AmadeusAPI auf mit Parametern:", {
+					aircraftId,
+					currentDate,
+					nextDate,
+				});
 				result = await window.AmadeusAPI.updateAircraftData(
 					aircraftId,
 					currentDate,
 					nextDate
 				);
+				console.log("API-FASSADE: Ergebnis von AmadeusAPI erhalten:", result);
 			} else if (
 				activeProvider === PROVIDERS.AERODATABOX &&
 				window.AeroDataBoxAPI
 			) {
+				console.log("API-FASSADE: Rufe AeroDataBoxAPI auf mit Parametern:", {
+					aircraftId,
+					currentDate,
+					nextDate,
+				});
 				result = await window.AeroDataBoxAPI.updateAircraftData(
 					aircraftId,
 					currentDate,
 					nextDate
 				);
+				console.log(
+					"API-FASSADE: Ergebnis von AeroDataBoxAPI erhalten:",
+					result
+				);
 			} else {
-				throw new Error(`API-Provider ${activeProvider} nicht verfügbar`);
+				const errorMsg = `API-Provider ${activeProvider} nicht verfügbar`;
+				console.error(`API-FASSADE: ${errorMsg}`);
+				updateStatus(errorMsg, true);
+				throw new Error(errorMsg);
 			}
 
-			console.log("API-Ergebnis erfolgreich verarbeitet:", result);
-			return result;
+			if (result) {
+				updateStatus(`Flugdaten für ${aircraftId} erfolgreich abgerufen.`);
+				console.log("API-FASSADE: Ergebnis erfolgreich verarbeitet:", result);
+				return result;
+			} else {
+				updateStatus(`Keine Flugdaten für ${aircraftId} gefunden.`, true);
+				console.warn("API-FASSADE: Keine Flugdaten zurückgegeben");
+				return null;
+			}
 		} catch (error) {
 			console.error(
-				`Fehler beim Abrufen der Flugdaten mit ${activeProvider}:`,
+				`API-FASSADE: Fehler beim Abrufen der Flugdaten mit ${activeProvider}:`,
 				error
 			);
-			updateStatus(`Fehler beim Datenabruf: ${error.message}`, true);
+			updateStatus(
+				`Fehler beim Datenabruf: ${error.message || "Unbekannter Fehler"}`,
+				true
+			);
 
 			// Bei Fehler mit AeroDataBox auf Amadeus zurückfallen
 			if (activeProvider === PROVIDERS.AERODATABOX && window.AmadeusAPI) {
+				console.log("API-FASSADE: Fallback auf Amadeus API...");
 				updateStatus("Versuche Fallback auf Amadeus API...");
-				return await window.AmadeusAPI.updateAircraftData(
-					aircraftId,
-					currentDate,
-					nextDate
-				);
+
+				try {
+					const fallbackResult = await window.AmadeusAPI.updateAircraftData(
+						aircraftId,
+						currentDate,
+						nextDate
+					);
+
+					if (fallbackResult) {
+						updateStatus(
+							`Flugdaten mit Fallback-API für ${aircraftId} erfolgreich abgerufen.`
+						);
+						console.log("API-FASSADE: Fallback erfolgreich:", fallbackResult);
+						return fallbackResult;
+					} else {
+						updateStatus(
+							`Keine Flugdaten mit Fallback-API für ${aircraftId} gefunden.`,
+							true
+						);
+						console.warn("API-FASSADE: Auch Fallback-API lieferte keine Daten");
+						return null;
+					}
+				} catch (fallbackError) {
+					console.error(
+						"API-FASSADE: Auch Fallback-API fehlgeschlagen:",
+						fallbackError
+					);
+					updateStatus(
+						`Auch Fallback-API fehlgeschlagen: ${
+							fallbackError.message || "Unbekannter Fehler"
+						}`,
+						true
+					);
+					throw fallbackError;
+				}
 			}
+
+			throw error; // Original-Fehler weitergeben
 		}
 	};
 
-	// Beim Laden der Seite initialisieren
-	document.addEventListener("DOMContentLoaded", init);
+	// Beim Laden der Seite initialisieren und auch auf DOMContentLoaded warten
+	if (document.readyState === "loading") {
+		document.addEventListener("DOMContentLoaded", init);
+	} else {
+		// Falls DOM bereits geladen ist
+		init();
+	}
 
 	// Öffentliche API
 	return {

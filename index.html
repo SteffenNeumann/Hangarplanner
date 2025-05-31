@@ -660,9 +660,10 @@
 				letter-spacing: 0.02em;
 			}
 
-			/* Hier den fehlerhaften CSS-Code auf Zeile 664 korrigieren */
+			/* Hier den fehlerhaften CSS-Code korrigieren */
 			.api-provider-selector {
 				margin-bottom: 1rem;
+				color: #f5f5f5;
 			}
 
 			/* Falls es sich um einen Media Query handelt */
@@ -671,21 +672,6 @@
 					margin-bottom: 0.5rem;
 				}
 			}
-
-			/* JavaScript-Dateien in korrekter Reihenfolge */
-			<script src="js/helpers.js"></script>
-			<script src="js/fileManager.js"></script>
-			<script src="js/hangar-ui.js"></script>
-			<script src="js/hangar-data.js"></script>
-			<!-- API-Implementierungen -->
-			<script src="js/aerodatabox-api.js"></script>
-			<script src="js/amadeus-api.js"></script>
-			<!-- API-Fassade -->
-			<script src="js/api-facade.js"></script>
-			<!-- Event-Handler und Hauptanwendung -->
-			<script src="js/hangar-events.js"></script>
-			<script src="js/hangar-pdf.js"></script>
-			<script src="js/hangar.js"></script>
 		</style>
 	</head>
 	<body class="bg-industrial-dark text-white font-sans edit-mode">
@@ -1849,7 +1835,7 @@
 						</div>
 						<i class="dropdown-arrow">▼</i>
 					</div>
-					<div class="sidebar-accordion-content">
+					<div id="flightDataContent" class="sidebar-accordion-content">
 						<div class="mb-3">
 							<label class="text-xs block mb-1">Tag (letzter Flug):</label>
 							<input
@@ -2034,10 +2020,12 @@
 						}
 					});
 				}
-				// Am Ende der DOMContentLoaded-Initialisierung:
+
+				// Initialisierung der UI, wenn Funktionen verfügbar sind
 				if (typeof initializeUI === "function") {
 					initializeUI();
 				}
+
 				if (typeof setupUIEventListeners === "function") {
 					setupUIEventListeners();
 				}
