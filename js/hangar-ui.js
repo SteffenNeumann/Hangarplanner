@@ -1030,3 +1030,189 @@ function debounce(func, wait) {
 		timeout = setTimeout(() => func.apply(context, args), wait);
 	};
 }
+
+/**
+ * Sucht nach einem Flugzeug anhand der Aircraft ID und hebt die entsprechende Karte hervor
+ */
+function searchAircraft() {
+    try {
+        const searchTerm = document.getElementById('searchAircraft').value.trim().toLowerCase();
+        if (!searchTerm) {
+            // Bei leerem Suchbegriff alle Hervorhebungen zurücksetzen
+            resetHighlighting();
+            return;
+        }
+
+        const foundElement = findAircraftElement(searchTerm);
+        if (foundElement) {
+            highlightFoundElement(foundElement);
+        } else {
+            showNotFoundMessage(searchTerm);
+        }
+    } catch (error) {
+        console.error("Fehler bei der Flugzeugsuche:", error);
+    }
+}
+
+/**
+ * Findet das HTML-Element, das die gesuchte Aircraft ID enthält
+ * @param {string} searchTerm - Der Suchbegriff (lowercase)
+ * @returns {HTMLElement|null} - Das gefundene Element oder null
+ */
+function findAircraftElement(searchTerm) {
+    // Zuerst im Hauptgrid suchen
+    let found = searchInGrid('hangarGrid', searchTerm);
+    
+    // Wenn nicht gefunden, im sekundären Grid suchen
+    if (!found) {
+        found = searchInGrid('secondaryHangarGrid', searchTerm);
+    }
+    
+    return found;
+}
+
+/**
+ * Durchsucht ein Grid nach einer Aircraft ID
+ * @param {string} gridId - Die ID des Grids
+ * @param {string} searchTerm - Der Suchbegriff (lowercase)
+ * @returns {HTMLElement|null} - Das gefundene Element oder null
+ */
+function searchInGrid(gridId, searchTerm) {
+    const grid = document.getElementById(gridId);
+    if (!grid) return null;
+
+    const aircraftInputs = grid.querySelectorAll('input[id^="aircraft-"]');
+    for (const input of aircraftInputs) {
+        const value = input.value.toLowerCase();
+        if (value.includes(searchTerm)) {
+            return input.closest('.hangar-cell');
+        }
+    }
+    
+    return null;
+}
+
+/**
+ * Hebt das gefundene Element hervor
+ * @param {HTMLElement} element - Das hervorzuhebende Element
+ */
+function highlightFoundElement(element) {
+    // Zuerst alle Hervorhebungen zurücksetzen
+    resetHighlighting();
+    
+    // Element hervorheben
+    element.classList.add('search-highlight');
+    
+    // Temporärer Stil für die Hervorhebung hinzufügen, falls noch nicht vorhanden
+    addHighlightStyle();
+    
+    // Element ins Sichtfeld scrollen
+    element.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+    });
+    
+    // Blinkeffekt für bessere Sichtbarkeit
+    let blinkCount = 0;
+    const blinkInterval = setInterval(() => {
+        element.classList.toggle('search-blink');
+        blinkCount++;
+        
+        if (blinkCount >= 6) { // 3 volle Blinkzyklen
+            clearInterval(blinkInterval);
+            element.classList.remove('search-blink');
+        }
+    }, 300);
+    
+    // NEU: Nach 2 Sekunden automatisch die Hervorhebung zurücksetzen
+    setTimeout(() => {
+        // Blinkeffekt beenden, wenn er noch läuft
+        clearInterval(blinkInterval);
+        // Alle Hervorhebungen zurücksetzen
+        resetHighlighting();
+    }, 2000);
+}
+
+/**
+ * Fügt die CSS-Stile für die Suche hinzu, falls sie noch nicht existieren
+ */
+function addHighlightStyle() {
+    if (!document.getElementById('search-highlight-style')) {
+        const style = document.createElement('style');
+        style.id = 'search-highlight-style';
+        style.textContent = `
+            .search-highlight {
+                box-shadow: 0 0 0 3px #FF7043, 8px 8px 12px rgba(166, 166, 185, 0.25),
+                -8px -8px 12px rgba(255, 255, 255, 0.7) !important;
+                z-index: 10;
+                position: relative;
+            }
+            
+            .search-blink {
+                background-color: rgba(255, 112, 67, 0.1) !important;
+            }
+            
+            .search-not-found {
+                color: white;
+                background-color: #EF4444;
+                padding: 8px;
+                border-radius: 4px;
+                text-align: center;
+                margin-top: 8px;
+                animation: fadeOut 3s forwards;
+                position: absolute;
+                top: 0;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 100;
+            }
+            
+            @keyframes fadeOut {
+                0% { opacity: 1; }
+                70% { opacity: 1; }
+                100% { opacity: 0; visibility: hidden; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+}
+
+/**
+ * Setzt alle Such-Hervorhebungen zurück
+ */
+function resetHighlighting() {
+    const highlightedElements = document.querySelectorAll('.search-highlight');
+    highlightedElements.forEach(el => {
+        el.classList.remove('search-highlight', 'search-blink');
+    });
+    
+    // Auch alle "Nicht gefunden"-Meldungen entfernen
+    const notFoundMessages = document.querySelectorAll('.search-not-found');
+    notFoundMessages.forEach(el => el.remove());
+}
+
+/**
+ * Zeigt eine "Nicht gefunden"-Meldung an
+ * @param {string} searchTerm - Der Suchbegriff
+ */
+function showNotFoundMessage(searchTerm) {
+    const container = document.querySelector('.hangar-container');
+    if (!container) return;
+    
+    const message = document.createElement('div');
+    message.className = 'search-not-found';
+    message.textContent = `Aircraft "${searchTerm}" wurde nicht gefunden`;
+    
+    container.appendChild(message);
+    
+    // Nach Animation automatisch entfernen
+    setTimeout(() => {
+        if (message.parentNode) {
+            message.parentNode.removeChild(message);
+        }
+    }, 3000);
+}
+
+// Exportiere die Suchfunktion, damit sie über Events angebunden werden kann
+if (!window.hangarUI) window.hangarUI = {};
+window.hangarUI.searchAircraft = searchAircraft;
