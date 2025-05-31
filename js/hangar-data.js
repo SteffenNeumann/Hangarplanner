@@ -827,3 +827,193 @@ window.createNewProjectInDatabase = function (projectName) {
 		return false;
 	}
 };
+
+// Wichtig: HangarData (großgeschrieben) als globales Objekt definieren
+window.HangarData = window.HangarData || {};
+
+/**
+ * Aktualisiert Flugzeugdaten in der UI basierend auf Flugdaten
+ * @param {string} aircraftId - Die Flugzeugkennung
+ * @param {Array} flightData - Array mit Flugdaten aus der Amadeus API
+ */
+window.HangarData.updateAircraftFromFlightData = function (
+	aircraftId,
+	flightData
+) {
+	if (!aircraftId || !flightData || !Array.isArray(flightData)) {
+		console.error("Ungültige Daten für Flugzeugaktualisierung", {
+			aircraftId,
+			flightData,
+		});
+		return;
+	}
+
+	console.log(
+		`Aktualisiere Flugzeug ${aircraftId} mit ${flightData.length} Flügen`
+	);
+
+	// Suche die Kachel, die dieses Flugzeug enthält
+	let targetCell = null;
+	const allCells = document.querySelectorAll(".hangar-cell");
+
+	allCells.forEach((cell) => {
+		const aircraftInput = cell.querySelector(`input[id^="aircraft-"]`);
+		if (aircraftInput && aircraftInput.value === aircraftId) {
+			targetCell = cell;
+			const cellId = aircraftInput.id.replace("aircraft-", "");
+			console.log(`Flugzeug ${aircraftId} in Kachel ${cellId} gefunden`);
+		}
+	});
+
+	// Wenn keine Kachel gefunden wurde, suche eine leere
+	if (!targetCell) {
+		allCells.forEach((cell) => {
+			const aircraftInput = cell.querySelector(`input[id^="aircraft-"]`);
+			if (
+				aircraftInput &&
+				(!aircraftInput.value || aircraftInput.value.trim() === "")
+			) {
+				if (!targetCell) {
+					targetCell = cell;
+					const cellId = aircraftInput.id.replace("aircraft-", "");
+					console.log(
+						`Leere Kachel ${cellId} für Flugzeug ${aircraftId} gefunden`
+					);
+					aircraftInput.value = aircraftId;
+				}
+			}
+		});
+	}
+
+	// Wenn immer noch keine Kachel gefunden wurde, kein Update möglich
+	if (!targetCell) {
+		console.error(`Keine Kachel für Flugzeug ${aircraftId} gefunden`);
+		return;
+	}
+
+	// Flugdaten verarbeiten und UI aktualisieren
+	if (flightData.length > 0) {
+		const firstFlight = flightData[0];
+		let departureTime = "--:--";
+		let arrivalTime = "--:--";
+		let origin = "";
+		let destination = "";
+
+		// Departure-Zeit extrahieren
+		if (firstFlight.flightPoints && firstFlight.flightPoints.length > 0) {
+			const departurePoint = firstFlight.flightPoints.find(
+				(p) => p.departurePoint === true
+			);
+			const arrivalPoint = firstFlight.flightPoints.find(
+				(p) => p.arrivalPoint === true
+			);
+
+			if (
+				departurePoint &&
+				departurePoint.departure &&
+				departurePoint.departure.timings
+			) {
+				const stdTiming = departurePoint.departure.timings.find(
+					(t) => t.qualifier === "STD"
+				);
+				if (stdTiming && stdTiming.value) {
+					// Format: HH:MM:SS.000 -> HH:MM
+					departureTime = stdTiming.value.substring(0, 5);
+				}
+				origin = departurePoint.iataCode || "";
+			}
+
+			if (
+				arrivalPoint &&
+				arrivalPoint.arrival &&
+				arrivalPoint.arrival.timings
+			) {
+				const staTiming = arrivalPoint.arrival.timings.find(
+					(t) => t.qualifier === "STA"
+				);
+				if (staTiming && staTiming.value) {
+					// Format: HH:MM:SS.000 -> HH:MM
+					arrivalTime = staTiming.value.substring(0, 5);
+				}
+				destination = arrivalPoint.iataCode || "";
+			}
+		}
+
+		// Kachel-ID extrahieren
+		const cellId = targetCell
+			.querySelector('input[id^="aircraft-"]')
+			.id.replace("aircraft-", "");
+
+		// UI-Elemente aktualisieren
+		const arrivalTimeElement = targetCell.querySelector(
+			`#arrival-time-${cellId}`
+		);
+		const departureTimeElement = targetCell.querySelector(
+			`#departure-time-${cellId}`
+		);
+		const positionElement = targetCell.querySelector(`#position-${cellId}`);
+		const notesElement = targetCell.querySelector(`#notes-${cellId}`);
+
+		if (arrivalTimeElement) arrivalTimeElement.textContent = arrivalTime;
+		if (departureTimeElement) departureTimeElement.textContent = departureTime;
+
+		// Position mit Fluginfo aktualisieren
+		if (positionElement) {
+			const positionText = destination ? destination : origin;
+			positionElement.textContent = positionText;
+
+			// Auch das versteckte Eingabefeld aktualisieren
+			const positionInput = document.getElementById(
+				`hangar-position-${cellId}`
+			);
+			if (positionInput) positionInput.value = positionText;
+		}
+
+		// Flugdetails in Notes eintragen
+		if (notesElement) {
+			const flightNumber = firstFlight.flightDesignator
+				? `${firstFlight.flightDesignator.carrierCode}${firstFlight.flightDesignator.flightNumber}`
+				: "Unbekannt";
+
+			const aircraftType =
+				firstFlight.legs &&
+				firstFlight.legs[0] &&
+				firstFlight.legs[0].aircraftEquipment
+					? firstFlight.legs[0].aircraftEquipment.aircraftType
+					: "Unbekannt";
+
+			notesElement.value = `Flug ${flightNumber} (${origin}-${destination})\nTyp: ${aircraftType}\nAb: ${departureTime} An: ${arrivalTime}`;
+		}
+
+		// Status anpassen
+		updateCellStatus(cellId, "ready");
+
+		console.log(`Kachel ${cellId} mit Flugdaten aktualisiert:`, {
+			arrival: arrivalTime,
+			departure: departureTime,
+			position: destination || origin,
+		});
+	}
+};
+
+/**
+ * Hilfsfunktion zum Aktualisieren des Status einer Kachel
+ * @param {string} cellId - ID der Kachel
+ * @param {string} status - Neuer Status (ready, maintenance, aog)
+ */
+function updateCellStatus(cellId, status) {
+	const statusSelector = document.getElementById(`status-${cellId}`);
+	if (statusSelector) {
+		statusSelector.value = status;
+
+		// Status-Lichter aktualisieren
+		const statusLights = document.querySelectorAll(`[data-cell="${cellId}"]`);
+		statusLights.forEach((light) => {
+			if (light.dataset.status === status) {
+				light.classList.add("active");
+			} else {
+				light.classList.remove("active");
+			}
+		});
+	}
+}

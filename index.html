@@ -1839,6 +1839,25 @@
 								id="nextDateInput"
 								class="w-full bg-industrial-dark text-white px-2 py-1 rounded form-control" />
 						</div>
+
+						<!-- Neues Flughafen-Eingabefeld -->
+						<div class="mb-3">
+							<label class="text-xs block mb-1">Flughafen (IATA-Code):</label>
+							<input
+								type="text"
+								id="airportCodeInput"
+								name="airportCode"
+								placeholder="z.B. FRA, MUC"
+								maxlength="3"
+								value="FRA"
+								style="text-transform: uppercase"
+								class="w-full bg-industrial-dark text-white px-2 py-1 rounded form-control" />
+							<p class="mt-1 text-xs text-gray-400">
+								Geben Sie einen IATA-Flughafencode ein, um die Suche zu
+								verfeinern.
+							</p>
+						</div>
+
 						<button
 							id="fetchFlightData"
 							class="w-full bg-industrial-accent hover:bg-opacity-80 px-4 py-2 rounded font-medium mb-3">
@@ -1964,7 +1983,9 @@
 		<script src="js/hangar-data.js"></script>
 		<script src="js/hangar-events.js"></script>
 		<script src="js/hangar-pdf.js"></script>
+		<script src="js/aerodatabox-api.js"></script>
 		<script src="js/amadeus-api.js"></script>
+		<script src="js/api-facade.js"></script>
 		<script src="js/hangar.js"></script>
 
 		<!-- Event-Handler für den "Info anzeigen"-Button -->

@@ -762,6 +762,102 @@ function fetchAndUpdateFlightData() {
 	}, 1500);
 }
 
+/**
+ * Richtet die Ereignisbehandler für die Flugdatenabfrage ein
+ */
+function setupFlightDataEventHandlers() {
+	// Fetch Flight Button Event Listener
+	const fetchFlightBtn = document.getElementById("fetchFlightData");
+	if (fetchFlightBtn) {
+		fetchFlightBtn.addEventListener("click", async () => {
+			// Eingabewerte sammeln
+			const currentDateInput = document.getElementById("currentDateInput");
+			const nextDateInput = document.getElementById("nextDateInput");
+
+			// Zuerst im dedizierten Suchfeld suchen
+			let searchInput = document.getElementById("searchAircraft");
+			let aircraftId = searchInput?.value?.trim();
+
+			// Wenn keine ID im Suchfeld gefunden wurde, suche nach einer aktiv ausgewählten Kachel
+			if (!aircraftId) {
+				const selectedCell = document.querySelector(".hangar-cell.selected");
+				if (selectedCell) {
+					const cellId = selectedCell.getAttribute("data-cell-id");
+					if (cellId) {
+						const aircraftInput = document.getElementById(`aircraft-${cellId}`);
+						if (aircraftInput && aircraftInput.value.trim()) {
+							aircraftId = aircraftInput.value.trim();
+							console.log(
+								`Verwende Flugzeug-ID aus ausgewählter Kachel: ${aircraftId}`
+							);
+						}
+					}
+				}
+			}
+
+			const currentDate = currentDateInput?.value;
+			const nextDate = nextDateInput?.value;
+
+			// API-Fassade verwenden statt direkten API-Aufruf
+			if (window.FlightDataAPI) {
+				await window.FlightDataAPI.updateAircraftData(
+					aircraftId,
+					currentDate,
+					nextDate
+				);
+			} else if (window.AeroDataBoxAPI) {
+				// Fallback zur direkten AeroDataBox-API falls Fassade nicht verfügbar
+				await window.AeroDataBoxAPI.updateAircraftData(
+					aircraftId,
+					currentDate,
+					nextDate
+				);
+			} else if (window.AmadeusAPI) {
+				// Fallback zur Amadeus-API als letzte Option
+				await window.AmadeusAPI.updateAircraftData(
+					aircraftId,
+					currentDate,
+					nextDate
+				);
+			} else {
+				alert("Keine Flight Data API verfügbar");
+			}
+		});
+
+		console.log("Flight Data Event-Handler eingerichtet");
+	}
+
+	// Verbindung zwischen Suchbutton und Flugdatenabruf herstellen
+	const searchBtn = document.getElementById("btnSearch");
+	if (searchBtn) {
+		searchBtn.addEventListener("click", () => {
+			const searchInput = document.getElementById("searchAircraft");
+			if (searchInput && searchInput.value.trim()) {
+				// Automatisch den Update-Data Button auslösen
+				const fetchFlightBtn = document.getElementById("fetchFlightData");
+				if (fetchFlightBtn) {
+					console.log("Suche nach Flugdaten für: " + searchInput.value.trim());
+					fetchFlightBtn.click();
+				}
+			}
+		});
+	}
+
+	// Eingabefeld für Flugzeugsuche mit Enter-Taste verbinden
+	const searchInput = document.getElementById("searchAircraft");
+	if (searchInput) {
+		searchInput.addEventListener("keypress", (event) => {
+			if (event.key === "Enter") {
+				event.preventDefault();
+				const searchBtn = document.getElementById("btnSearch");
+				if (searchBtn) {
+					searchBtn.click();
+				}
+			}
+		});
+	}
+}
+
 // Exportiere Funktionen als globales Objekt
 window.hangarEvents = {
 	setupUIEventListeners,
