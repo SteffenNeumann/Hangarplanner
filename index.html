@@ -68,18 +68,24 @@
 				margin: 0 auto;
 				box-sizing: border-box;
 				transform-origin: center center;
-				/* Verbesserter Neumorphismus-Stil ohne inneren Schatten, der die weiße Überlagerung verursacht */
-				box-shadow: 12px 12px 16px rgba(166, 166, 185, 0.35),
-					-12px -12px 16px rgba(255, 255, 255, 0.8) !important;
-				border: 1px solid rgba(200, 200, 220, 0.3); /* Subtiler Rahmen */
+				/* Moderneres, ausbalanciertes Neumorphismus-Design mit subtileren Schatten */
+				box-shadow: 8px 8px 12px rgba(166, 166, 185, 0.25),
+					-8px -8px 12px rgba(255, 255, 255, 0.7) !important;
+				border: 1px solid rgba(200, 200, 220, 0.15); /* Feinerer, kaum sichtbarer Rahmen */
 				border-radius: 12px;
-				background-color: #dde1e7; /* Dunklerer Hintergrund für Kontrast */
+				background-color: #e6eaef; /* Leicht hellerer Hintergrund für bessere Balance */
 			}
 
 			.hangar-cell:hover {
-				transform: translateY(-1px); /* Subtile Bewegung */
-				/* Vereinfachter Hover-Effekt ohne zusätzlichen Glow */
-				border-color: rgba(200, 200, 220, 0.7); /* Nur der Rahmen wird betont */
+				/* Minimaler, subtiler Hover-Effekt nach modernen Standards */
+				border-color: rgba(200, 200, 220, 0.35);
+				transform: translateY(-1px);
+			}
+
+			/* Anpassung des Hintergrunds für besseren Kontrast */
+			.hangar-container {
+				background-color: #f0f4f8; /* Hellerer Hintergrund für Container */
+				padding: 2rem;
 			}
 
 			/* Header-Bereich der Karten anpassen */
