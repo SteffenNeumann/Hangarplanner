@@ -158,10 +158,65 @@ function setupUIEventListeners() {
 			});
 		}
 
+		// Event-Listener für "Vor dem Verlassen der Seite"
+		window.addEventListener("beforeunload", function () {
+			// Aktuellen Zustand im LocalStorage sichern
+			if (
+				window.hangarData &&
+				window.hangarData.saveCurrentStateToLocalStorage
+			) {
+				window.hangarData.saveCurrentStateToLocalStorage();
+			}
+		});
+
 		console.log("Alle Event-Listener erfolgreich eingerichtet");
 		return true;
 	} catch (error) {
 		console.error("Fehler beim Einrichten der Event-Listener:", error);
+		return false;
+	}
+}
+
+/**
+ * Verbesserte Initialisierungsfunktion für die UI
+ */
+function initializeUI() {
+	try {
+		console.log("Initialisiere UI...");
+
+		// Sicherstellen, dass die Section Layout-Initialisierung aufgerufen wird
+		if (
+			window.hangarUI &&
+			typeof window.hangarUI.initSectionLayout === "function"
+		) {
+			window.hangarUI.initSectionLayout();
+		}
+
+		// Sofortige Überprüfung und Anwendung der Displayoptionen
+		setTimeout(() => {
+			// Kachelanzahl aus dem UI lesen und anwenden
+			const tilesCount = document.getElementById("tilesCount").value || 8;
+			const secondaryTilesCount =
+				document.getElementById("secondaryTilesCount").value || 0;
+			const layout = document.getElementById("layoutType").value || 4;
+
+			// In uiSettings setzen
+			if (window.hangarUI && window.hangarUI.uiSettings) {
+				window.hangarUI.uiSettings.tilesCount = parseInt(tilesCount);
+				window.hangarUI.uiSettings.secondaryTilesCount =
+					parseInt(secondaryTilesCount);
+				window.hangarUI.uiSettings.layout = parseInt(layout);
+
+				// Einstellungen anwenden
+				window.hangarUI.uiSettings.apply();
+			}
+
+			console.log("Displayoptionen wurden initialisiert");
+		}, 300);
+
+		return true;
+	} catch (error) {
+		console.error("Fehler bei der UI-Initialisierung:", error);
 		return false;
 	}
 }
@@ -440,3 +495,6 @@ window.hangarEvents = {
 	searchAircraft,
 	fetchAndUpdateFlightData,
 };
+
+// Funktion zum globalen Namensraum hinzufügen
+window.initializeUI = initializeUI;

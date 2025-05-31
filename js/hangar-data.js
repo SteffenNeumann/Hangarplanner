@@ -689,6 +689,69 @@ window.hangarData = {
 	saveProjectToFile,
 	loadProjectFromFile,
 	applyProjectData,
+	/**
+	 * Speichert das aktuelle Projekt im LocalStorage als Zwischenstand
+	 * @returns {boolean} Erfolg des Speichervorgangs
+	 */
+	saveCurrentStateToLocalStorage() {
+		try {
+			// Projektdaten sammeln
+			const projectData = collectAllHangarData();
+			if (!projectData) {
+				return false;
+			}
+
+			// Als temporären Zwischenstand speichern
+			localStorage.setItem(
+				"hangarPlannerCurrentState",
+				JSON.stringify(projectData)
+			);
+			console.log("Aktueller Zustand im LocalStorage gespeichert");
+			return true;
+		} catch (error) {
+			console.error(
+				"Fehler beim Speichern des Zustands im LocalStorage:",
+				error
+			);
+			return false;
+		}
+	},
+
+	/**
+	 * Lädt den zuletzt gespeicherten Zustand aus dem LocalStorage
+	 * @returns {boolean} Erfolg des Ladevorgangs
+	 */
+	loadStateFromLocalStorage() {
+		try {
+			const savedState = localStorage.getItem("hangarPlannerCurrentState");
+			if (!savedState) {
+				return false;
+			}
+
+			const projectData = JSON.parse(savedState);
+			applyProjectData(projectData);
+			console.log("Zustand aus LocalStorage wiederhergestellt");
+			return true;
+		} catch (error) {
+			console.error("Fehler beim Laden des Zustands aus LocalStorage:", error);
+			return false;
+		}
+	},
+
+	// Funktion zum automatischen Speichern bei Eingabe in Kacheln
+	setupAutoSaveFields() {
+		// Für alle Eingabefelder in Kacheln
+		document
+			.querySelectorAll(
+				".hangar-cell input, .hangar-cell textarea, .hangar-cell select"
+			)
+			.forEach((input) => {
+				input.addEventListener("change", function () {
+					console.log("Eingabeänderung erkannt, speichere im LocalStorage");
+					setTimeout(saveCurrentStateToLocalStorage, 300);
+				});
+			});
+	},
 };
 
 /**

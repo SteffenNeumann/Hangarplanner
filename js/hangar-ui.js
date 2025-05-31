@@ -9,7 +9,7 @@ const uiSettings = {
 	secondaryTilesCount: 0,
 	layout: 4,
 
-	// Lädt Einstellungen aus dem LocalStorage
+	// Lädt Einstellungen aus dem LocalStorage (beibehalten)
 	load: async function () {
 		try {
 			// Aus localStorage laden
@@ -28,15 +28,19 @@ const uiSettings = {
 					this.applyTileValues(settings.tileValues);
 				}
 
+				console.log("Einstellungen aus LocalStorage geladen");
 				return true;
 			}
 		} catch (error) {
-			console.error("Fehler beim Laden der Einstellungen:", error);
+			console.error(
+				"Fehler beim Laden der Einstellungen aus LocalStorage:",
+				error
+			);
 		}
 		return false;
 	},
 
-	// Speichert Einstellungen in localStorage und optional als Datei
+	// Speichert Einstellungen in localStorage (beibehalten) und optional als Datei
 	save: async function (exportToFile = false) {
 		try {
 			// Aktuelle Werte aus den Eingabefeldern holen
@@ -76,6 +80,7 @@ const uiSettings = {
 				"hangarPlannerSettings",
 				JSON.stringify(settingsData)
 			);
+			console.log("Einstellungen im LocalStorage gespeichert");
 
 			// Optional als Datei exportieren wenn gewünscht
 			if (exportToFile && window.fileManager) {
@@ -450,7 +455,7 @@ function adjustScaling() {
 		const isSidebarCollapsed =
 			document.body.classList.contains("sidebar-collapsed");
 		const windowWidth = window.innerWidth;
-		const sidebarWidth = isSidebarCollapsed ? 0 : 300; // Angepasst auf die tatsächliche Breite
+		const sidebarWidth = isSidebarCollapsed ? 0 : 300;
 		const availableWidth = windowWidth - sidebarWidth;
 
 		// Content-Container Breite anpassen
@@ -460,21 +465,41 @@ function adjustScaling() {
 			contentContainer.style.maxWidth = `${availableWidth}px`;
 		}
 
-		// Skalierungsfaktor bestimmen
+		// Skalierungsfaktor bestimmen - noch stärker reduziert
 		let scaleFactor;
-		if (availableWidth > 1800) scaleFactor = 1.0;
-		else if (availableWidth > 1650) scaleFactor = 0.95;
-		else if (availableWidth > 1500) scaleFactor = 0.9;
-		else if (availableWidth > 1350) scaleFactor = 0.85;
-		else if (availableWidth > 1200) scaleFactor = 0.8;
-		else scaleFactor = 0.75;
+		if (availableWidth > 1800) scaleFactor = 0.9; // Weiter reduziert
+		else if (availableWidth > 1650) scaleFactor = 0.8; // Weiter reduziert
+		else if (availableWidth > 1500) scaleFactor = 0.7; // Weiter reduziert
+		else if (availableWidth > 1350) scaleFactor = 0.6; // Weiter reduziert
+		else if (availableWidth > 1200) scaleFactor = 0.5; // Weiter reduziert
+		else scaleFactor = 0.45; // Weiter reduziert
 
-		// Skalierungsfaktor als CSS-Variable setzen (für CSS-basierte Skalierung)
+		// Skalierungsfaktor als CSS-Variable setzen
 		document.documentElement.style.setProperty("--scale-factor", scaleFactor);
 		document.documentElement.style.setProperty("--inv-scale", 1 / scaleFactor);
 		document.documentElement.style.setProperty(
 			"--section-spacing",
-			`${12 / scaleFactor}px`
+			`${12 * scaleFactor}px`
+		);
+
+		// Angepasste Grid-Abstände für kleinere Kacheln
+		let gridGap;
+		if (availableWidth > 1500) gridGap = 12; // Weiter reduziert
+		else if (availableWidth > 1350) gridGap = 10; // Weiter reduziert
+		else if (availableWidth > 1200) gridGap = 8; // Weiter reduziert
+		else gridGap = 6; // Weiter reduziert
+
+		document.documentElement.style.setProperty("--grid-gap", `${gridGap}px`);
+
+		// WICHTIG: CSS-Variablen für Kachelgrößen direkt aktualisieren
+		const cardBaseWidth = 128; // Basisgröße
+		document.documentElement.style.setProperty(
+			"--card-base-width",
+			`${cardBaseWidth}px`
+		);
+		document.documentElement.style.setProperty(
+			"--card-min-width",
+			`${cardBaseWidth}px`
 		);
 
 		// Grid-Layout anpassen
@@ -487,8 +512,8 @@ function adjustScaling() {
 			transform: `scale(${scaleFactor})`,
 			transformOrigin: "top left",
 			width: `calc(100% / ${scaleFactor})`,
-			gridTemplateColumns: `repeat(${layout}, minmax(var(--card-min-width), 1fr))`,
-			gap: "var(--grid-gap)",
+			gridTemplateColumns: `repeat(${layout}, minmax(${cardBaseWidth}px, 1fr))`, // Direkte Größe setzen
+			gap: `${gridGap}px`,
 			display: "grid",
 		};
 
@@ -502,13 +527,34 @@ function adjustScaling() {
 			Object.assign(secondaryGrid.style, gridConfig);
 		}
 
+		// HINZUGEFÜGT: Direktes Anpassen der Kachelgröße
+		applyTileSizes(cardBaseWidth);
+
 		// Verbesserte Behandlung des Section Dividers
 		const sectionDivider = document.querySelector(".section-divider");
 		if (sectionDivider) {
-			// Statt Transformation besser Abstände anpassen
 			const adjustedSpacing = Math.ceil(12 * scaleFactor);
 			sectionDivider.style.margin = `${adjustedSpacing}px 0`;
 			sectionDivider.style.transform = "none"; // Keine Skalierung mehr, nur Abstandsanpassung
+		}
+
+		// Abstände für alle Sektionsbeschriftungen
+		const sectionLabels = document.querySelectorAll(".section-label");
+		sectionLabels.forEach((label) => {
+			if (!label.classList.contains("section-label-first")) {
+				const adjustedSpacing = Math.ceil(12 * scaleFactor);
+				label.style.marginTop = `${adjustedSpacing}px`;
+			}
+			label.style.marginBottom = `${Math.ceil(12 * scaleFactor)}px`;
+		});
+
+		// Abstand zwischen den Sektionscontainern anpassen
+		const secondarySection = document.querySelector(
+			".section-container:nth-of-type(2)"
+		);
+		if (secondarySection) {
+			const adjustedSpacing = Math.ceil(20 * scaleFactor);
+			secondarySection.style.marginTop = `${adjustedSpacing}px`;
 		}
 
 		// Nach dem Toggle-Zustand der Sidebar prüfen und visuell anpassen
@@ -520,99 +566,169 @@ function adjustScaling() {
 				menuToggleBtn.classList.remove("rotated");
 			}
 		}
+
+		// HINZUGEFÜGT: Manual Inputs responsiv anpassen mit kleineren Werten
+		adjustManualInputWidths();
 	} catch (error) {
 		console.error("Fehler bei der Skalierungsanpassung:", error);
 	}
 }
 
 /**
- * Verbesserte Funktion zur Steuerung der Sichtbarkeit der sekundären Sektion
+ * Neue Funktion: Wendet die Größenanpassungen direkt auf Kacheln an
+ * @param {number} baseSize - Die Basisgröße für Kacheln in Pixeln
  */
-function toggleSecondarySection(visible = false) {
-	const secondaryCount = window.hangarUI.uiSettings.secondaryTilesCount || 0;
-	visible = visible || secondaryCount > 0;
+function applyTileSizes(baseSize) {
+	try {
+		// Alle Kacheln auswählen
+		const cells = document.querySelectorAll(".hangar-cell");
 
-	const divider = document.querySelector(".section-divider");
-	const secondaryLabel = document.querySelector(
-		".section-label:not(:first-of-type)"
-	);
-	const secondaryGrid = document.getElementById("secondaryHangarGrid");
+		cells.forEach((cell) => {
+			// Direkt die Größe der Kacheln anpassen
+			cell.style.minWidth = `${baseSize}px`;
+			cell.style.width = "100%";
+			cell.style.maxWidth = `${baseSize * 2.2}px`; // Maximale Breite begrenzen
+			cell.style.flexBasis = `${baseSize}px`;
 
-	// Display-Eigenschaft setzen
-	const display = visible ? null : "none"; // null = entfernt inline style
+			// Kompaktere innere Abstände
+			const contentDiv = cell.querySelector("div.p-4");
+			if (contentDiv) {
+				contentDiv.style.padding = "0.75rem";
+			}
 
-	if (divider) divider.style.display = display || "block";
-	if (secondaryLabel) secondaryLabel.style.display = display || "block";
-	if (secondaryGrid) secondaryGrid.style.display = display || "grid";
+			// Kleinere Schriftgrößen für Beschriftungen
+			const aircraftId = cell.querySelector(".aircraft-id");
+			if (aircraftId) {
+				aircraftId.style.fontSize = "0.95rem";
+				aircraftId.style.padding = "0.3rem";
+				aircraftId.style.marginBottom = "0.5rem";
+			}
+		});
+	} catch (error) {
+		console.error(
+			"Fehler bei der direkten Größenanpassung der Kacheln:",
+			error
+		);
+	}
 }
 
 /**
- * Hilfsfunktion um DOM-Element-Existenz zu prüfen
- * @param {string} id - Element-ID
+ * Steuert die Sichtbarkeit der sekundären Sektion
+ * @param {boolean} show - Ob die sekundäre Sektion angezeigt werden soll
+ */
+function toggleSecondarySection(show) {
+	const secondarySection = document.querySelector(
+		".section-container:nth-of-type(2)"
+	);
+	const sectionDivider = document.querySelector(".section-divider");
+
+	if (secondarySection) {
+		secondarySection.style.display = show ? "block" : "none";
+	}
+
+	if (sectionDivider) {
+		sectionDivider.style.display = show ? "block" : "none";
+	}
+
+	console.log(`Sekundäre Sektion ${show ? "eingeblendet" : "ausgeblendet"}`);
+}
+
+/**
+ * Aktualisiert die Statuslichter basierend auf der ausgewählten Option
+ * @param {number} cellId - ID der Kachel
+ */
+function updateStatusLights(cellId) {
+	try {
+		// Status-Auswahl finden
+		const statusSelect = document.getElementById(`status-${cellId}`);
+		if (!statusSelect) return;
+
+		const selectedStatus = statusSelect.value;
+
+		// Alle Statuslichter für diese Kachel finden
+		const statusLights = document.querySelectorAll(
+			`.status-light[data-cell="${cellId}"]`
+		);
+
+		// Alle Lichter zurücksetzen (dimmen)
+		statusLights.forEach((light) => {
+			light.classList.remove("active");
+		});
+
+		// Ausgewähltes Licht aktivieren
+		const activeLight = document.querySelector(
+			`.status-light[data-cell="${cellId}"][data-status="${selectedStatus}"]`
+		);
+		if (activeLight) {
+			activeLight.classList.add("active");
+		}
+	} catch (error) {
+		console.error(
+			`Fehler beim Aktualisieren der Statuslichter für Kachel ${cellId}:`,
+			error
+		);
+	}
+}
+
+/**
+ * Hilfsfunktion zur Überprüfung der Existenz von DOM-Elementen
+ * @param {string} elementId - ID des Elements
  * @returns {boolean} - Ob das Element existiert
  */
-function checkElement(id) {
-	const element = document.getElementById(id);
-	if (!element) {
-		console.warn(`Element mit ID "${id}" nicht gefunden!`);
-		return false;
-	}
-	return true;
+function checkElement(elementId) {
+	return document.getElementById(elementId) !== null;
 }
 
 /**
- * Hilfsfunktion für Debug-Ausgaben
- * @param {string} message - Debug-Nachricht
- * @param {any} obj - Optionales Objekt für die Konsole
+ * Debug-Funktion für Konsolen-Ausgaben
+ * @param {string} message - Die auszugebende Nachricht
  */
-function debug(message, obj = null) {
-	const DEBUG = false;
-	if (!DEBUG) return;
-	if (obj) {
-		console.log(`[DEBUG] ${message}`, obj);
-	} else {
+function debug(message) {
+	if (localStorage.getItem("debugMode") === "true") {
 		console.log(`[DEBUG] ${message}`);
 	}
 }
 
 /**
- * Aktualisiert die Status-Lichter basierend auf dem gewählten Status
- * @param {number} cellId - ID der Zelle
- * @returns {boolean} - Erfolg der Operation
+ * Angepasste Funktion für die Breite der Manual Input Felder
  */
-function updateStatusLights(cellId) {
+function adjustManualInputWidths() {
 	try {
-		const statusSelect = document.getElementById(`status-${cellId}`);
-		if (!statusSelect) {
-			console.error(`Status-Select für Zelle ${cellId} nicht gefunden`);
-			return false;
-		}
+		const manualInputs = document.querySelectorAll(
+			'input[placeholder="Manual Input"]'
+		);
+		const windowWidth = window.innerWidth;
 
-		const status = statusSelect.value;
+		manualInputs.forEach((input) => {
+			const headerContainer = input.closest(".bg-industrial-medium");
+			const statusContainer =
+				headerContainer.querySelector(".status-container");
+			const positionContainer =
+				headerContainer.querySelector(".flex.items-center");
 
-		// Alle Lichter für diese Zelle finden
-		const lights = document.querySelectorAll(`[data-cell="${cellId}"]`);
+			// Kleinere Breakpoint-Schwelle für frühere Umschaltung zum Stapellayout
+			if (windowWidth < 1450) {
+				// Bei kleinen Bildschirmen: Volle Breite unter den anderen Elementen
+				headerContainer.style.flexDirection = "column";
+				headerContainer.style.alignItems = "stretch";
+				input.style.width = "100%";
+				input.style.marginTop = "3px";
+			} else {
+				// Berechne verfügbaren Platz für manuelle Eingabe
+				if (headerContainer && statusContainer && positionContainer) {
+					const headerWidth = headerContainer.offsetWidth;
+					const statusWidth = statusContainer.offsetWidth;
+					const positionWidth = positionContainer.offsetWidth;
 
-		// Alle Lichter zurücksetzen (deaktivieren)
-		lights.forEach((light) => {
-			light.classList.remove("active");
+					// Weniger Platz für Padding reservieren
+					const availableWidth = headerWidth - statusWidth - positionWidth - 20;
+					input.style.width = `${Math.max(32, availableWidth)}px`;
+					input.style.marginTop = "0";
+				}
+			}
 		});
-
-		// Das richtige Licht aktivieren
-		const activeLight = document.querySelector(
-			`[data-cell="${cellId}"][data-status="${status}"]`
-		);
-		if (activeLight) {
-			activeLight.classList.add("active");
-		}
-
-		return true;
 	} catch (error) {
-		console.error(
-			`Fehler beim Aktualisieren der Statuslichter für Zelle ${cellId}:`,
-			error
-		);
-		return false;
+		console.error("Fehler bei der Anpassung der Manual Inputs:", error);
 	}
 }
 
@@ -623,10 +739,12 @@ window.hangarUI = {
 	updateCellAttributes,
 	setupSecondaryTileEventListeners,
 	adjustScaling,
+	applyTileSizes,
 	toggleSecondarySection,
 	updateStatusLights,
 	checkElement,
 	debug,
+	adjustManualInputWidths,
 	initSectionLayout: function () {
 		const firstSectionLabel = document.querySelector(
 			".section-label:first-of-type"
@@ -637,5 +755,33 @@ window.hangarUI = {
 
 		// Initiale Anpassung der Skalierung vornehmen
 		window.hangarUI.adjustScaling();
+
+		// Event Listener für Resize hinzufügen
+		window.addEventListener(
+			"resize",
+			debounce(function () {
+				window.hangarUI.adjustScaling();
+			}, 250)
+		);
+
+		// Timeout für verzögerte Anwendung der Skalierung nach vollständigem Rendering
+		setTimeout(() => {
+			window.hangarUI.adjustScaling();
+			// Zweiten Aufruf für bessere Browser-Kompatibilität nach kurzem Delay
+			setTimeout(() => window.hangarUI.adjustScaling(), 200);
+		}, 100);
 	},
 };
+
+/**
+ * Einfache Debounce-Funktion für Performance-Optimierung
+ */
+function debounce(func, wait) {
+	let timeout;
+	return function () {
+		const context = this,
+			args = arguments;
+		clearTimeout(timeout);
+		timeout = setTimeout(() => func.apply(context, args), wait);
+	};
+}

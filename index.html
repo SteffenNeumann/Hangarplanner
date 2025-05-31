@@ -32,9 +32,9 @@
 			:root {
 				--scale-factor: 1;
 				--inv-scale: 1;
-				--grid-gap: 24px;
-				--card-base-width: 200px;
-				--card-min-width: 200px;
+				--grid-gap: 16px;
+				--card-base-width: 128px; /* Reduziert von 160px um weitere 20% */
+				--card-min-width: 128px; /* Reduziert von 160px um weitere 20% */
 				--section-spacing: 12px;
 				--fixed-section-spacing: 12px; /* Neu: Konstante für nicht-skalierbare Abstände */
 			}
@@ -49,13 +49,24 @@
 			.hangar-cell {
 				transition: all 0.3s ease;
 				width: 100%; /* Nimmt die volle Zellbreite ein */
-				min-width: var(--card-min-width);
-				max-width: 350px; /* Erhöht von 100% auf 350px */
-				flex-basis: var(--card-base-width); /* Basis-Breite setzen */
+				min-width: var(
+					--card-min-width
+				) !important; /* Mit !important verstärken */
+				max-width: 280px !important; /* Reduziert von 350px - mit !important verstärken */
+				flex-basis: var(
+					--card-base-width
+				) !important; /* Mit !important verstärken */
 				margin: 0 auto; /* Zentrieren innerhalb der Zelle */
+				/* Füge zusätzliche Größenbegrenzung hinzu */
+				box-sizing: border-box;
+				transform-origin: center center;
+				/* Verstärkte Schatten für besseren Kontrast auf weißem Hintergrund */
+				box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.08) !important;
 			}
 			.hangar-cell:hover {
 				transform: translateY(-2px);
+				/* Noch deutlicherer Schatten bei Hover */
+				box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.1) !important;
 			}
 
 			/* Grid-Definition mit dynamischem Zwischenraum */
@@ -161,7 +172,7 @@
 				flex-grow: 1;
 				margin-top: 0.5rem;
 				margin-bottom: 0.75rem;
-				min-height: 60px;
+				min-height: 50px; /* Reduzierte Mindesthöhe für Notizbereich */
 			}
 			.notes-textarea {
 				flex-grow: 1;
@@ -172,9 +183,9 @@
 			.aircraft-id {
 				text-align: center;
 				font-weight: bold;
-				font-size: 1.25rem;
-				padding: 0.5rem;
-				margin-bottom: 0.75rem;
+				font-size: 0.95rem; /* Kleinere Schriftgröße für Aircraft ID */
+				padding: 0.3rem;
+				margin-bottom: 0.5rem;
 				border-bottom: 2px solid #bfc0c0;
 				background-color: transparent;
 				width: 100%;
@@ -272,12 +283,10 @@
 				width: 100%;
 				height: 2px;
 				background-color: #4f5d75;
-				/* Entfernen der festen Margins und Verwendung der dynamischen Abstände */
-				margin: 12px 0;
+				/* Verwende die CSS-Variable für konsistente Abstände */
+				margin: var(--section-spacing, 12px) 0;
 				position: relative;
-				transform-origin: center;
-				/* Angepasste Transformation für besseres Skalierungsverhalten */
-				transform: scaleY(1);
+				transform: none;
 			}
 
 			/* Anpassung für das Label im Section Divider */
@@ -299,9 +308,9 @@
 				font-size: 16px;
 				font-weight: 500;
 				color: white;
-				/* Dynamische Margins statt fester Werte */
-				margin-bottom: 12px;
-				margin-top: 12px;
+				/* Verwende die CSS-Variable für konsistente Abstände */
+				margin-bottom: var(--section-spacing, 12px);
+				margin-top: var(--section-spacing, 12px);
 				padding-left: 5px;
 				/* Kompensieren der Skalierung */
 				transform: scale(var(--inv-scale));
@@ -324,35 +333,35 @@
 			@media (max-width: 1800px) {
 				:root {
 					--scale-factor: 0.95;
-					--grid-gap: 24px; /* Mindestens 24px Zwischenraum */
+					--grid-gap: 16px; /* Reduzierter Abstand */
 				}
 			}
 
 			@media (max-width: 1650px) {
 				:root {
 					--scale-factor: 0.9;
-					--grid-gap: 24px; /* Mindestens 24px Zwischenraum */
+					--grid-gap: 16px; /* Reduzierter Abstand */
 				}
 			}
 
 			@media (max-width: 1500px) {
 				:root {
-					--scale-factor: 0.85;
-					--grid-gap: 24px; /* Mindestens 24px Zwischenraum */
+					--scale-factor: 0.82; /* Zusätzlich reduziert */
+					--grid-gap: 14px; /* Reduzierter Abstand */
 				}
 			}
 
 			@media (max-width: 1350px) {
 				:root {
-					--scale-factor: 0.8;
-					--grid-gap: 24px; /* Mindestens 24px Zwischenraum */
+					--scale-factor: 0.75; /* Zusätzlich reduziert */
+					--grid-gap: 12px; /* Reduzierter Abstand */
 				}
 			}
 
 			@media (max-width: 1200px) {
 				:root {
-					--scale-factor: 0.75;
-					--grid-gap: 24px; /* Mindestens 24px Zwischenraum */
+					--scale-factor: 0.65; /* Zusätzlich reduziert */
+					--grid-gap: 10px; /* Reduzierter Abstand */
 				}
 			}
 
@@ -491,6 +500,98 @@
 			.sidebar-collapsed .menu-toggle span {
 				transform: rotate(180deg);
 			}
+
+			/* Zusätzliche responsive Styling für Manual Inputs */
+			.hangar-cell .bg-industrial-medium input[placeholder="Manual Input"] {
+				max-width: 100%;
+				width: auto;
+				flex-grow: 1;
+				min-width: 40px;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+				overflow: hidden;
+			}
+
+			/* Anpassung der Header-Zeile in Kacheln für bessere Responsivität */
+			.hangar-cell .bg-industrial-medium.px-3.py-2 {
+				flex-wrap: wrap;
+				gap: 4px;
+				padding: 0.25rem 0.5rem;
+			}
+
+			/* Optimieren des Layouts bei kleinen Bildschirmen */
+			@media (max-width: 1500px) {
+				.hangar-cell .bg-industrial-medium.px-3.py-2 {
+					justify-content: space-between;
+				}
+
+				.hangar-cell .bg-industrial-medium .flex.items-center {
+					flex-basis: 100%;
+					order: 1;
+					margin-top: 2px;
+				}
+
+				.hangar-cell .bg-industrial-medium input[placeholder="Manual Input"] {
+					order: 2;
+					flex-basis: 100%;
+					margin-top: 2px;
+				}
+			}
+
+			/* Direkte Kachelgrößen-Regeln mit !important für Priorität */
+			.hangar-cell {
+				transition: all 0.3s ease;
+				width: 100%;
+				min-width: var(
+					--card-min-width
+				) !important; /* Mit !important verstärken */
+				max-width: 280px !important; /* Reduziert von 350px - mit !important verstärken */
+				flex-basis: var(
+					--card-base-width
+				) !important; /* Mit !important verstärken */
+				margin: 0 auto; /* Zentrieren innerhalb der Zelle */
+				/* Füge zusätzliche Größenbegrenzung hinzu */
+				box-sizing: border-box;
+				transform-origin: center center;
+			}
+
+			/* Stärkere und klarere Größenbegrenzungen für innere Elemente */
+			.hangar-cell > div {
+				max-width: 100%;
+			}
+
+			/* Angepasste Größen für kleinere Kacheln */
+			.aircraft-id {
+				font-size: 0.95rem; /* Kleinere Schriftgröße für Aircraft ID */
+				padding: 0.3rem;
+				margin-bottom: 0.5rem;
+				border-bottom: 2px solid #bfc0c0;
+				background-color: transparent;
+				width: 100%;
+				color: #2d3142;
+			}
+
+			.info-grid {
+				gap: 0.3rem;
+			}
+
+			/* Kompaktere Innenabstände */
+			.hangar-cell .p-4 {
+				padding: 0.75rem !important;
+			}
+
+			/* Reduzierte innere Abstände bei kleineren Bildschirmgrößen */
+			@media (max-width: 1500px) {
+				.hangar-cell .p-4 {
+					padding: 0.5rem !important;
+				}
+
+				.aircraft-id {
+					font-size: 0.9rem;
+					padding: 0.25rem;
+					margin-bottom: 0.4rem;
+				}
+			}
 		</style>
 	</head>
 	<body class="bg-industrial-dark text-white font-sans edit-mode">
@@ -507,9 +608,8 @@
 					</div>
 				</header>
 
-				<!-- Hangar-Kacheln Bereich -->
-				<div
-					class="flex-grow bg-industrial-light p-6 overflow-auto hangar-container">
+				<!-- Hangar-Kacheln Bereich - Hintergrund auf Weiß geändert -->
+				<div class="flex-grow bg-white p-6 overflow-auto hangar-container">
 					<!-- Abschnitt 1 Container -->
 					<div class="section-container">
 						<div class="section-label">Primary Section</div>
@@ -1757,7 +1857,6 @@
 
 		<!-- Ausgelagerte JavaScript-Dateien -->
 		<script src="js/helpers.js"></script>
-		<script src="js/folderManager.js"></script>
 		<script src="js/fileManager.js"></script>
 		<script src="js/hangar-ui.js"></script>
 		<script src="js/hangar-data.js"></script>
