@@ -1035,23 +1035,26 @@ function debounce(func, wait) {
  * Sucht nach einem Flugzeug anhand der Aircraft ID und hebt die entsprechende Karte hervor
  */
 function searchAircraft() {
-    try {
-        const searchTerm = document.getElementById('searchAircraft').value.trim().toLowerCase();
-        if (!searchTerm) {
-            // Bei leerem Suchbegriff alle Hervorhebungen zurücksetzen
-            resetHighlighting();
-            return;
-        }
+	try {
+		const searchTerm = document
+			.getElementById("searchAircraft")
+			.value.trim()
+			.toLowerCase();
+		if (!searchTerm) {
+			// Bei leerem Suchbegriff alle Hervorhebungen zurücksetzen
+			resetHighlighting();
+			return;
+		}
 
-        const foundElement = findAircraftElement(searchTerm);
-        if (foundElement) {
-            highlightFoundElement(foundElement);
-        } else {
-            showNotFoundMessage(searchTerm);
-        }
-    } catch (error) {
-        console.error("Fehler bei der Flugzeugsuche:", error);
-    }
+		const foundElement = findAircraftElement(searchTerm);
+		if (foundElement) {
+			highlightFoundElement(foundElement);
+		} else {
+			showNotFoundMessage(searchTerm);
+		}
+	} catch (error) {
+		console.error("Fehler bei der Flugzeugsuche:", error);
+	}
 }
 
 /**
@@ -1060,15 +1063,15 @@ function searchAircraft() {
  * @returns {HTMLElement|null} - Das gefundene Element oder null
  */
 function findAircraftElement(searchTerm) {
-    // Zuerst im Hauptgrid suchen
-    let found = searchInGrid('hangarGrid', searchTerm);
-    
-    // Wenn nicht gefunden, im sekundären Grid suchen
-    if (!found) {
-        found = searchInGrid('secondaryHangarGrid', searchTerm);
-    }
-    
-    return found;
+	// Zuerst im Hauptgrid suchen
+	let found = searchInGrid("hangarGrid", searchTerm);
+
+	// Wenn nicht gefunden, im sekundären Grid suchen
+	if (!found) {
+		found = searchInGrid("secondaryHangarGrid", searchTerm);
+	}
+
+	return found;
 }
 
 /**
@@ -1078,18 +1081,18 @@ function findAircraftElement(searchTerm) {
  * @returns {HTMLElement|null} - Das gefundene Element oder null
  */
 function searchInGrid(gridId, searchTerm) {
-    const grid = document.getElementById(gridId);
-    if (!grid) return null;
+	const grid = document.getElementById(gridId);
+	if (!grid) return null;
 
-    const aircraftInputs = grid.querySelectorAll('input[id^="aircraft-"]');
-    for (const input of aircraftInputs) {
-        const value = input.value.toLowerCase();
-        if (value.includes(searchTerm)) {
-            return input.closest('.hangar-cell');
-        }
-    }
-    
-    return null;
+	const aircraftInputs = grid.querySelectorAll('input[id^="aircraft-"]');
+	for (const input of aircraftInputs) {
+		const value = input.value.toLowerCase();
+		if (value.includes(searchTerm)) {
+			return input.closest(".hangar-cell");
+		}
+	}
+
+	return null;
 }
 
 /**
@@ -1097,50 +1100,51 @@ function searchInGrid(gridId, searchTerm) {
  * @param {HTMLElement} element - Das hervorzuhebende Element
  */
 function highlightFoundElement(element) {
-    // Zuerst alle Hervorhebungen zurücksetzen
-    resetHighlighting();
-    
-    // Element hervorheben
-    element.classList.add('search-highlight');
-    
-    // Temporärer Stil für die Hervorhebung hinzufügen, falls noch nicht vorhanden
-    addHighlightStyle();
-    
-    // Element ins Sichtfeld scrollen
-    element.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center'
-    });
-    
-    // Blinkeffekt für bessere Sichtbarkeit
-    let blinkCount = 0;
-    const blinkInterval = setInterval(() => {
-        element.classList.toggle('search-blink');
-        blinkCount++;
-        
-        if (blinkCount >= 6) { // 3 volle Blinkzyklen
-            clearInterval(blinkInterval);
-            element.classList.remove('search-blink');
-        }
-    }, 300);
-    
-    // NEU: Nach 2 Sekunden automatisch die Hervorhebung zurücksetzen
-    setTimeout(() => {
-        // Blinkeffekt beenden, wenn er noch läuft
-        clearInterval(blinkInterval);
-        // Alle Hervorhebungen zurücksetzen
-        resetHighlighting();
-    }, 2000);
+	// Zuerst alle Hervorhebungen zurücksetzen
+	resetHighlighting();
+
+	// Element hervorheben
+	element.classList.add("search-highlight");
+
+	// Temporärer Stil für die Hervorhebung hinzufügen, falls noch nicht vorhanden
+	addHighlightStyle();
+
+	// Element ins Sichtfeld scrollen
+	element.scrollIntoView({
+		behavior: "smooth",
+		block: "center",
+	});
+
+	// Blinkeffekt für bessere Sichtbarkeit
+	let blinkCount = 0;
+	const blinkInterval = setInterval(() => {
+		element.classList.toggle("search-blink");
+		blinkCount++;
+
+		if (blinkCount >= 6) {
+			// 3 volle Blinkzyklen
+			clearInterval(blinkInterval);
+			element.classList.remove("search-blink");
+		}
+	}, 300);
+
+	// NEU: Nach 2 Sekunden automatisch die Hervorhebung zurücksetzen
+	setTimeout(() => {
+		// Blinkeffekt beenden, wenn er noch läuft
+		clearInterval(blinkInterval);
+		// Alle Hervorhebungen zurücksetzen
+		resetHighlighting();
+	}, 2000);
 }
 
 /**
  * Fügt die CSS-Stile für die Suche hinzu, falls sie noch nicht existieren
  */
 function addHighlightStyle() {
-    if (!document.getElementById('search-highlight-style')) {
-        const style = document.createElement('style');
-        style.id = 'search-highlight-style';
-        style.textContent = `
+	if (!document.getElementById("search-highlight-style")) {
+		const style = document.createElement("style");
+		style.id = "search-highlight-style";
+		style.textContent = `
             .search-highlight {
                 box-shadow: 0 0 0 3px #FF7043, 8px 8px 12px rgba(166, 166, 185, 0.25),
                 -8px -8px 12px rgba(255, 255, 255, 0.7) !important;
@@ -1173,22 +1177,22 @@ function addHighlightStyle() {
                 100% { opacity: 0; visibility: hidden; }
             }
         `;
-        document.head.appendChild(style);
-    }
+		document.head.appendChild(style);
+	}
 }
 
 /**
  * Setzt alle Such-Hervorhebungen zurück
  */
 function resetHighlighting() {
-    const highlightedElements = document.querySelectorAll('.search-highlight');
-    highlightedElements.forEach(el => {
-        el.classList.remove('search-highlight', 'search-blink');
-    });
-    
-    // Auch alle "Nicht gefunden"-Meldungen entfernen
-    const notFoundMessages = document.querySelectorAll('.search-not-found');
-    notFoundMessages.forEach(el => el.remove());
+	const highlightedElements = document.querySelectorAll(".search-highlight");
+	highlightedElements.forEach((el) => {
+		el.classList.remove("search-highlight", "search-blink");
+	});
+
+	// Auch alle "Nicht gefunden"-Meldungen entfernen
+	const notFoundMessages = document.querySelectorAll(".search-not-found");
+	notFoundMessages.forEach((el) => el.remove());
 }
 
 /**
@@ -1196,23 +1200,64 @@ function resetHighlighting() {
  * @param {string} searchTerm - Der Suchbegriff
  */
 function showNotFoundMessage(searchTerm) {
-    const container = document.querySelector('.hangar-container');
-    if (!container) return;
-    
-    const message = document.createElement('div');
-    message.className = 'search-not-found';
-    message.textContent = `Aircraft "${searchTerm}" wurde nicht gefunden`;
-    
-    container.appendChild(message);
-    
-    // Nach Animation automatisch entfernen
-    setTimeout(() => {
-        if (message.parentNode) {
-            message.parentNode.removeChild(message);
-        }
-    }, 3000);
+	const container = document.querySelector(".hangar-container");
+	if (!container) return;
+
+	const message = document.createElement("div");
+	message.className = "search-not-found";
+	message.textContent = `Aircraft "${searchTerm}" wurde nicht gefunden`;
+
+	container.appendChild(message);
+
+	// Nach Animation automatisch entfernen
+	setTimeout(() => {
+		if (message.parentNode) {
+			message.parentNode.removeChild(message);
+		}
+	}, 3000);
 }
 
-// Exportiere die Suchfunktion, damit sie über Events angebunden werden kann
-if (!window.hangarUI) window.hangarUI = {};
-window.hangarUI.searchAircraft = searchAircraft;
+// Hinzufügen dieser Funktion zur bestehenden Datei
+
+function initializeFlightDataSection() {
+	// Finde die Sidebar-Accordion-Content für Flight Data
+	const flightDataContent = document.querySelector(
+		'.sidebar-accordion-header:has(.sidebar-section-title:contains("Flight Data"))'
+	).nextElementSibling;
+
+	if (flightDataContent) {
+		// Finde den Button-Container und füge Datumswähler davor ein
+		const updateButton = flightDataContent.querySelector("#fetchFlightData");
+		const dateInputContainer = document.createElement("div");
+		dateInputContainer.className = "flex flex-col space-y-2 mb-3";
+		dateInputContainer.innerHTML = `
+            <div>
+                <label class="text-xs block mb-1">Tag (letzter Flug):</label>
+                <input type="date" id="currentDateInput" class="w-full bg-industrial-dark text-white px-2 py-1 rounded form-control">
+            </div>
+            <div>
+                <label class="text-xs block mb-1">Tag (erster Flug):</label>
+                <input type="date" id="nextDateInput" class="w-full bg-industrial-dark text-white px-2 py-1 rounded form-control">
+            </div>
+        `;
+
+		// Füge Container vor dem Button ein
+		if (updateButton && updateButton.parentNode) {
+			updateButton.parentNode.insertBefore(dateInputContainer, updateButton);
+		}
+	}
+}
+
+// Falls es bereits eine initializeUI-Funktion gibt, diese erweitern:
+// Ursprüngliche initializeUI-Funktion
+function initializeUI() {
+	// Bestehender Code...
+
+	// Initalisiere den Flight Data-Bereich
+	initializeFlightDataSection();
+}
+
+// Wenn initializeUI nicht definiert ist:
+if (typeof window.initializeUI === "undefined") {
+	window.initializeUI = initializeUI;
+}

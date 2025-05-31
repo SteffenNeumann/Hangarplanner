@@ -1815,7 +1815,7 @@
 					</div>
 				</div>
 
-				<!-- Flugdaten abrufen -->
+				<!-- Flugdaten abrufen - aktualisierter Bereich -->
 				<div class="sidebar-accordion-item">
 					<div class="sidebar-accordion-header">
 						<div class="sidebar-header-content">
@@ -1825,6 +1825,20 @@
 						<i class="dropdown-arrow">▼</i>
 					</div>
 					<div class="sidebar-accordion-content">
+						<div class="mb-3">
+							<label class="text-xs block mb-1">Tag (letzter Flug):</label>
+							<input
+								type="date"
+								id="currentDateInput"
+								class="w-full bg-industrial-dark text-white px-2 py-1 rounded form-control" />
+						</div>
+						<div class="mb-3">
+							<label class="text-xs block mb-1">Tag (erster Flug):</label>
+							<input
+								type="date"
+								id="nextDateInput"
+								class="w-full bg-industrial-dark text-white px-2 py-1 rounded form-control" />
+						</div>
 						<button
 							id="fetchFlightData"
 							class="w-full bg-industrial-accent hover:bg-opacity-80 px-4 py-2 rounded font-medium mb-3">
@@ -1950,6 +1964,7 @@
 		<script src="js/hangar-data.js"></script>
 		<script src="js/hangar-events.js"></script>
 		<script src="js/hangar-pdf.js"></script>
+		<script src="js/amadeus-api.js"></script>
 		<script src="js/hangar.js"></script>
 
 		<!-- Event-Handler für den "Info anzeigen"-Button -->

@@ -173,12 +173,12 @@ function setupUIEventListeners() {
 		initializeStatusSelectors();
 
 		// Event Listener für die Flugzeugsuche
-		const searchBtn = document.getElementById('btnSearch');
-		const searchInput = document.getElementById('searchAircraft');
+		const searchBtn = document.getElementById("btnSearch");
+		const searchInput = document.getElementById("searchAircraft");
 
 		if (searchBtn && searchInput) {
 			// Such-Button Klick-Event
-			searchBtn.addEventListener('click', function() {
+			searchBtn.addEventListener("click", function () {
 				if (window.hangarUI && window.hangarUI.searchAircraft) {
 					window.hangarUI.searchAircraft();
 				} else {
@@ -187,8 +187,8 @@ function setupUIEventListeners() {
 			});
 
 			// Enter-Taste im Suchfeld auslösen
-			searchInput.addEventListener('keypress', function(event) {
-				if (event.key === 'Enter') {
+			searchInput.addEventListener("keypress", function (event) {
+				if (event.key === "Enter") {
 					event.preventDefault();
 					if (window.hangarUI && window.hangarUI.searchAircraft) {
 						window.hangarUI.searchAircraft();
