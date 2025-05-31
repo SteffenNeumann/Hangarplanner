@@ -469,6 +469,7 @@
 				transform: translateX(0);
 				overflow-y: auto;
 				max-height: 100vh;
+				padding: 0;
 			}
 
 			/* Eingeklappte Sidebar */
@@ -497,97 +498,78 @@
 				transform: rotate(180deg);
 			}
 
-			/* Zusätzliche responsive Styling für Manual Inputs */
-			.hangar-cell .bg-industrial-medium input[placeholder="Manual Input"] {
-				max-width: 100%;
-				width: auto;
-				flex-grow: 1;
-				min-width: 40px;
-				text-overflow: ellipsis;
-				white-space: nowrap;
-				overflow: hidden;
+			/* Neue Styles für das Sidebar-Menü im Flugzeuginfo-Stil - mit bestehender Farbpalette */
+			.sidebar-container {
+				width: 300px;
+				transition: transform 0.3s ease, width 0.3s ease;
+				transform: translateX(0);
+				overflow-y: auto;
+				max-height: 100vh;
+				padding: 0;
 			}
 
-			/* Anpassung der Header-Zeile in Kacheln für bessere Responsivität */
-			.hangar-cell .bg-industrial-medium.px-3.py-2 {
-				flex-wrap: wrap;
-				gap: 4px;
-				padding: 0.25rem 0.5rem;
+			.sidebar-header {
+				background-color: #2d3142; /* industrial-dark */
+				color: white;
+				padding: 12px 16px;
+				border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 			}
 
-			/* Optimieren des Layouts bei kleinen Bildschirmen */
-			@media (max-width: 1500px) {
-				.hangar-cell .bg-industrial-medium.px-3.py-2 {
-					justify-content: space-between;
-				}
-
-				.hangar-cell .bg-industrial-medium .flex.items-center {
-					flex-basis: 100%;
-					order: 1;
-					margin-top: 2px;
-				}
-
-				.hangar-cell .bg-industrial-medium input[placeholder="Manual Input"] {
-					order: 2;
-					flex-basis: 100%;
-					margin-top: 2px;
-				}
+			.sidebar-accordion-item {
+				border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 			}
 
-			/* Direkte Kachelgrößen-Regeln mit !important für Priorität */
-			.hangar-cell {
-				transition: all 0.3s ease;
-				width: 100%;
-				min-width: var(
-					--card-min-width
-				) !important; /* Mit !important verstärken */
-				max-width: 280px !important; /* Reduziert von 350px - mit !important verstärken */
-				flex-basis: var(
-					--card-base-width
-				) !important; /* Mit !important verstärken */
-				margin: 0 auto; /* Zentrieren innerhalb der Zelle */
-				/* Füge zusätzliche Größenbegrenzung hinzu */
-				box-sizing: border-box;
-				transform-origin: center center;
+			.sidebar-accordion-header {
+				background-color: #2d3142; /* Dunklerer Hintergrund (industrial-dark) */
+				padding: 10px 16px;
+				cursor: pointer;
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
 			}
 
-			/* Stärkere und klarere Größenbegrenzungen für innere Elemente */
-			.hangar-cell > div {
-				max-width: 100%;
+			.sidebar-header-content {
+				display: flex;
+				align-items: center;
+				gap: 10px;
 			}
 
-			/* Angepasste Größen für kleinere Kacheln */
-			.aircraft-id {
-				font-size: 0.95rem; /* Kleinere Schriftgröße für Aircraft ID */
-				padding: 0.3rem;
-				margin-bottom: 0.5rem;
-				border-bottom: 2px solid #bfc0c0;
-				background-color: transparent;
-				width: 100%;
-				color: #2d3142;
+			.sidebar-icon {
+				font-size: 16px;
+				min-width: 20px;
+				text-align: center;
 			}
 
-			.info-grid {
-				gap: 0.3rem;
+			.sidebar-section-title {
+				font-size: 1rem;
+				font-weight: 500;
+				margin: 0;
 			}
 
-			/* Kompaktere Innenabstände */
-			.hangar-cell .p-4 {
-				padding: 0.75rem !important;
+			.dropdown-arrow {
+				font-size: 10px;
+				transition: transform 0.3s;
 			}
 
-			/* Reduzierte innere Abstände bei kleineren Bildschirmgrößen */
-			@media (max-width: 1500px) {
-				.hangar-cell .p-4 {
-					padding: 0.5rem !important;
-				}
-
-				.aircraft-id {
-					font-size: 0.9rem;
-					padding: 0.25rem;
-					margin-bottom: 0.4rem;
-				}
+			.sidebar-accordion-header.collapsed .dropdown-arrow {
+				transform: rotate(-90deg);
 			}
+
+			.sidebar-accordion-content {
+				background-color: #4f5d75; /* Hellerer Hintergrund (industrial-medium) */
+				padding: 12px 16px;
+				display: flex;
+				flex-direction: column;
+				gap: 10px;
+			}
+
+			/* Wichtig: Ausblenden wenn collapsed - verbesserte Spezifität */
+			.sidebar-accordion-header.collapsed + .sidebar-accordion-content {
+				display: none !important;
+			}
+
+			/* Rest der Styles bleibt gleich */
+			/* ...existing code... */
 		</style>
 	</head>
 	<body class="bg-industrial-dark text-white font-sans edit-mode">
@@ -1596,182 +1578,204 @@
 				class="sidebar-container bg-industrial-medium border-l border-industrial-light flex flex-col">
 				<!-- Haupttitel des Menüs -->
 				<div class="sidebar-header">
-					<h2 class="text-xl font-semibold">Menu</h2>
+					<h2 class="text-xl font-semibold">Hangar Menu</h2>
 				</div>
 
 				<!-- Ansichtsverwaltung als eigene Sektion -->
-				<div class="sidebar-section">
-					<h3 class="sidebar-section-title">Project Settings</h3>
-
-					<!-- Mode Toggle Switch -->
-					<div class="mode-toggle-container">
-						<span class="text-sm">View/Edit Mode:</span>
-						<div class="mode-toggle">
-							<span class="mode-toggle-label text-xs">View</span>
-							<label class="toggle-switch">
-								<input type="checkbox" id="modeToggle" checked />
-								<span class="toggle-slider"></span>
-							</label>
-							<span class="mode-toggle-label text-xs">Edit</span>
+				<div class="sidebar-accordion-item">
+					<div class="sidebar-accordion-header">
+						<div class="sidebar-header-content">
+							<i class="sidebar-icon">⚙️</i>
+							<h3 class="sidebar-section-title">Project Settings</h3>
 						</div>
+						<i class="dropdown-arrow">▼</i>
 					</div>
+					<div class="sidebar-accordion-content">
+						<!-- Mode Toggle Switch -->
+						<div class="menu-info-row">
+							<div class="menu-info-label">View/Edit Mode:</div>
+							<div class="menu-info-value">
+								<div class="mode-toggle">
+									<span class="mode-toggle-label text-xs">View</span>
+									<label class="toggle-switch">
+										<input type="checkbox" id="modeToggle" checked />
+										<span class="toggle-slider"></span>
+									</label>
+									<span class="mode-toggle-label text-xs">Edit</span>
+								</div>
+							</div>
+						</div>
 
-					<!-- Project Name -->
-					<div class="mb-3">
-						<label class="text-sm block mb-1">Project Name:</label>
-						<input
-							id="projectName"
-							type="text"
-							placeholder="Project Name"
-							class="bg-industrial-dark text-white px-3 py-1 rounded form-control w-full" />
-						<input type="hidden" id="projectId" value="" />
-					</div>
+						<!-- Project Name -->
+						<div class="menu-info-row">
+							<div class="menu-info-label">Project Name:</div>
+							<div class="menu-info-value">
+								<input
+									id="projectName"
+									type="text"
+									placeholder="Project Name"
+									class="bg-industrial-dark text-white px-3 py-1 rounded form-control w-full" />
+								<input type="hidden" id="projectId" value="" />
+							</div>
+						</div>
 
-					<!-- Save/Load Buttons -->
-					<div class="save-load-container">
-						<button
-							id="saveBtn"
-							class="bg-industrial-accent hover:bg-opacity-80 px-4 py-1 rounded font-medium">
-							Save
-						</button>
-						<button
-							id="loadBtn"
-							class="bg-industrial-light text-industrial-dark hover:bg-opacity-80 px-4 py-1 rounded font-medium">
-							Load
-						</button>
-					</div>
-
-					<!-- Dateidialog-Modus Toggle hinzufügen - ausblenden -->
-					<div class="mt-3 flex items-center" style="display: none">
-						<label for="fileSystemToggle" class="text-sm mr-2"
-							>Dateidialog:</label
-						>
-						<label class="toggle-switch inline-flex">
-							<input type="checkbox" id="fileSystemToggle" checked />
-							<span class="toggle-slider"></span>
-						</label>
-					</div>
-
-					<!-- Einstellungen speichern/laden - komplett ausgeblendet -->
-					<div class="mt-4" style="display: none">
-						<h4 class="text-sm font-semibold mb-2">Configuration</h4>
-						<div class="flex gap-2">
+						<!-- Save/Load Buttons -->
+						<div class="menu-button-row">
 							<button
-								id="saveSettingsBtn"
-								class="w-full bg-industrial-accent hover:bg-opacity-80 px-3 py-1 rounded text-xs">
-								Save Settings
+								id="saveBtn"
+								class="bg-industrial-accent hover:bg-opacity-80 px-4 py-1 rounded font-medium">
+								Save
 							</button>
 							<button
-								id="loadSettingsBtn"
-								class="flex-1 bg-industrial-light text-industrial-dark hover:bg-opacity-80 px-3 py-1 rounded text-xs">
-								Load Settings
+								id="loadBtn"
+								class="bg-industrial-light text-industrial-dark hover:bg-opacity-80 px-4 py-1 rounded font-medium">
+								Load
 							</button>
 						</div>
-						<p class="text-xs mt-2 opacity-70">
-							Settings werden automatisch gespeichert und umfassen Layout,
-							Kachelanzahl etc.
-						</p>
 					</div>
 				</div>
 
 				<!-- Display Options Sektion -->
-				<div class="sidebar-section">
-					<h3 class="sidebar-section-title">Display Options</h3>
-					<div class="flex flex-col space-y-2">
-						<label class="text-sm">Primary Tiles:</label>
-						<div class="flex items-center space-x-2">
-							<input
-								type="number"
-								id="tilesCount"
-								min="1"
-								max="12"
-								value="8"
-								class="w-20 px-2 py-1 bg-industrial-dark rounded form-control" />
-							<button
-								id="updateTilesBtn"
-								class="bg-industrial-accent px-3 py-1 rounded text-white">
-								Update
-							</button>
+				<div class="sidebar-accordion-item">
+					<div class="sidebar-accordion-header">
+						<div class="sidebar-header-content">
+							<i class="sidebar-icon">🔳</i>
+							<h3 class="sidebar-section-title">Display Options</h3>
+						</div>
+						<i class="dropdown-arrow">▼</i>
+					</div>
+					<div class="sidebar-accordion-content">
+						<div class="menu-info-row">
+							<div class="menu-info-label">Primary Tiles:</div>
+							<div class="menu-info-value">
+								<div class="flex items-center space-x-2">
+									<input
+										type="number"
+										id="tilesCount"
+										min="1"
+										max="12"
+										value="8"
+										class="w-20 px-2 py-1 bg-industrial-dark rounded form-control" />
+									<button
+										id="updateTilesBtn"
+										class="bg-industrial-accent px-3 py-1 rounded text-white">
+										Update
+									</button>
+								</div>
+							</div>
 						</div>
 
-						<label class="text-sm mt-2">Secondary Tiles:</label>
-						<div class="flex items-center space-x-2">
-							<input
-								type="number"
-								id="secondaryTilesCount"
-								min="0"
-								max="12"
-								value="0"
-								class="w-20 px-2 py-1 bg-industrial-dark rounded form-control" />
-							<button
-								id="updateSecondaryTilesBtn"
-								class="bg-industrial-accent px-3 py-1 rounded text-white">
-								Update
-							</button>
+						<div class="menu-info-row">
+							<div class="menu-info-label">Secondary Tiles:</div>
+							<div class="menu-info-value">
+								<div class="flex items-center space-x-2">
+									<input
+										type="number"
+										id="secondaryTilesCount"
+										min="0"
+										max="12"
+										value="0"
+										class="w-20 px-2 py-1 bg-industrial-dark rounded form-control" />
+									<button
+										id="updateSecondaryTilesBtn"
+										class="bg-industrial-accent px-3 py-1 rounded text-white">
+										Update
+									</button>
+								</div>
+							</div>
 						</div>
 
-						<div class="flex items-center space-x-2 mt-2">
-							<label class="text-sm">Layout:</label>
-							<select
-								id="layoutType"
-								class="bg-industrial-dark text-white px-2 py-1 rounded form-control">
-								<option value="1">1 Column</option>
-								<option value="2">2 Columns</option>
-								<option value="3">3 Columns</option>
-								<option value="4" selected>4 Columns</option>
-							</select>
+						<div class="menu-info-row">
+							<div class="menu-info-label">Layout:</div>
+							<div class="menu-info-value">
+								<select
+									id="layoutType"
+									class="bg-industrial-dark text-white px-2 py-1 rounded form-control w-full">
+									<option value="1">1 Column</option>
+									<option value="2">2 Columns</option>
+									<option value="3">3 Columns</option>
+									<option value="4" selected>4 Columns</option>
+								</select>
+							</div>
 						</div>
 					</div>
 				</div>
 
 				<!-- Flugzeugsuche -->
-				<div class="sidebar-section">
-					<h3 class="sidebar-section-title">Search Aircraft</h3>
-					<div class="flex">
-						<input
-							type="text"
-							id="searchAircraft"
-							placeholder="Enter Aircraft ID"
-							class="flex-grow px-2 py-1 bg-industrial-dark rounded-l form-control" />
-						<button
-							id="btnSearch"
-							class="bg-industrial-accent px-3 py-1 rounded-r">
-							Search
-						</button>
+				<div class="sidebar-accordion-item">
+					<div class="sidebar-accordion-header">
+						<div class="sidebar-header-content">
+							<i class="sidebar-icon">🔍</i>
+							<h3 class="sidebar-section-title">Search Aircraft</h3>
+						</div>
+						<i class="dropdown-arrow">▼</i>
+					</div>
+					<div class="sidebar-accordion-content">
+						<div class="flex">
+							<input
+								type="text"
+								id="searchAircraft"
+								placeholder="Enter Aircraft ID"
+								class="flex-grow px-2 py-1 bg-industrial-dark rounded-l form-control" />
+							<button
+								id="btnSearch"
+								class="bg-industrial-accent px-3 py-1 rounded-r">
+								Search
+							</button>
+						</div>
 					</div>
 				</div>
 
 				<!-- Flugdaten abrufen -->
-				<div class="sidebar-section overflow-auto">
-					<h3 class="sidebar-section-title">Retrieve Flight Data</h3>
-					<button
-						id="fetchFlightData"
-						class="w-full bg-industrial-accent hover:bg-opacity-80 px-4 py-2 rounded font-medium mb-3">
-						Update Data
-					</button>
-					<div id="fetchStatus" class="text-sm text-center">
-						Ready to retrieve flight data
+				<div class="sidebar-accordion-item">
+					<div class="sidebar-accordion-header">
+						<div class="sidebar-header-content">
+							<i class="sidebar-icon">✈️</i>
+							<h3 class="sidebar-section-title">Flight Data</h3>
+						</div>
+						<i class="dropdown-arrow">▼</i>
+					</div>
+					<div class="sidebar-accordion-content">
+						<button
+							id="fetchFlightData"
+							class="w-full bg-industrial-accent hover:bg-opacity-80 px-4 py-2 rounded font-medium mb-3">
+							Update Data
+						</button>
+						<div id="fetchStatus" class="text-sm text-center">
+							Ready to retrieve flight data
+						</div>
 					</div>
 				</div>
 
 				<!-- PDF Export Funktion -->
-				<div class="sidebar-section">
-					<h3 class="sidebar-section-title">Export Hangar Plan</h3>
-					<div class="pdf-export-container">
-						<div>
-							<label class="block text-sm mb-1">File name:</label>
-							<input
-								type="text"
-								id="pdfFilename"
-								value="Hangar_Plan"
-								class="w-full px-2 py-1 bg-industrial-dark rounded form-control" />
+				<div class="sidebar-accordion-item">
+					<div class="sidebar-accordion-header">
+						<div class="sidebar-header-content">
+							<i class="sidebar-icon">📄</i>
+							<h3 class="sidebar-section-title">Export Plan</h3>
 						</div>
-						<div class="flex flex-col gap-2">
-							<label class="block text-sm">Options:</label>
+						<i class="dropdown-arrow">▼</i>
+					</div>
+					<div class="sidebar-accordion-content">
+						<div class="menu-info-row">
+							<div class="menu-info-label">File name:</div>
+							<div class="menu-info-value">
+								<input
+									type="text"
+									id="pdfFilename"
+									value="Hangar_Plan"
+									class="w-full px-2 py-1 bg-industrial-dark rounded form-control" />
+							</div>
+						</div>
+
+						<div class="menu-option-row">
 							<div class="flex items-center">
 								<input type="checkbox" id="includeNotes" checked class="mr-2" />
 								<label for="includeNotes" class="text-sm">Include Notes</label>
 							</div>
+						</div>
+
+						<div class="menu-option-row">
 							<div class="flex items-center">
 								<input
 									type="checkbox"
@@ -1783,7 +1787,8 @@
 								>
 							</div>
 						</div>
-						<div class="flex justify-end mt-2">
+
+						<div class="menu-button-row">
 							<button
 								id="exportPdfBtn"
 								class="bg-industrial-accent hover:bg-opacity-80 px-4 py-1 rounded font-medium">
@@ -1793,10 +1798,8 @@
 					</div>
 				</div>
 
-				<!-- Verstecktes File-Input-Element für Import -->
+				<!-- Versteckte File-Input-Elemente -->
 				<input type="file" id="jsonFileInput" accept=".json" class="hidden" />
-
-				<!-- Verstecktes File-Input-Element für Einstellungen-Import -->
 				<input
 					type="file"
 					id="settingsFileInput"
@@ -1878,7 +1881,6 @@
 						}
 					});
 				}
-
 				// Am Ende der DOMContentLoaded-Initialisierung:
 				if (typeof initializeUI === "function") {
 					initializeUI();

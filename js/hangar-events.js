@@ -745,7 +745,66 @@ window.hangarEvents = {
 	importSettingsFromJson,
 	searchAircraft,
 	fetchAndUpdateFlightData,
+	initSidebarAccordion, // Exportiere auch die Akkordeon-Funktion
 };
 
 // Funktion zum globalen Namensraum hinzufügen
 window.initializeUI = initializeUI;
+
+// Event-Handler initialisieren, wenn das DOM geladen ist
+document.addEventListener("DOMContentLoaded", function () {
+	// Die bisherigen Event-Handler-Aufrufe entfernen, da sie doppelt definiert sind
+
+	// Initialisiere die Sidebar-Akkordeons
+	initSidebarAccordion();
+
+	console.log("Sidebar-Akkordeon initialisiert");
+});
+
+/**
+ * Initialisiert das Akkordeon-Verhalten für die Sidebar
+ */
+function initSidebarAccordion() {
+	const accordionHeaders = document.querySelectorAll(
+		".sidebar-accordion-header"
+	);
+
+	console.log(`${accordionHeaders.length} Akkordeon-Header gefunden`);
+
+	// Standardmäßig das erste Element öffnen, Rest schließen
+	accordionHeaders.forEach((header, index) => {
+		if (index !== 0) {
+			header.classList.add("collapsed");
+		} else {
+			header.classList.remove("collapsed");
+		}
+
+		// Führe einen Log für jeden Header durch
+		console.log(
+			`Akkordeon-Header #${index + 1}: ${
+				header.classList.contains("collapsed") ? "collapsed" : "expanded"
+			}`
+		);
+	});
+
+	// Click-Event für jede Akkordeon-Header-Zeile
+	accordionHeaders.forEach((header, index) => {
+		// Alte Event-Listener entfernen (falls vorhanden)
+		header.removeEventListener("click", header._toggleHandler);
+
+		// Neuen Event-Handler definieren
+		header._toggleHandler = function () {
+			console.log(`Akkordeon-Header #${index + 1} wurde geklickt`);
+			// Toggle des collapsed-Status
+			this.classList.toggle("collapsed");
+		};
+
+		// Event-Listener hinzufügen
+		header.addEventListener("click", header._toggleHandler);
+		console.log(
+			`Event-Listener für Akkordeon-Header #${index + 1} eingerichtet`
+		);
+	});
+}
+
+// Den Rest der Datei unverändert lassen
