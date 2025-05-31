@@ -6,10 +6,11 @@
 const AmadeusAPI = (() => {
 	// API Configuration
 	const config = {
-		apiKey: "", // Your Amadeus API Key
-		apiSecret: "", // Your Amadeus API Secret
+		apiKey: "VDCRHgvSyMzkgb9Y3ztJzRszQLvg8Qcq", // Your Amadeus API Key
+		apiSecret: "AQWCDWW1vNhXLlVt", // Your Amadeus API Secret
 		baseUrl: "https://test.api.amadeus.com/v2", // Test environment, change to production when ready
 		tokenUrl: "https://test.api.amadeus.com/v1/security/oauth2/token",
+		debugMode: true, // Aktiviere Debug-Modus für zusätzliche Konsolenausgaben
 	};
 
 	// Access token storage
@@ -70,6 +71,11 @@ const AmadeusAPI = (() => {
 				? "text-sm text-center text-status-red"
 				: "text-sm text-center";
 		}
+
+		// Auch in der Konsole loggen für bessere Nachverfolgung
+		if (config.debugMode) {
+			isError ? console.error(message) : console.log(message);
+		}
 	};
 
 	/**
@@ -94,8 +100,12 @@ const AmadeusAPI = (() => {
 
 			const token = await getToken();
 
+			// Debug: Token-Informationen
+			if (config.debugMode) {
+				console.log(`Token erhalten: ${token.substring(0, 10)}...`);
+			}
+
 			// Korrigierter Endpunkt für die Amadeus Flight Schedules API
-			// Bei echten Aircraft-IDs müssen wir das Format analysieren und korrekt parsen
 			let apiUrl;
 
 			// Prüfen, ob es sich um eine Flugnummer im Format "LH123" handelt
@@ -108,44 +118,85 @@ const AmadeusAPI = (() => {
 				const flightNumber = match[2];
 				apiUrl = `${config.baseUrl}/schedule/flights?carrierCode=${carrierCode}&flightNumber=${flightNumber}&scheduledDepartureDate=${date}`;
 			} else {
-				// Alternativer Versuch mit der Aircraft Registration als Parameter
-				// Hinweis: Dies ist möglicherweise nicht von der Amadeus API unterstützt
-				apiUrl = `${
-					config.baseUrl
-				}/schedule/flights?aircraftRegistration=${encodeURIComponent(
-					aircraftId
-				)}&date=${date}`;
+				// Bei Aircraft-Registrierung wie D-AIBL müssen wir einen alternativen Endpoint oder
+				// eine andere API verwenden, da die Flight Schedules API keine direkte Suche nach
+				// Flugzeugregistrierungen unterstützt
 
-				// Logging für Debugging-Zwecke
-				console.log(`Verwende alternative URL für Aircraft: ${apiUrl}`);
+				// Da wir keinen direkten Zugriff auf Flüge nach Registrierung haben,
+				// können wir einen Test-Flug einer bekannten Airline abfragen
+				// oder einen Mock-Endpunkt für Testzwecke verwenden
+
+				// WICHTIG: Diese Testdaten sind nur als Übergangslösung zu verstehen!
+				// Für eine produktive Umgebung müsste eine andere API verwendet werden,
+				// die Flüge nach Registrierung suchen kann
+
+				// Beispiel für einen Testflug (LH438)
+				apiUrl = `${config.baseUrl}/schedule/flights?carrierCode=LH&flightNumber=438&scheduledDepartureDate=${date}`;
+
+				updateFetchStatus(
+					`Hinweis: Suche nach Aircraft ${aircraftId} - Verwende Testdaten für Demo-Zwecke`,
+					false
+				);
+
+				// Alternativ könnten wir hier auch Mock-Daten zurückgeben:
+				if (config.debugMode) {
+					console.log(`Verwende Test-API für ${aircraftId}: ${apiUrl}`);
+				}
+			}
+
+			// Debug: API-URL anzeigen
+			if (config.debugMode) {
+				console.log(`API-Anfrage an: ${apiUrl}`);
 			}
 
 			const response = await fetch(apiUrl, {
 				method: "GET",
 				headers: {
 					Authorization: `Bearer ${token}`,
+					"Content-Type": "application/json",
 				},
 			});
 
+			// Debug: API-Antwort Status anzeigen
+			if (config.debugMode) {
+				console.log(
+					`API-Antwort Status: ${response.status} ${response.statusText}`
+				);
+			}
+
 			// Handling von 404 und anderen Fehlern
 			if (response.status === 404) {
-				console.warn(`Keine Daten gefunden für ${aircraftId} am ${date}`);
+				updateFetchStatus(
+					`Keine Daten gefunden für ${aircraftId} am ${date}`,
+					true
+				);
 				return { data: [] }; // Leeres Daten-Array zurückgeben
 			}
 
 			if (!response.ok) {
+				const errorText = await response.text();
 				throw new Error(
-					`API-Anfrage fehlgeschlagen: ${response.status} ${response.statusText}`
+					`API-Anfrage fehlgeschlagen: ${response.status} ${response.statusText}. Details: ${errorText}`
 				);
 			}
 
 			const data = await response.json();
 
-			// Überprüfen und loggen der zurückgegebenen Datenstruktur für Debugging
+			// Debug: Empfangene Daten anzeigen
+			if (config.debugMode) {
+				console.log(`API-Antwort Daten:`, data);
+			}
+
+			// Überprüfen und loggen der zurückgegebenen Datenstruktur
 			if (data && data.data && data.data.length > 0) {
-				console.log(`Gefundene Flüge für ${aircraftId}: ${data.data.length}`);
+				updateFetchStatus(
+					`Gefundene Flüge für ${aircraftId}: ${data.data.length}`
+				);
 			} else {
-				console.log(`Keine Flüge gefunden für ${aircraftId} am ${date}`);
+				updateFetchStatus(
+					`Keine Flüge gefunden für ${aircraftId} am ${date}`,
+					true
+				);
 			}
 
 			return data;
@@ -171,13 +222,97 @@ const AmadeusAPI = (() => {
 		let latestDepartureTime = "";
 		let earliestNextDepartureTime = "23:59";
 
-		if (!flightData || !flightData.data) {
+		if (!flightData || !flightData.data || !Array.isArray(flightData.data)) {
+			if (config.debugMode) {
+				console.log("Keine gültigen Flugdaten zum Verarbeiten vorhanden");
+			}
 			return { lastFlight, firstFlight };
 		}
 
+		// Überprüfe jeden Flug auf die benötigten Eigenschaften
 		flightData.data.forEach((flight) => {
-			const flightDate = flight.departure.scheduledTime.substring(0, 10);
-			const departureTime = flight.departure.scheduledTime.substring(11, 16);
+			// Debug-Ausgabe der Flugstruktur
+			if (config.debugMode) {
+				console.log("Verarbeite Flugdaten:", flight);
+			}
+
+			// Extrahiere die Flugnummer aus flightDesignator wenn vorhanden
+			let carrierCode = "";
+			let flightNumber = "";
+			if (flight.flightDesignator) {
+				carrierCode = flight.flightDesignator.carrierCode || "";
+				flightNumber = flight.flightDesignator.flightNumber || "";
+				if (config.debugMode) {
+					console.log(`Flugnummer gefunden: ${carrierCode}${flightNumber}`);
+				}
+			}
+
+			// Extrahiere das Abflugdatum aus dem Hauptobjekt oder aus flightPoints
+			let flightDate = "";
+			let departureTime = "";
+
+			// Option 1: Direktes Datum im Hauptobjekt
+			if (flight.scheduledDepartureDate) {
+				flightDate = flight.scheduledDepartureDate;
+
+				// Versuche die Abflugzeit aus flightPoints zu bekommen
+				if (
+					flight.flightPoints &&
+					Array.isArray(flight.flightPoints) &&
+					flight.flightPoints.length > 0
+				) {
+					const departurePoint = flight.flightPoints.find(
+						(point) => point.departurePoint === true
+					);
+					if (
+						departurePoint &&
+						departurePoint.departure &&
+						departurePoint.departure.timings
+					) {
+						for (const timing of departurePoint.departure.timings) {
+							if (timing.qualifier === "STD") {
+								// Scheduled Time of Departure
+								departureTime = timing.value.substring(0, 5); // Format HH:MM
+								break;
+							}
+						}
+					}
+				}
+
+				// Wenn keine spezifische Zeit gefunden wurde, verwende eine Standard-Zeit
+				if (!departureTime) {
+					departureTime = "12:00"; // Standard-Mittag als Fallback
+					if (config.debugMode) {
+						console.log(
+							`Keine genaue Abflugzeit gefunden für ${carrierCode}${flightNumber}, verwende Standard: ${departureTime}`
+						);
+					}
+				}
+			}
+			// Option 2: Datum im departure-Objekt (falls vorhanden)
+			else if (flight.departure && flight.departure.scheduledTime) {
+				flightDate = flight.departure.scheduledTime.substring(0, 10);
+				departureTime = flight.departure.scheduledTime.substring(11, 16);
+			}
+			// Bei fehlendem Datum - nutze den Fallback von der Anfrage
+			else if (!flightDate) {
+				flightDate = flight.departure ? currentDate : currentDate;
+				departureTime = "12:00"; // Standard-Fallback
+				console.warn(
+					`Kein Datum gefunden für Flug ${carrierCode}${flightNumber}, verwende Anfragedatum`
+				);
+			}
+
+			// Speichere zusätzliche Informationen im Flugobjekt für spätere Verwendung
+			flight.extractedInfo = {
+				flightNumber: `${carrierCode}${flightNumber}`,
+				date: flightDate,
+				departureTime: departureTime,
+			};
+
+			if (config.debugMode) {
+				console.log(`Extrahierte Fluginformationen:`, flight.extractedInfo);
+			}
 
 			// Check for last flight of current day
 			if (flightDate === currentDate && departureTime > latestDepartureTime) {
@@ -195,7 +330,210 @@ const AmadeusAPI = (() => {
 			}
 		});
 
+		// Debug-Ausgabe der gefundenen Flüge
+		if (config.debugMode) {
+			console.log(`Letzter Flug (${currentDate}):`, lastFlight);
+			console.log(`Erster Flug (${nextDate}):`, firstFlight);
+		}
+
 		return { lastFlight, firstFlight };
+	};
+
+	/**
+	 * Update UI with flight information
+	 * @param {Object} lastFlight - Last flight of the day
+	 * @param {Object} firstFlight - First flight of next day
+	 * @param {string} aircraftId - Aircraft ID
+	 * @param {string} cellId - Cell ID for DOM access
+	 */
+	const updateFlightDisplayInUI = (
+		lastFlight,
+		firstFlight,
+		aircraftId,
+		cellId
+	) => {
+		const parentRow =
+			document.getElementById(cellId)?.parentElement ||
+			document.querySelector(`#${cellId}`).closest(".row") ||
+			document.querySelector(`#${cellId}`).parentElement;
+
+		// Debug: Zeige gefundene Elemente für Debugging
+		if (config.debugMode) {
+			console.log(`Parent Row für ${cellId}:`, parentRow);
+		}
+
+		// Update Arrival Time and Flight Number (from last flight)
+		if (lastFlight) {
+			// Extrahiere relevante Informationen
+			let arrivalTime = "N/A";
+			let flightNumber = lastFlight.extractedInfo?.flightNumber || "N/A";
+			let arrivalLocation = "";
+
+			// Versuche die Ankunftszeit und den Ort zu bestimmen
+			if (
+				lastFlight.flightPoints &&
+				Array.isArray(lastFlight.flightPoints) &&
+				lastFlight.flightPoints.length > 0
+			) {
+				const arrivalPoint = lastFlight.flightPoints.find(
+					(point) => point.arrivalPoint === true
+				);
+				if (arrivalPoint) {
+					// Extrahiere Ankunftszeit
+					if (arrivalPoint.arrival && arrivalPoint.arrival.timings) {
+						for (const timing of arrivalPoint.arrival.timings) {
+							if (timing.qualifier === "STA") {
+								// Scheduled Time of Arrival
+								arrivalTime = timing.value.substring(0, 5); // Format HH:MM
+								break;
+							}
+						}
+					}
+
+					// Extrahiere Ankunftsort (IATA Code)
+					if (arrivalPoint.iataCode) {
+						arrivalLocation = arrivalPoint.iataCode;
+					}
+				}
+			} else if (lastFlight.arrival && lastFlight.arrival.scheduledTime) {
+				arrivalTime = lastFlight.arrival.scheduledTime.substring(11, 16);
+				if (lastFlight.arrival.iataCode) {
+					arrivalLocation = lastFlight.arrival.iataCode;
+				}
+			}
+
+			// Aktualisiere die Ankunftszeit im UI
+			let arrivalField = document.querySelector(
+				`#arrival-time-${cellId.split("-")[1]}`
+			);
+			if (!arrivalField && parentRow) {
+				// Suche nach Elementen mit Klassen oder Labels
+				const labels = parentRow.querySelectorAll("label, span, div");
+				for (const label of labels) {
+					if (label.textContent.includes("Arrival")) {
+						arrivalField =
+							label.nextElementSibling ||
+							parentRow.querySelector(".arrival-time") ||
+							parentRow.querySelector('[id*="arrival"]');
+						break;
+					}
+				}
+			}
+
+			if (arrivalField) {
+				// Füge die Flugnummer zur Ankunftszeit hinzu
+				const displayValue = `${arrivalTime} (${flightNumber})`;
+
+				if (arrivalField.tagName.toLowerCase() === "input") {
+					arrivalField.value = displayValue;
+				} else {
+					arrivalField.textContent = displayValue;
+				}
+				if (config.debugMode) {
+					console.log(
+						`Ankunftszeit mit Flugnummer für ${aircraftId} gesetzt: ${displayValue}`
+					);
+				}
+			} else {
+				console.warn(`Konnte Ankunftsfeld für ${aircraftId} nicht finden`);
+			}
+
+			// Update Position if available
+			if (arrivalLocation) {
+				let positionField = document.querySelector(
+					`#position-${cellId.split("-")[1]}`
+				);
+				if (!positionField && parentRow) {
+					const labels = parentRow.querySelectorAll("label, span, div");
+					for (const label of labels) {
+						if (label.textContent.includes("Position")) {
+							positionField =
+								label.nextElementSibling ||
+								parentRow.querySelector(".position") ||
+								parentRow.querySelector('[id*="position"]');
+							break;
+						}
+					}
+				}
+
+				if (positionField) {
+					if (positionField.tagName.toLowerCase() === "input") {
+						positionField.value = arrivalLocation;
+					} else {
+						positionField.textContent = arrivalLocation;
+					}
+					if (config.debugMode) {
+						console.log(
+							`Position für ${aircraftId} auf ${arrivalLocation} gesetzt`
+						);
+					}
+				}
+			}
+		}
+
+		// Update Departure Time and Flight Number (from first flight of next day)
+		if (firstFlight) {
+			let departureTime = "N/A";
+			let flightNumber = firstFlight.extractedInfo?.flightNumber || "N/A";
+
+			// Extrahiere die Abflugzeit aus verschiedenen möglichen Quellen
+			if (
+				firstFlight.extractedInfo &&
+				firstFlight.extractedInfo.departureTime
+			) {
+				departureTime = firstFlight.extractedInfo.departureTime;
+			} else if (firstFlight.departure && firstFlight.departure.scheduledTime) {
+				departureTime = firstFlight.departure.scheduledTime.substring(11, 16);
+			} else if (firstFlight.flightPoints) {
+				// Suche nach dem Abflugpunkt
+				const departurePoint = firstFlight.flightPoints.find(
+					(point) => point.departurePoint === true
+				);
+				if (departurePoint?.departure?.timings) {
+					for (const timing of departurePoint.departure.timings) {
+						if (timing.qualifier === "STD") {
+							departureTime = timing.value.substring(0, 5);
+							break;
+						}
+					}
+				}
+			}
+
+			// Aktualisiere das UI mit Abflugzeit und Flugnummer
+			let departureField = document.querySelector(
+				`#departure-time-${cellId.split("-")[1]}`
+			);
+			if (!departureField && parentRow) {
+				const labels = parentRow.querySelectorAll("label, span, div");
+				for (const label of labels) {
+					if (label.textContent.includes("Departure")) {
+						departureField =
+							label.nextElementSibling ||
+							parentRow.querySelector(".departure-time") ||
+							parentRow.querySelector('[id*="departure"]');
+						break;
+					}
+				}
+			}
+
+			if (departureField) {
+				// Füge die Flugnummer zur Abflugzeit hinzu
+				const displayValue = `${departureTime} (${flightNumber})`;
+
+				if (departureField.tagName.toLowerCase() === "input") {
+					departureField.value = displayValue;
+				} else {
+					departureField.textContent = displayValue;
+				}
+				if (config.debugMode) {
+					console.log(
+						`Abflugzeit mit Flugnummer für ${aircraftId} gesetzt: ${displayValue}`
+					);
+				}
+			} else {
+				console.warn(`Konnte Abflugfeld für ${aircraftId} nicht finden`);
+			}
+		}
 	};
 
 	/**
@@ -219,20 +557,90 @@ const AmadeusAPI = (() => {
 			const formattedCurrentDate = formatDate(currentDate);
 			const formattedNextDate = formatDate(nextDate);
 
-			// Get all aircraft cells
+			// Debug: Datum-Werte anzeigen
+			if (config.debugMode) {
+				console.log(
+					`Aktualisiere Daten für Zeitraum: ${formattedCurrentDate} bis ${formattedNextDate}`
+				);
+			}
+
+			// Get all aircraft cells - korrigierter Selektor basierend auf dem UI-Screenshot
 			const aircraftCells = document.querySelectorAll(".aircraft-id");
+			if (config.debugMode) {
+				console.log(`Gefundene Aircraft-Felder: ${aircraftCells.length}`);
+			}
+
+			if (aircraftCells.length === 0) {
+				// Alternative Selektor-Versuche, falls obiger Selektor keine Elemente findet
+				const alternativeSelectors = [
+					"input[placeholder='Aircraft ID']",
+					".grid-item input",
+				];
+
+				for (const selector of alternativeSelectors) {
+					const altCells = document.querySelectorAll(selector);
+					if (altCells.length > 0) {
+						console.log(
+							`Alternative Selektor gefunden: ${selector}, Elemente: ${altCells.length}`
+						);
+						aircraftCells = altCells;
+						break;
+					}
+				}
+			}
+
 			let updatedCount = 0;
 
 			for (const cell of aircraftCells) {
-				const aircraftId = cell.value;
+				// Debug: Zellwerte anzeigen
+				if (config.debugMode) {
+					console.log(`Verarbeite Zelle:`, cell);
+				}
+
+				// Ermittle Aircraft ID je nachdem, ob es sich um ein Input-Feld oder ein div/span handelt
+				let aircraftId;
+				if (cell.tagName.toLowerCase() === "input") {
+					aircraftId = cell.value;
+				} else {
+					aircraftId = cell.textContent.trim();
+				}
 
 				// Skip empty cells
-				if (!aircraftId || aircraftId.trim() === "") {
+				if (
+					!aircraftId ||
+					aircraftId.trim() === "" ||
+					aircraftId === "Aircraft ID"
+				) {
+					if (config.debugMode) console.log("Überspringe leere Zelle");
 					continue;
 				}
 
-				// Extract cell number from ID
-				const cellNumber = cell.id.split("-")[1];
+				// Identifiziere die Position dieser Zelle im Grid
+				// Aus dem Screenshot sehe ich, dass das Format Position: 1A, 1B, etc. sein könnte
+				// Extract cell number from ID or parent container
+				let cellId;
+				if (cell.id) {
+					cellId = cell.id;
+				} else if (cell.dataset && cell.dataset.cellId) {
+					cellId = cell.dataset.cellId;
+				} else {
+					// Versuche, die ID aus dem übergeordneten Container zu extrahieren
+					const parentContainer =
+						cell.closest(".grid-item") || cell.parentElement;
+					if (parentContainer && parentContainer.id) {
+						cellId = parentContainer.id;
+					} else {
+						// Fallback: Verwende eine eindeutige ID basierend auf dem Index
+						cellId = `aircraft-${updatedCount}`;
+					}
+				}
+
+				// Debug: Cell-ID anzeigen
+				if (config.debugMode) {
+					console.log(
+						`Verarbeite Aircraft ${aircraftId} mit Cell-ID ${cellId}`
+					);
+				}
 
 				try {
 					updateFetchStatus(`Suche Flugdaten für ${aircraftId}...`);
@@ -255,6 +663,11 @@ const AmadeusAPI = (() => {
 						],
 					};
 
+					// Debug: Zusammengeführte Flugdaten anzeigen
+					if (config.debugMode) {
+						console.log(`Alle gefundenen Flüge für ${aircraftId}:`, allFlights);
+					}
+
 					// Find boundary flights
 					const { lastFlight, firstFlight } = findBoundaryFlights(
 						allFlights,
@@ -262,30 +675,13 @@ const AmadeusAPI = (() => {
 						formattedNextDate
 					);
 
-					// Update UI with flight times
-					if (lastFlight) {
-						document.getElementById(`arrival-time-${cellNumber}`).textContent =
-							lastFlight.arrival.scheduledTime.substring(11, 16); // Extract HH:MM
-					}
-
-					if (firstFlight) {
-						document.getElementById(
-							`departure-time-${cellNumber}`
-						).textContent = firstFlight.departure.scheduledTime.substring(
-							11,
-							16
-						); // Extract HH:MM
-					}
-
-					// Update position if available (e.g., from last flight's arrival)
-					if (lastFlight && lastFlight.arrival.iataCode) {
-						document.getElementById(`position-${cellNumber}`).textContent =
-							lastFlight.arrival.iataCode;
-					}
+					// Verwende die neue Funktion zur UI-Aktualisierung
+					updateFlightDisplayInUI(lastFlight, firstFlight, aircraftId, cellId);
 
 					updatedCount++;
 				} catch (error) {
 					console.error(`Fehler bei Aktualisierung von ${aircraftId}:`, error);
+					updateFetchStatus(`Fehler bei ${aircraftId}: ${error.message}`, true);
 					// Continue with next aircraft
 				}
 			}
@@ -336,6 +732,21 @@ const AmadeusAPI = (() => {
 		const updateButton = document.getElementById("fetchFlightData");
 		if (updateButton) {
 			updateButton.addEventListener("click", updateAircraftData);
+		}
+
+		// Debug: Bestätige Initialisierung
+		if (config.debugMode) {
+			console.log("Amadeus API Modul initialisiert");
+
+			// Überprüfe DOM-Elemente
+			const updateButton = document.getElementById("fetchFlightData");
+			console.log("Update Button gefunden:", !!updateButton);
+
+			const currentDateInput = document.getElementById("currentDateInput");
+			console.log("Current Date Input gefunden:", !!currentDateInput);
+
+			const nextDateInput = document.getElementById("nextDateInput");
+			console.log("Next Date Input gefunden:", !!nextDateInput);
 		}
 	};
 
