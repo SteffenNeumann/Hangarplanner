@@ -42,46 +42,71 @@ const FlightDataAPI = (() => {
 	 * Fügt einen Provider-Selektor zur UI hinzu
 	 */
 	const addProviderSelector = () => {
-		// Abschnitt für API-Auswahl in der Flight Data Sektion im Sidebar-Menü
-		const flightDataSection = document.querySelector(
-			".sidebar-accordion-content:has(#fetchFlightData)"
-		);
+		try {
+			// Abschnitt für API-Auswahl in der Flight Data Sektion im Sidebar-Menü
+			const flightDataSection = document.querySelector("#flightDataContent");
 
-		if (!flightDataSection) {
-			console.warn("Flight Data Abschnitt nicht gefunden");
-			return;
-		}
+			if (!flightDataSection) {
+				console.warn("Flight Data Abschnitt nicht gefunden");
+				return;
+			}
 
-		// Provider-Auswahl vor dem Fetch-Button einfügen
-		const fetchButton = document.getElementById("fetchFlightData");
-		if (!fetchButton) return;
+			// Provider-Auswahl vor dem Fetch-Button einfügen
+			const fetchButton = document.getElementById("fetchFlightData");
+			if (!fetchButton) return;
 
-		const providerSelectorContainer = document.createElement("div");
-		providerSelectorContainer.className = "mb-3";
-		providerSelectorContainer.innerHTML = `
+			// Überprüfen ob der Selektor bereits existiert
+			if (document.getElementById("apiProviderSelect")) {
+				console.log("API Provider Selector bereits vorhanden");
+				return;
+			}
+
+			const providerSelectorContainer = document.createElement("div");
+			providerSelectorContainer.className = "mb-3";
+			providerSelectorContainer.innerHTML = `
             <label class="text-xs block mb-1">API-Provider:</label>
             <select id="apiProviderSelect" class="w-full bg-industrial-dark text-white px-2 py-1 rounded form-control">
                 <option value="${PROVIDERS.AERODATABOX}" ${
-			activeProvider === PROVIDERS.AERODATABOX ? "selected" : ""
-		}>AeroDataBox API (empfohlen)</option>
+				activeProvider === PROVIDERS.AERODATABOX ? "selected" : ""
+			}>AeroDataBox API (empfohlen)</option>
                 <option value="${PROVIDERS.AMADEUS}" ${
-			activeProvider === PROVIDERS.AMADEUS ? "selected" : ""
-		}>Amadeus API (Backup)</option>
+				activeProvider === PROVIDERS.AMADEUS ? "selected" : ""
+			}>Amadeus API (Backup)</option>
             </select>
             <p class="mt-1 text-xs text-gray-400">
-                Wählen Sie den gewünschten API-Provider für Flugdaten.
+                API-Provider für Flugdaten
             </p>
         `;
 
-		// Element vor dem Fetch-Button einfügen
-		fetchButton.parentNode.insertBefore(providerSelectorContainer, fetchButton);
+			// Element vor dem Fetch-Button einfügen
+			fetchButton.parentNode.insertBefore(
+				providerSelectorContainer,
+				fetchButton
+			);
 
-		// Event-Listener für Provider-Änderung
-		const selector = document.getElementById("apiProviderSelect");
-		if (selector) {
-			selector.addEventListener("change", (e) => {
-				setProvider(e.target.value);
-			});
+			// Event-Listener für Provider-Änderung
+			const selector = document.getElementById("apiProviderSelect");
+			if (selector) {
+				selector.addEventListener("change", (e) => {
+					setProvider(e.target.value);
+
+					// Visuelles Feedback
+					const feedbackMsg = document.createElement("div");
+					feedbackMsg.className = "text-xs text-green-500 my-1";
+					feedbackMsg.textContent = `Provider geändert zu: ${getProviderDisplayName(
+						e.target.value
+					)}`;
+					selector.parentNode.appendChild(feedbackMsg);
+
+					setTimeout(() => {
+						selector.parentNode.removeChild(feedbackMsg);
+					}, 2000);
+				});
+
+				console.log("API-Provider Selector erfolgreich eingerichtet");
+			}
+		} catch (error) {
+			console.error("Fehler beim Hinzufügen des Provider-Selektors:", error);
 		}
 	};
 

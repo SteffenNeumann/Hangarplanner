@@ -83,6 +83,80 @@ function initializeApp() {
 	}, 300);
 }
 
+// Initialisiert die gesamte Anwendung
+function initialize() {
+	console.log("Initialisiere HangarPlanner-Anwendung...");
+
+	// Initialisiere UI
+	if (window.hangarUI) {
+		window.hangarUI.initializeUI();
+		console.log("UI-Modul initialisiert");
+	}
+
+	// Ereignisbehandler einrichten
+	if (window.hangarEvents) {
+		window.hangarEvents.setupEventListeners();
+		console.log("Event-Listener eingerichtet");
+	}
+
+	// Lade die UI-Einstellungen aus dem localStorage
+	if (window.hangarUI) {
+		window.hangarUI.loadUISettings();
+		console.log("UI-Einstellungen geladen");
+	}
+
+	// Initialisiere Datenmodul
+	if (window.hangarData) {
+		window.hangarData.loadStateFromLocalStorage();
+		console.log("Daten-Modul initialisiert");
+	}
+
+	// Initialisiere API-Fassade - WICHTIG: Nach allen anderen APIs initialisieren
+	if (window.FlightDataAPI) {
+		// Warten bis AmadeusAPI und AeroDataBoxAPI geladen sind
+		setTimeout(() => {
+			setupFlightDataEventHandlers();
+			console.log("API-Fassade final initialisiert und verbunden");
+		}, 500);
+	}
+
+	console.log("HangarPlanner-Anwendung erfolgreich initialisiert!");
+}
+
+// Funktion, um sicherzustellen, dass die API-Fassade korrekt verbunden ist
+function setupFlightDataEventHandlers() {
+	if (window.hangarEvents && window.hangarEvents.setupFlightDataEventHandlers) {
+		window.hangarEvents.setupFlightDataEventHandlers();
+	}
+
+	// Den "Fetch Flight Data"-Button direkt mit der API-Fassade verknüpfen
+	const fetchFlightBtn = document.getElementById("fetchFlightData");
+	if (fetchFlightBtn) {
+		fetchFlightBtn.onclick = async function () {
+			const searchInput = document.getElementById("searchAircraft");
+			const currentDateInput = document.getElementById("currentDateInput");
+			const nextDateInput = document.getElementById("nextDateInput");
+
+			const aircraftId = searchInput?.value?.trim();
+			const currentDate = currentDateInput?.value;
+			const nextDate = nextDateInput?.value;
+
+			console.log("Direkt verbundener API-Fassade-Aufruf für:", aircraftId);
+
+			if (window.FlightDataAPI) {
+				await window.FlightDataAPI.updateAircraftData(
+					aircraftId,
+					currentDate,
+					nextDate
+				);
+			}
+		};
+		console.log(
+			"Direkte API-Fassaden-Verbindung für Fetch-Button eingerichtet"
+		);
+	}
+}
+
 /**
  * Prüft, ob alle erforderlichen Skripte geladen wurden
  */

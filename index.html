@@ -660,7 +660,32 @@
 				letter-spacing: 0.02em;
 			}
 
-			/* Rest der Styles bleibt gleich */
+			/* Hier den fehlerhaften CSS-Code auf Zeile 664 korrigieren */
+			.api-provider-selector {
+				margin-bottom: 1rem;
+			}
+
+			/* Falls es sich um einen Media Query handelt */
+			@media (max-width: 768px) {
+				.api-provider-selector {
+					margin-bottom: 0.5rem;
+				}
+			}
+
+			/* JavaScript-Dateien in korrekter Reihenfolge */
+			<script src="js/helpers.js"></script>
+			<script src="js/fileManager.js"></script>
+			<script src="js/hangar-ui.js"></script>
+			<script src="js/hangar-data.js"></script>
+			<!-- API-Implementierungen -->
+			<script src="js/aerodatabox-api.js"></script>
+			<script src="js/amadeus-api.js"></script>
+			<!-- API-Fassade -->
+			<script src="js/api-facade.js"></script>
+			<!-- Event-Handler und Hauptanwendung -->
+			<script src="js/hangar-events.js"></script>
+			<script src="js/hangar-pdf.js"></script>
+			<script src="js/hangar.js"></script>
 		</style>
 	</head>
 	<body class="bg-industrial-dark text-white font-sans edit-mode">
@@ -1981,11 +2006,14 @@
 		<script src="js/fileManager.js"></script>
 		<script src="js/hangar-ui.js"></script>
 		<script src="js/hangar-data.js"></script>
-		<script src="js/hangar-events.js"></script>
-		<script src="js/hangar-pdf.js"></script>
+		<!-- API-Implementierungen -->
 		<script src="js/aerodatabox-api.js"></script>
 		<script src="js/amadeus-api.js"></script>
+		<!-- API-Fassade -->
 		<script src="js/api-facade.js"></script>
+		<!-- Event-Handler und Hauptanwendung -->
+		<script src="js/hangar-events.js"></script>
+		<script src="js/hangar-pdf.js"></script>
 		<script src="js/hangar.js"></script>
 
 		<!-- Event-Handler für den "Info anzeigen"-Button -->

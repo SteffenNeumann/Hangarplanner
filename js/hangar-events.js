@@ -769,16 +769,22 @@ function setupFlightDataEventHandlers() {
 	// Fetch Flight Button Event Listener
 	const fetchFlightBtn = document.getElementById("fetchFlightData");
 	if (fetchFlightBtn) {
-		fetchFlightBtn.addEventListener("click", async () => {
+		// Event-Listener entfernen, falls bereits vorhanden
+		const oldClickHandler = fetchFlightBtn.onclick;
+		if (oldClickHandler)
+			fetchFlightBtn.removeEventListener("click", oldClickHandler);
+
+		// Neuen Event-Handler hinzufügen, der die API-Fassade verwendet
+		fetchFlightBtn.onclick = async () => {
 			// Eingabewerte sammeln
 			const currentDateInput = document.getElementById("currentDateInput");
 			const nextDateInput = document.getElementById("nextDateInput");
 
-			// Zuerst im dedizierten Suchfeld suchen
+			// Flugzeugkennung aus dem Suchfeld oder ausgewählter Kachel holen
 			let searchInput = document.getElementById("searchAircraft");
 			let aircraftId = searchInput?.value?.trim();
 
-			// Wenn keine ID im Suchfeld gefunden wurde, suche nach einer aktiv ausgewählten Kachel
+			// Wenn keine ID im Suchfeld, dann in ausgewählter Kachel suchen
 			if (!aircraftId) {
 				const selectedCell = document.querySelector(".hangar-cell.selected");
 				if (selectedCell) {
@@ -798,63 +804,138 @@ function setupFlightDataEventHandlers() {
 			const currentDate = currentDateInput?.value;
 			const nextDate = nextDateInput?.value;
 
-			// API-Fassade verwenden statt direkten API-Aufruf
+			console.log(
+				`API-Fassade wird verwendet für Flugdatenabruf: ${aircraftId}`
+			);
+
+			// Flugdaten über die API-Fassade abrufen
 			if (window.FlightDataAPI) {
 				await window.FlightDataAPI.updateAircraftData(
 					aircraftId,
 					currentDate,
 					nextDate
 				);
-			} else if (window.AeroDataBoxAPI) {
-				// Fallback zur direkten AeroDataBox-API falls Fassade nicht verfügbar
-				await window.AeroDataBoxAPI.updateAircraftData(
-					aircraftId,
-					currentDate,
-					nextDate
-				);
-			} else if (window.AmadeusAPI) {
-				// Fallback zur Amadeus-API als letzte Option
-				await window.AmadeusAPI.updateAircraftData(
-					aircraftId,
-					currentDate,
-					nextDate
-				);
 			} else {
-				alert("Keine Flight Data API verfügbar");
+				console.error("API-Fassade nicht verfügbar");
+				// Fallback auf direkte API-Aufrufe
+				if (window.AeroDataBoxAPI) {
+					await window.AeroDataBoxAPI.updateAircraftData(
+						aircraftId,
+						currentDate,
+						nextDate
+					);
+				} else if (window.AmadeusAPI) {
+					await window.AmadeusAPI.updateAircraftData(
+						aircraftId,
+						currentDate,
+						nextDate
+					);
+				}
 			}
-		});
+		};
 
-		console.log("Flight Data Event-Handler eingerichtet");
+		console.log("Flight Data Button mit API-Fassade verbunden");
 	}
 
 	// Verbindung zwischen Suchbutton und Flugdatenabruf herstellen
 	const searchBtn = document.getElementById("btnSearch");
 	if (searchBtn) {
-		searchBtn.addEventListener("click", () => {
-			const searchInput = document.getElementById("searchAircraft");
-			if (searchInput && searchInput.value.trim()) {
-				// Automatisch den Update-Data Button auslösen
-				const fetchFlightBtn = document.getElementById("fetchFlightData");
-				if (fetchFlightBtn) {
-					console.log("Suche nach Flugdaten für: " + searchInput.value.trim());
-					fetchFlightBtn.click();
-				}
-			}
-		});
+		searchBtn.removeEventListener("click", searchButtonHandler);
+		searchBtn.addEventListener("click", searchButtonHandler);
 	}
 
 	// Eingabefeld für Flugzeugsuche mit Enter-Taste verbinden
 	const searchInput = document.getElementById("searchAircraft");
 	if (searchInput) {
-		searchInput.addEventListener("keypress", (event) => {
-			if (event.key === "Enter") {
-				event.preventDefault();
-				const searchBtn = document.getElementById("btnSearch");
-				if (searchBtn) {
-					searchBtn.click();
+		searchInput.removeEventListener("keypress", searchInputKeyHandler);
+		searchInput.addEventListener("keypress", searchInputKeyHandler);
+	}
+}
+
+/**
+ * Event-Handler für den 'Flugdaten abrufen'-Button
+ */
+async function fetchFlightButtonHandler() {
+	// Eingabewerte sammeln
+	const currentDateInput = document.getElementById("currentDateInput");
+	const nextDateInput = document.getElementById("nextDateInput");
+
+	// Zuerst im dedizierten Suchfeld suchen
+	let searchInput = document.getElementById("searchAircraft");
+	let aircraftId = searchInput?.value?.trim();
+
+	// Wenn keine ID im Suchfeld gefunden wurde, suche nach einer aktiv ausgewählten Kachel
+	if (!aircraftId) {
+		const selectedCell = document.querySelector(".hangar-cell.selected");
+		if (selectedCell) {
+			const cellId = selectedCell.getAttribute("data-cell-id");
+			if (cellId) {
+				const aircraftInput = document.getElementById(`aircraft-${cellId}`);
+				if (aircraftInput && aircraftInput.value.trim()) {
+					aircraftId = aircraftInput.value.trim();
+					console.log(
+						`Verwende Flugzeug-ID aus ausgewählter Kachel: ${aircraftId}`
+					);
 				}
 			}
-		});
+		}
+	}
+
+	const currentDate = currentDateInput?.value;
+	const nextDate = nextDateInput?.value;
+
+	console.log(`Rufe Flugdaten mit API-Fassade ab für: ${aircraftId}`);
+
+	// API-Fassade für alle API-Aufrufe verwenden
+	if (window.FlightDataAPI) {
+		await window.FlightDataAPI.updateAircraftData(
+			aircraftId,
+			currentDate,
+			nextDate
+		);
+	} else {
+		console.error("API-Fassade nicht verfügbar");
+		// Fallback auf direkte API-Aufrufe nur wenn nötig
+		if (window.AeroDataBoxAPI) {
+			await window.AeroDataBoxAPI.updateAircraftData(
+				aircraftId,
+				currentDate,
+				nextDate
+			);
+		} else if (window.AmadeusAPI) {
+			await window.AmadeusAPI.updateAircraftData(
+				aircraftId,
+				currentDate,
+				nextDate
+			);
+		} else {
+			alert("Keine Flight Data API verfügbar");
+		}
+	}
+}
+
+/**
+ * Event-Handler für den Such-Button
+ */
+function searchButtonHandler() {
+	const searchInput = document.getElementById("searchAircraft");
+	if (searchInput && searchInput.value.trim()) {
+		// Löse den Flugdaten-Button aus
+		const fetchFlightBtn = document.getElementById("fetchFlightData");
+		if (fetchFlightBtn) {
+			console.log("Suche nach Flugdaten für: " + searchInput.value.trim());
+			fetchFlightButtonHandler(); // Direkter Aufruf des Handlers statt Click-Event
+		}
+	}
+}
+
+/**
+ * Event-Handler für die Eingabetaste im Suchfeld
+ */
+function searchInputKeyHandler(event) {
+	if (event.key === "Enter") {
+		event.preventDefault();
+		searchButtonHandler(); // Direkter Aufruf des Such-Handlers
 	}
 }
 
