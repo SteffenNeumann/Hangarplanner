@@ -13,15 +13,15 @@
 					extend: {
 						colors: {
 							industrial: {
-								dark: "#2D3142",
-								medium: "#4F5D75",
-								light: "#BFC0C0",
-								accent: "#EF8354",
+								dark: "#3A4354" /* Moderneres, etwas helleres Dunkelblau */,
+								medium: "#5D6B89" /* Helleres Mittelblau */,
+								light: "#D1D5DB" /* Helleres Grau */,
+								accent: "#FF7043" /* Wärmeres, modernes Orange */,
 							},
 							status: {
-								green: "#4CAF50",
-								yellow: "#FFC107",
-								red: "#F44336",
+								green: "#22C55E" /* Helleres, lebendigeres Grün */,
+								yellow: "#F59E0B" /* Wärmeres Gelb */,
+								red: "#EF4444" /* Helleres Rot */,
 							},
 						},
 					},
@@ -33,40 +33,58 @@
 				--scale-factor: 1;
 				--inv-scale: 1;
 				--grid-gap: 16px;
-				--card-base-width: 128px; /* Reduziert von 160px um weitere 20% */
-				--card-min-width: 128px; /* Reduziert von 160px um weitere 20% */
+				--card-base-width: 128px;
+				--card-min-width: 128px;
 				--section-spacing: 12px;
-				--fixed-section-spacing: 12px; /* Neu: Konstante für nicht-skalierbare Abstände */
+				--fixed-section-spacing: 12px;
+
+				/* Neue Farben für moderneres Design */
+				--bg-color-light: #f9fafb;
+				--bg-color-medium: #f3f4f6;
+				--text-dark: #1f2937;
+				--text-medium: #4b5563;
+				--border-light: #e5e7eb;
+				--highlight-light: #f0f9ff; /* Sehr leichter Blauhintergrund */
 			}
 
 			body {
 				overflow: hidden;
+				background-color: var(--bg-color-light);
+				color: var(--text-dark);
 			}
+
 			.form-control:focus {
 				outline: none;
-				box-shadow: 0 0 0 2px rgba(239, 131, 84, 0.5);
+				box-shadow: 0 0 0 2px rgba(255, 112, 67, 0.4); /* Angepasste Akzentfarbe */
+				border-color: #ff7043;
 			}
+
 			.hangar-cell {
 				transition: all 0.3s ease;
-				width: 100%; /* Nimmt die volle Zellbreite ein */
-				min-width: var(
-					--card-min-width
-				) !important; /* Mit !important verstärken */
-				max-width: 280px !important; /* Reduziert von 350px - mit !important verstärken */
-				flex-basis: var(
-					--card-base-width
-				) !important; /* Mit !important verstärken */
-				margin: 0 auto; /* Zentrieren innerhalb der Zelle */
-				/* Füge zusätzliche Größenbegrenzung hinzu */
+				width: 100%;
+				min-width: var(--card-min-width) !important;
+				max-width: 280px !important;
+				flex-basis: var(--card-base-width) !important;
+				margin: 0 auto;
 				box-sizing: border-box;
 				transform-origin: center center;
-				/* Verstärkte Schatten für besseren Kontrast auf weißem Hintergrund */
-				box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.08) !important;
+				/* Verbesserter Neumorphismus-Stil ohne inneren Schatten, der die weiße Überlagerung verursacht */
+				box-shadow: 12px 12px 16px rgba(166, 166, 185, 0.35),
+					-12px -12px 16px rgba(255, 255, 255, 0.8) !important;
+				border: 1px solid rgba(200, 200, 220, 0.3); /* Subtiler Rahmen */
+				border-radius: 12px;
+				background-color: #dde1e7; /* Dunklerer Hintergrund für Kontrast */
 			}
+
 			.hangar-cell:hover {
-				transform: translateY(-2px);
-				/* Noch deutlicherer Schatten bei Hover */
-				box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+				transform: translateY(-1px); /* Subtile Bewegung */
+				/* Vereinfachter Hover-Effekt ohne zusätzlichen Glow */
+				border-color: rgba(200, 200, 220, 0.7); /* Nur der Rahmen wird betont */
+			}
+
+			/* Header-Bereich der Karten anpassen */
+			.hangar-cell .bg-industrial-medium {
+				border-radius: 12px 12px 0 0; /* Abrundung oben anpassen */
 			}
 
 			/* Grid-Definition mit dynamischem Zwischenraum */
@@ -79,132 +97,160 @@
 				transform-origin: top left;
 			}
 
-			/* Styling für Statusanzeigen bleibt gleich */
+			/* Moderneres Styling für Statusanzeigen */
 			.status-light {
-				width: 16px;
-				height: 16px;
+				width: 14px;
+				height: 14px;
 				border-radius: 50%;
 				display: inline-block;
 				margin-right: 4px;
-				opacity: 0.3; /* Standard ist gedimmt */
+				opacity: 0.3;
 				transition: all 0.3s ease;
-				border: 1px solid rgba(255, 255, 255, 0.2); /* Dezente Umrandung */
+				border: 1px solid rgba(255, 255, 255, 0.3);
 			}
+
 			.status-light.active {
-				opacity: 1; /* Aktiver Status ist hell */
-				box-shadow: 0 0 8px rgba(255, 255, 255, 0.9); /* Verstärkter Leuchteffekt */
+				opacity: 1;
+				box-shadow: 0 0 8px rgba(255, 255, 255, 0.6); /* Reduzierter Leuchteffekt */
 				transform: scale(1.15);
 			}
-			/* Einfache horizontale Status-Anzeige */
+
+			/* Modernisierte horizontale Status-Anzeige */
 			.status-container {
 				display: flex;
 				align-items: center;
 				gap: 6px;
-				padding: 3px 6px;
-				border-radius: 12px;
-				background-color: rgba(
-					45,
-					49,
-					66,
-					0.6
-				); /* Subtiler Hintergrund für die Ampeln */
+				padding: 2px 5px;
+				border-radius: 4px; /* Weniger abgerundet */
+				background-color: rgba(93, 107, 137, 0.8); /* Subtilere Farbe */
 			}
+
 			/* Status-Beschriftungen für die Ampeln */
 			.status-indicator {
 				display: flex;
 				align-items: center;
-				margin-bottom: 5px;
+				margin-bottom: 4px;
 			}
+
 			.status-indicator span {
 				font-size: 10px;
 				margin-left: 2px;
 				color: white;
-				opacity: 0.7;
+				opacity: 0.9; /* Bessere Lesbarkeit */
 			}
+
+			/* Modernisierter Tow-Status */
 			.tow-status {
 				display: inline-block;
-				padding: 3px 8px;
-				border-radius: 4px;
+				padding: 2px 6px;
+				border-radius: 3px; /* Weniger abgerundet */
 				font-size: 12px;
 				font-weight: 500;
 			}
+
 			.tow-initiated {
-				background-color: #ffe0b2;
-				color: #e65100;
+				background-color: #fff1e6; /* Hellere Hintergrundfarbe */
+				color: #b45309; /* Dunklere Textfarbe für Kontrast */
 			}
+
 			.tow-ongoing {
-				background-color: #b3e0ff;
-				color: #0d47a1;
+				background-color: #e0f2fe; /* Hellere Blautöne */
+				color: #0369a1;
 			}
+
 			.tow-on-position {
-				background-color: #c8e6c9;
-				color: #2e7d32;
+				background-color: #dcfce7; /* Helleres Grün */
+				color: #166534;
 			}
+
 			/* Angepasste Ausrichtung für Infobereiche */
 			.info-grid {
 				display: grid;
 				grid-template-columns: auto auto;
 				gap: 0.5rem;
 				align-items: center;
-				min-width: 0; /* Vermeidet Überlaufen bei Textinhalt */
+				min-width: 0;
 			}
+
 			.info-label {
 				text-align: right;
 				font-weight: 500;
-				color: #4f5d75;
+				color: var(--text-medium); /* Modernere Textfarbe */
 				white-space: nowrap;
 				padding-right: 5px;
 				width: fit-content;
 				min-width: min-content;
 				overflow: hidden;
 				text-overflow: ellipsis;
+				font-size: 0.85rem; /* Etwas kleinere Schrift */
 			}
+
 			.info-value {
-				color: #ef8354;
+				color: #ff7043; /* Akzentfarbe für Werte */
 				white-space: nowrap;
 				overflow: hidden;
 				text-overflow: ellipsis;
+				font-weight: 500; /* Etwas fetter für bessere Lesbarkeit */
 			}
-			/* Notizfeld soll flexibel wachsen */
+
+			/* Notizfeld mit modernerem Design */
 			.notes-container {
 				display: flex;
 				flex-direction: column;
 				flex-grow: 1;
 				margin-top: 0.5rem;
 				margin-bottom: 0.75rem;
-				min-height: 50px; /* Reduzierte Mindesthöhe für Notizbereich */
+				min-height: 50px;
 			}
+
 			.notes-textarea {
 				flex-grow: 1;
 				resize: none;
 				min-height: 40px;
+				border: 1px solid var(--border-light);
+				border-radius: 3px;
+				padding: 6px;
+				font-size: 0.85rem;
+				color: var(--text-dark);
 			}
-			/* Stil für die Aircraft ID */
+
+			.notes-textarea:focus {
+				border-color: #ff7043;
+				outline: none;
+				box-shadow: 0 0 0 2px rgba(255, 112, 67, 0.15);
+			}
+
+			/* Stil für die Aircraft ID mit hellerem Design */
 			.aircraft-id {
 				text-align: center;
 				font-weight: bold;
-				font-size: 0.95rem; /* Kleinere Schriftgröße für Aircraft ID */
+				font-size: 0.95rem;
 				padding: 0.3rem;
 				margin-bottom: 0.5rem;
-				border-bottom: 2px solid #bfc0c0;
+				border-bottom: 1px solid var(--border-light); /* Leichterer Rahmen */
 				background-color: transparent;
 				width: 100%;
-				color: #2d3142;
+				color: var(--text-dark);
 			}
+
 			.aircraft-id::placeholder {
 				color: #9ca3af;
 			}
+
 			.aircraft-id:focus {
 				outline: none;
-				border-bottom-color: #ef8354;
+				border-bottom-color: #ff7043;
 			}
+
 			/* Modi-Styles */
 			.edit-mode .view-only {
 				display: none;
 			}
+
 			.view-mode .edit-only {
 				display: none;
 			}
+
 			.view-mode input,
 			.view-mode select,
 			.view-mode textarea {
@@ -212,29 +258,37 @@
 				border-color: transparent;
 				background-color: transparent;
 			}
+
 			.view-mode .notes-textarea {
-				background-color: #f9f9f9;
+				background-color: var(--bg-color-medium);
 			}
+
+			/* Modernisierter Toggle-Switch */
 			.mode-toggle {
 				display: flex;
 				align-items: center;
 				margin-right: 15px;
 			}
+
 			.mode-toggle-label {
 				margin-right: 8px;
 				font-size: 0.9rem;
+				color: var(--text-medium);
 			}
+
 			.toggle-switch {
 				position: relative;
 				display: inline-block;
-				width: 50px;
+				width: 48px;
 				height: 24px;
 			}
+
 			.toggle-switch input {
 				opacity: 0;
 				width: 0;
 				height: 0;
 			}
+
 			.toggle-slider {
 				position: absolute;
 				cursor: pointer;
@@ -242,10 +296,11 @@
 				left: 0;
 				right: 0;
 				bottom: 0;
-				background-color: #ccc;
-				transition: 0.4s;
+				background-color: #d1d5db;
+				transition: 0.3s;
 				border-radius: 34px;
 			}
+
 			.toggle-slider:before {
 				position: absolute;
 				content: "";
@@ -254,14 +309,16 @@
 				left: 4px;
 				bottom: 4px;
 				background-color: white;
-				transition: 0.4s;
+				transition: 0.3s;
 				border-radius: 50%;
 			}
+
 			input:checked + .toggle-slider {
-				background-color: #ef8354;
+				background-color: #ff7043;
 			}
+
 			input:checked + .toggle-slider:before {
-				transform: translateX(26px);
+				transform: translateX(24px);
 			}
 
 			/* PDF Export Styles */
@@ -272,45 +329,50 @@
 			}
 
 			.pdf-preview {
-				border: 1px solid #bfc0c0;
+				border: 1px solid var(--border-light);
 				border-radius: 4px;
 				padding: 8px;
-				background-color: rgba(45, 49, 66, 0.1);
+				background-color: var(--highlight-light);
 			}
 
-			/* Horizontale Trennlinie mit verbesserten CSS-Variablen */
+			/* NEU: Schlichter Divider mit OUTER SECTION Beschriftung */
 			.section-divider {
 				width: 100%;
-				height: 2px;
-				background-color: #4f5d75;
-				/* Verwende die CSS-Variable für konsistente Abstände */
+				height: 1px; /* Dünner */
+				background-color: #cbd5e1; /* Hellere Farbe */
 				margin: var(--section-spacing, 12px) 0;
 				position: relative;
 				transform: none;
+				text-align: center; /* Zentrierung für den Text */
 			}
 
-			/* Entfernung der Beschriftung im Section Divider */
+			/* NEU: Hinzufügung der OUTER SECTION Beschriftung */
 			.section-divider::after {
-				content: "";
+				content: "OUTER SECTION";
 				position: absolute;
 				top: -10px;
 				left: 50%;
 				transform: translateX(-50%);
-				background-color: transparent;
-				padding: 0;
+				background-color: var(--bg-color-light); /* Hintergrundfarbe für Text */
+				padding: 0 12px;
+				font-size: 12px;
+				font-weight: 500;
+				color: #64748b; /* Subtile Textfarbe */
+				letter-spacing: 0.05em; /* Leicht vergrößerter Buchstabenabstand */
 			}
 
 			/* Verbesserte Sektionsbeschriftungen */
 			.section-label {
-				font-size: 16px;
-				font-weight: 500;
-				color: white;
-				/* Konsistente Abstände zwischen Sektionen */
+				font-size: 15px;
+				font-weight: 600;
+				color: #334155; /* Dunkleres Blaugrau für besseren Kontrast */
 				margin-bottom: var(--section-spacing, 12px);
 				margin-top: var(--section-spacing, 12px);
 				padding-left: 5px;
-				/* Keine Skalierung mehr */
 				transform: none;
+				letter-spacing: 0.02em;
+				border-left: 3px solid #ff7043; /* Akzentfarbener linker Rand */
+				padding-left: 8px; /* Abstand zum linken Rand */
 			}
 
 			/* Erste Section Label hat keinen oberen Abstand */
@@ -321,11 +383,10 @@
 			/* Spezielle Klasse für den Container der Sections */
 			.section-container {
 				width: 100%;
-				/* Keine Skalierung für die Container selbst */
 				transform: none;
 			}
 
-			/* Verbesserte und verfeinerte Media Queries für dynamische Anpassung */
+			/* Verbesserte und verfeinerte Media Queries - beibehalten */
 			@media (max-width: 1800px) {
 				:root {
 					--scale-factor: 0.95;
@@ -361,26 +422,26 @@
 				}
 			}
 
-			/* Kompakteres Header-Layout mit verbesserter responsiver Anpassung */
+			/* Kompakteres moderneres Header-Layout */
 			.bg-industrial-medium.px-3.py-2 {
 				padding: 0.35rem 0.6rem;
 				display: flex;
 				flex-wrap: nowrap;
 				align-items: center;
 				justify-content: space-between;
-				/* Dunklere Hintergrundfarbe für besseren Kontrast zu den Ampeln */
-				background-color: #353e54;
+				background-color: #5d6b89; /* Helleres Blau für Header */
 				min-height: 36px;
+				border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 			}
 
-			/* Toggle-Button-Styling grundlegend überarbeitet */
+			/* Modernisierter Toggle-Button */
 			.menu-toggle {
-				position: relative; /* Statt fixed */
+				position: relative;
 				width: 30px;
 				height: 30px;
-				background-color: #ef8354;
-				border: 2px solid white;
-				border-radius: 50%;
+				background-color: #ff7043;
+				border: none; /* Kein Rand für schlichteres Design */
+				border-radius: 4px; /* Weniger abgerundet */
 				display: flex;
 				justify-content: center;
 				align-items: center;
@@ -388,13 +449,14 @@
 				z-index: 9999;
 				color: white;
 				font-weight: bold;
-				box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
+				box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Subtiler Schatten */
 				transition: all 0.3s ease;
-				margin-right: 20px; /* Fester Abstand nach rechts */
+				margin-right: 20px;
 			}
 
 			.menu-toggle:hover {
-				transform: scale(1.1);
+				transform: scale(1.05);
+				background-color: #f55a2b; /* Leicht dunkleres Orange bei Hover */
 			}
 
 			/* Button im eingeklappten Zustand - nur Rotation */
@@ -402,11 +464,11 @@
 				transform: rotate(180deg);
 			}
 
-			/* Project Controls Bereich */
+			/* Modernisierter Project Controls Bereich */
 			.project-controls {
 				padding: 1rem;
-				border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-				background-color: transparent; /* Entferne den speziellen Hintergrund */
+				border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+				background-color: transparent;
 				display: flex;
 				flex-direction: column;
 				gap: 0.5rem;
@@ -429,26 +491,23 @@
 				flex: 1;
 			}
 
-			/* Verbesserte Menü-Konsistenz */
-			/* Section-Titel-Stil für alle Menübereiche vereinheitlichen */
+			/* Modernisierte Sidebar-Styles */
 			.sidebar-section-title {
-				font-size: 1.125rem;
-				font-weight: 500;
+				font-size: 1.05rem;
+				font-weight: 600;
 				margin-bottom: 0.75rem;
 				color: white;
 			}
 
-			/* Einheitliche Menüabschnitte */
 			.sidebar-section {
 				padding: 1rem;
-				border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+				border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 			}
 
-			/* Spezielle dunklere Header-Sektion für Haupttitel */
 			.sidebar-header {
 				padding: 1rem;
-				background-color: #2d3142; /* Industrial-dark als Standard */
-				border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+				background-color: #3a4354; /* Dunkleres Blau für Header */
+				border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 			}
 
 			.mode-toggle-container {
@@ -462,7 +521,7 @@
 				margin-right: 0;
 			}
 
-			/* Sidebar Collapse-Verhalten */
+			/* Sidebar Collapse-Verhalten - beibehalten */
 			.sidebar-container {
 				width: 300px;
 				transition: transform 0.3s ease, width 0.3s ease;
@@ -470,17 +529,17 @@
 				overflow-y: auto;
 				max-height: 100vh;
 				padding: 0;
+				background-color: #5d6b89; /* Helleres Mittelblau */
 			}
 
-			/* Eingeklappte Sidebar */
 			.sidebar-collapsed .sidebar-container {
 				transform: translateX(100%);
 				width: 0;
 			}
 
-			/* Content-Anpassung bei eingeklappter Sidebar */
 			.content-container {
 				transition: width 0.3s ease, max-width 0.3s ease;
+				background-color: var(--bg-color-light); /* Heller Hintergrund */
 			}
 
 			.sidebar-collapsed .content-container {
@@ -498,30 +557,14 @@
 				transform: rotate(180deg);
 			}
 
-			/* Neue Styles für das Sidebar-Menü im Flugzeuginfo-Stil - mit bestehender Farbpalette */
-			.sidebar-container {
-				width: 300px;
-				transition: transform 0.3s ease, width 0.3s ease;
-				transform: translateX(0);
-				overflow-y: auto;
-				max-height: 100vh;
-				padding: 0;
-			}
-
-			.sidebar-header {
-				background-color: #2d3142; /* industrial-dark */
-				color: white;
-				padding: 12px 16px;
-				border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-			}
-
+			/* Modernisierte Sidebar-Menü-Styles */
 			.sidebar-accordion-item {
-				border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+				border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 			}
 
 			.sidebar-accordion-header {
-				background-color: #2d3142; /* Dunklerer Hintergrund (industrial-dark) */
-				padding: 10px 16px;
+				background-color: #3a4354; /* Dunkleres Blau */
+				padding: 12px 16px;
 				cursor: pointer;
 				display: flex;
 				justify-content: space-between;
@@ -541,7 +584,7 @@
 			}
 
 			.sidebar-section-title {
-				font-size: 1rem;
+				font-size: 0.95rem;
 				font-weight: 500;
 				margin: 0;
 			}
@@ -549,6 +592,7 @@
 			.dropdown-arrow {
 				font-size: 10px;
 				transition: transform 0.3s;
+				opacity: 0.7;
 			}
 
 			.sidebar-accordion-header.collapsed .dropdown-arrow {
@@ -556,11 +600,11 @@
 			}
 
 			.sidebar-accordion-content {
-				background-color: #4f5d75; /* Hellerer Hintergrund (industrial-medium) */
-				padding: 12px 16px;
+				background-color: #4b5975; /* Etwas hellere Farbe als Header */
+				padding: 14px 16px;
 				display: flex;
 				flex-direction: column;
-				gap: 10px;
+				gap: 12px;
 			}
 
 			/* Wichtig: Ausblenden wenn collapsed - verbesserte Spezifität */
@@ -568,8 +612,49 @@
 				display: none !important;
 			}
 
+			/* Anpassungen für bessere Form-Controls in der Sidebar */
+			.sidebar-accordion-content input[type="text"],
+			.sidebar-accordion-content input[type="number"],
+			.sidebar-accordion-content select {
+				background-color: rgba(255, 255, 255, 0.08);
+				border: 1px solid rgba(255, 255, 255, 0.1);
+				border-radius: 3px;
+				color: white;
+				padding: 6px 8px;
+			}
+
+			.sidebar-accordion-content button {
+				border-radius: 3px;
+				padding: 6px 10px;
+				font-weight: 500;
+				transition: all 0.2s;
+			}
+
+			.sidebar-accordion-content button:hover {
+				opacity: 0.9;
+			}
+
+			/* Anpassungen für bessere Select-Elemente in Kacheln */
+			.hangar-cell select {
+				border: 1px solid var(--border-light);
+				border-radius: 3px;
+				font-size: 0.85rem;
+				color: var(--text-dark);
+				background-color: var(--bg-color-medium);
+			}
+
+			/* Angepasster Header-Bereich */
+			header.bg-industrial-medium {
+				background-color: #3a4354;
+				box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+			}
+
+			header h1 {
+				font-weight: 600;
+				letter-spacing: 0.02em;
+			}
+
 			/* Rest der Styles bleibt gleich */
-			/* ...existing code... */
 		</style>
 	</head>
 	<body class="bg-industrial-dark text-white font-sans edit-mode">
@@ -590,7 +675,6 @@
 				<div class="flex-grow bg-white p-6 overflow-auto hangar-container">
 					<!-- Abschnitt 1 Container -->
 					<div class="section-container">
-						<div class="section-label">Primary Section</div>
 						<div id="hangarGrid" class="grid grid-cols-4 gap-4">
 							<!-- 8 Hangar-Kacheln hier -->
 							<!-- Kachel 1 -->
@@ -1564,7 +1648,6 @@
 
 					<!-- Abschnitt 2 Container -->
 					<div class="section-container">
-						<div class="section-label">Secondary Section</div>
 						<div id="secondaryHangarGrid" class="grid grid-cols-4 gap-4">
 							<!-- Hier werden dynamisch weitere Kacheln eingefügt -->
 						</div>
