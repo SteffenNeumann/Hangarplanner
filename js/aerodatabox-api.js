@@ -9,7 +9,9 @@ const AeroDataBoxAPI = (() => {
 	const config = {
 		apiKey:
 			"eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiJ3d3cuYWVyb2RhdGFib3guY29tIiwiaXNzIjoiaHR0cHM6Ly9hdXRoLmFlcm9kYXRhYm94LmNvbS9vYXV0aDIvdG9rZW4iLCJleHAiOjQ4NDM5MzA4MTYsInN1YiI6IkhBTkdBUlBMQU5ORVIiLCJzY29wZSI6WyJhaXJjcmFmdHM6cmVhZCIsImFpcmNyYWZ0LXNjaGVkdWxlczpyZWFkIl19.fGixcekDQJ3_8xNhD6ON48J9GmhGBrybfVOgCZUYm46crXdXgnrZn9eZ8JO7dUcP5fLu_T-FT0S9vTGxgkv6aOLC2PlgOUUy0d_oB_SMev3QRG_pKRIGZhrbWxQdZg9Q-BXXQl3xGxKns5dUYyJYo1RzrYk1sk7r9OmB_px1fJG1XQdBwV7nKJfJrYgHDek_hHr8BL-KJp2kcJOtUHYVPdmyAMaqXPbNi5tIM43RuWTx7iYJ8tk6oLxoXVKpNYxRvV6AFw3KDhfx8m27st0C3edf5SIu1SigywII4NHpnt1EK6PzE4RKzPNr3xfjsmkNY0lAWOTznt95DLrgmRpPzA",
-		baseUrl: "https://aerodatabox.p.rapidapi.com/flights",
+		baseUrl: "https://aerodatabox.p.rapidapi.com",
+		flightsEndpoint: "/flights",
+		statusEndpoint: "/status",
 		rapidApiHost: "aerodatabox.p.rapidapi.com",
 		rapidApiKey: "ad46b0002emsh24ee20863379507p1010e6jsn17e9247ba903", // RapidAPI Key
 		debugMode: true, // Debug-Modus für zusätzliche Konsolenausgaben
@@ -58,7 +60,7 @@ const AeroDataBoxAPI = (() => {
 			);
 
 			// AeroDataBox API-Pfad für Registrierungssuche
-			const apiUrl = `${config.baseUrl}/registration/${aircraftRegistration}/${date}`;
+			const apiUrl = `${config.baseUrl}${config.flightsEndpoint}/registration/${aircraftRegistration}/${date}`;
 
 			// API-Anfrage durchführen
 			const response = await fetch(apiUrl, {
@@ -101,6 +103,60 @@ const AeroDataBoxAPI = (() => {
 
 			// Bei Fehlern Testdaten zurückgeben
 			return generateTestFlightData(aircraftRegistration, date);
+		}
+	};
+
+	/**
+	 * Holt den Flugstatus eines bestimmten Fluges
+	 * @param {string} number - Flugnummer (z.B. "LH123")
+	 * @param {string} date - Datum im Format YYYY-MM-DD
+	 * @returns {Promise<Object>} Flugstatusdaten
+	 */
+	const getFlightStatus = async (number, date) => {
+		try {
+			updateFetchStatus(`Prüfe Flugstatus für ${number} am ${date}...`);
+
+			// Parameter für die Anfrage
+			const withAircraftImage = true;
+			const withLocation = true;
+
+			// AeroDataBox API-Pfad für Flight Status
+			const apiUrl = `${config.baseUrl}${config.statusEndpoint}/${number}/${date}?withAircraftImage=${withAircraftImage}&withLocation=${withLocation}`;
+
+			if (config.debugMode) {
+				console.log(`API-Anfrage URL: ${apiUrl}`);
+			}
+
+			// API-Anfrage durchführen
+			const response = await fetch(apiUrl, {
+				headers: {
+					"X-RapidAPI-Host": config.rapidApiHost,
+					"X-RapidAPI-Key": config.rapidApiKey,
+				},
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				console.error(`API-Fehler: ${response.status} - ${errorText}`);
+				throw new Error(
+					`Flugstatus-Anfrage fehlgeschlagen: ${response.status} ${response.statusText}`
+				);
+			}
+
+			const data = await response.json();
+
+			if (config.debugMode) {
+				console.log(`Flugstatus-Antwort:`, data);
+			}
+
+			return data;
+		} catch (error) {
+			console.error("Fehler beim Abrufen des Flugstatus:", error);
+			updateFetchStatus(
+				`Fehler beim Abrufen des Flugstatus: ${error.message}`,
+				true
+			);
+			throw error;
 		}
 	};
 
@@ -423,6 +479,16 @@ const AeroDataBoxAPI = (() => {
 	const init = () => {
 		try {
 			console.log("AeroDataBox API-Modul initialisiert");
+
+			// Testaufruf, um die API zu prüfen (nur im Debug-Modus)
+			if (config.debugMode) {
+				console.log("API-Konfiguration:", {
+					baseUrl: config.baseUrl,
+					flightsEndpoint: config.flightsEndpoint,
+					statusEndpoint: config.statusEndpoint,
+					rapidApiHost: config.rapidApiHost,
+				});
+			}
 		} catch (error) {
 			console.error(
 				"Fehler bei der Initialisierung des AeroDataBox API-Moduls:",
@@ -438,6 +504,7 @@ const AeroDataBoxAPI = (() => {
 	return {
 		updateAircraftData,
 		getAircraftFlights,
+		getFlightStatus, // Neue Methode exportieren
 		updateFetchStatus,
 		init,
 	};

@@ -772,6 +772,158 @@ function fetchAndUpdateFlightData() {
 }
 
 /**
+ * Handler für den "Flight Data Update" Button
+ * Ruft die API auf, um Flugdaten zu erhalten
+ */
+function handleFlightDataFetch() {
+	const searchAircraftInput = document.getElementById("searchAircraft");
+	const currentDateInput = document.getElementById("currentDateInput");
+	const nextDateInput = document.getElementById("nextDateInput");
+	const aircraftId = searchAircraftInput.value.trim();
+
+	// Für Status-Updates verwenden wir den aktuellen API-Provider direkt
+	if (!aircraftId) {
+		// Direkt über AeroDataBoxAPI, da dieser laut Log der aktuelle Provider ist
+		window.AeroDataBoxAPI.updateFetchStatus(
+			"Bitte Flugzeugkennung eingeben",
+			true
+		);
+		return;
+	}
+
+	const currentDate = currentDateInput.value || formatDate(new Date());
+	const nextDate =
+		nextDateInput.value ||
+		formatDate(new Date(new Date().getTime() + 86400000)); // +1 Tag
+
+	console.log(`Suche Flugdaten für ${aircraftId} am ${currentDate}`);
+
+	// Status aktualisieren
+	window.AeroDataBoxAPI.updateFetchStatus(
+		`Suche Flugdaten für ${aircraftId}...`
+	);
+
+	// API-Aufruf über die Fassade
+	window.FlightDataAPI.getAircraftFlights(aircraftId, currentDate)
+		.then((flightData) => {
+			console.log("Flugdaten erhalten:", flightData);
+			updateAircraftInfoWithFlightData(aircraftId, flightData);
+		})
+		.catch((error) => {
+			console.error("Fehler beim Abrufen der Flugdaten:", error);
+			window.AeroDataBoxAPI.updateFetchStatus(
+				`Fehler: ${error.message || "Unbekannter Fehler"}`,
+				true
+			);
+		});
+}
+
+/**
+ * Aktualisiert die Flugzeuginformationen in einer Kachel mit den abgerufenen Flugdaten
+ */
+function updateAircraftInfoWithFlightData(aircraftId, flightData) {
+	// Suchen des Elements mit der Aircraft-ID
+	const cells = document.querySelectorAll(".hangar-cell");
+	let foundCell = null;
+
+	cells.forEach((cell) => {
+		const aircraftInput = cell.querySelector(".aircraft-id");
+		if (aircraftInput && aircraftInput.value === aircraftId) {
+			foundCell = cell;
+		}
+	});
+
+	if (!foundCell) {
+		window.AeroDataBoxAPI.updateFetchStatus(
+			`Keine Kachel mit Aircraft ID ${aircraftId} gefunden.`,
+			true
+		);
+		return;
+	}
+
+	// Extrahieren der Flugdaten
+	if (flightData && flightData.data && flightData.data.length > 0) {
+		const flight = flightData.data[0];
+		const cellId = foundCell.querySelector(".aircraft-id").id.split("-")[1];
+
+		// Extrahieren der Flugzeiten
+		let departureTime = "--:--";
+		let arrivalTime = "--:--";
+		let originCode = "---";
+		let destCode = "---";
+
+		if (flight.flightPoints && flight.flightPoints.length >= 2) {
+			const departure = flight.flightPoints.find(
+				(point) => point.departurePoint
+			);
+			const arrival = flight.flightPoints.find((point) => point.arrivalPoint);
+
+			if (departure) {
+				originCode = departure.iataCode || "---";
+				if (
+					departure.departure &&
+					departure.departure.timings &&
+					departure.departure.timings.length > 0
+				) {
+					const timeStr = departure.departure.timings[0].value;
+					departureTime = timeStr.substring(0, 5); // HH:MM Format
+				}
+			}
+
+			if (arrival) {
+				destCode = arrival.iataCode || "---";
+				if (
+					arrival.arrival &&
+					arrival.arrival.timings &&
+					arrival.arrival.timings.length > 0
+				) {
+					const timeStr = arrival.arrival.timings[0].value;
+					arrivalTime = timeStr.substring(0, 5); // HH:MM Format
+				}
+			}
+		}
+
+		// Aktualisieren der UI-Elemente mit den Flugdaten
+		document.getElementById(`arrival-time-${cellId}`).textContent = arrivalTime;
+		document.getElementById(`departure-time-${cellId}`).textContent =
+			departureTime;
+		document.getElementById(
+			`position-${cellId}`
+		).textContent = `${originCode}→${destCode}`;
+
+		// Aktualisieren des Tow-Status (zufällig für Demozwecke)
+		const towStatus = document.getElementById(`tow-status-${cellId}`);
+		const statuses = ["tow-initiated", "tow-ongoing", "tow-on-position"];
+		const statusLabels = ["Initiated", "In Progress", "On Position"];
+		const randomIndex = Math.floor(Math.random() * statuses.length);
+
+		towStatus.className = `tow-status ${statuses[randomIndex]}`;
+		towStatus.textContent = statusLabels[randomIndex];
+
+		window.AeroDataBoxAPI.updateFetchStatus(
+			`Flugdaten für ${aircraftId} wurden erfolgreich aktualisiert`,
+			false
+		);
+	} else {
+		window.AeroDataBoxAPI.updateFetchStatus(
+			`Keine Flugdaten für ${aircraftId} verfügbar.`,
+			true
+		);
+	}
+}
+
+/**
+ * Hilfsfunktion zur Formatierung eines Datums im Format YYYY-MM-DD
+ */
+function formatDate(date) {
+	const d = new Date(date);
+	const month = String(d.getMonth() + 1).padStart(2, "0");
+	const day = String(d.getDate()).padStart(2, "0");
+	const year = d.getFullYear();
+	return `${year}-${month}-${day}`;
+}
+
+/**
  * Richtet die Ereignisbehandler für die Flugdatenabfrage ein
  */
 function setupFlightDataEventHandlers() {
