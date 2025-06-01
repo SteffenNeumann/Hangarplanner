@@ -344,6 +344,62 @@ const FlightDataAPI = (() => {
 		}
 	};
 
+	/**
+	 * Ruft Flugdaten für mehrere Flugzeuge ab
+	 * @param {string[]} aircraftIds - Liste der Flugzeugregistrierungen
+	 * @param {string} currentDate - Aktuelles Datum (ISO-Format)
+	 * @returns {Promise<Object[]>} Liste der Flugdaten
+	 */
+	const getMultipleAircraftFlights = async (aircraftIds, currentDate) => {
+		if (!aircraftIds || aircraftIds.length === 0) {
+			updateStatus("Keine Flugzeugkennungen angegeben", true);
+			return [];
+		}
+
+		try {
+			// Delegieren an den aktiven Provider
+			if (
+				activeProvider === PROVIDERS.AMADEUS &&
+				window.AmadeusAPI &&
+				typeof window.AmadeusAPI.getMultipleAircraftFlights === "function"
+			) {
+				return await window.AmadeusAPI.getMultipleAircraftFlights(
+					aircraftIds,
+					currentDate
+				);
+			} else if (
+				activeProvider === PROVIDERS.AERODATABOX &&
+				window.AeroDataBoxAPI &&
+				typeof window.AeroDataBoxAPI.getMultipleAircraftFlights === "function"
+			) {
+				return await window.AeroDataBoxAPI.getMultipleAircraftFlights(
+					aircraftIds,
+					currentDate
+				);
+			} else {
+				// Manuell sequentiell abfragen, wenn keine Batch-Funktion verfügbar ist
+				const results = [];
+				for (const id of aircraftIds) {
+					try {
+						const data = await updateAircraftData(id, currentDate);
+						results.push({ registration: id, data });
+					} catch (err) {
+						console.error(`Fehler bei ${id}:`, err);
+						results.push({ registration: id, error: err.message });
+					}
+				}
+				return results;
+			}
+		} catch (error) {
+			console.error("Fehler beim Abrufen mehrerer Flugzeugdaten:", error);
+			updateStatus(
+				`Fehler beim Abrufen mehrerer Flugzeugdaten: ${error.message}`,
+				true
+			);
+			throw error;
+		}
+	};
+
 	// Beim Laden der Seite initialisieren und auch auf DOMContentLoaded warten
 	if (document.readyState === "loading") {
 		document.addEventListener("DOMContentLoaded", init);
@@ -356,6 +412,8 @@ const FlightDataAPI = (() => {
 	return {
 		PROVIDERS,
 		updateAircraftData,
+		getAircraftFlights,
+		getMultipleAircraftFlights, // Neue Funktion
 		setProvider,
 		getActiveProvider: () => activeProvider,
 		updateStatus,

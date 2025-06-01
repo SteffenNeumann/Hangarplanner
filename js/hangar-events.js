@@ -777,45 +777,386 @@ function fetchAndUpdateFlightData() {
  */
 function handleFlightDataFetch() {
 	const searchAircraftInput = document.getElementById("searchAircraft");
-	const currentDateInput = document.getElementById("currentDateInput");
-	const nextDateInput = document.getElementById("nextDateInput");
 	const aircraftId = searchAircraftInput.value.trim();
 
-	// Für Status-Updates verwenden wir den aktuellen API-Provider direkt
+	// Wenn keine ID angegeben ist, alle Flugzeuge abfragen
 	if (!aircraftId) {
-		// Direkt über AeroDataBoxAPI, da dieser laut Log der aktuelle Provider ist
-		window.AeroDataBoxAPI.updateFetchStatus(
-			"Bitte Flugzeugkennung eingeben",
-			true
-		);
+		fetchAllAircraftData();
 		return;
 	}
 
-	const currentDate = currentDateInput.value || formatDate(new Date());
-	const nextDate =
-		nextDateInput.value ||
-		formatDate(new Date(new Date().getTime() + 86400000)); // +1 Tag
+	// Hervorhebung des Eingabefelds, wenn keine ID eingegeben wurde
+	searchAircraftInput.classList.add("border-red-500");
+	searchAircraftInput.classList.add("bg-red-50");
+	setTimeout(() => {
+		searchAircraftInput.classList.remove("border-red-500");
+		searchAircraftInput.classList.remove("bg-red-50");
+	}, 3000);
 
-	console.log(`Suche Flugdaten für ${aircraftId} am ${currentDate}`);
-
-	// Status aktualisieren
+	// Direkt über AeroDataBoxAPI, da dieser laut Log der aktuelle Provider ist
 	window.AeroDataBoxAPI.updateFetchStatus(
-		`Suche Flugdaten für ${aircraftId}...`
+		"⚠️ Bitte Flugzeugkennung eingeben (z.B. D-AIZZ oder N12345)",
+		true
 	);
 
-	// API-Aufruf über die Fassade
-	window.FlightDataAPI.getAircraftFlights(aircraftId, currentDate)
-		.then((flightData) => {
-			console.log("Flugdaten erhalten:", flightData);
-			updateAircraftInfoWithFlightData(aircraftId, flightData);
-		})
-		.catch((error) => {
-			console.error("Fehler beim Abrufen der Flugdaten:", error);
-			window.AeroDataBoxAPI.updateFetchStatus(
-				`Fehler: ${error.message || "Unbekannter Fehler"}`,
-				true
-			);
+	// Fokus auf das Suchfeld setzen
+	searchAircraftInput.focus();
+}
+
+/**
+ * Sammelt alle Flugzeug-IDs und ruft Flugdaten für alle ab
+ */
+function fetchAllAircraftData() {
+	try {
+		const currentDateInput = document.getElementById("currentDateInput");
+		const nextDateInput = document.getElementById("nextDateInput");
+		const airportCodeInput = document.getElementById("airportCodeInput");
+
+		const currentDate = currentDateInput?.value || formatDate(new Date());
+		const nextDate =
+			nextDateInput?.value ||
+			formatDate(new Date(new Date().getTime() + 86400000)); // +1 Tag
+		const airportCode = airportCodeInput?.value?.trim().toUpperCase() || "FRA";
+
+		// Status aktualisieren
+		const fetchStatus = document.getElementById("fetchStatus");
+		if (fetchStatus) {
+			fetchStatus.innerHTML = `<span class="animate-pulse">🔍 Sammle alle Flugzeug-IDs...</span>`;
+		}
+
+		// Alle Flugzeug-IDs sammeln
+		const aircraftInputs = document.querySelectorAll('input[id^="aircraft-"]');
+		let aircraftIds = [];
+
+		aircraftInputs.forEach((input) => {
+			const id = input.value.trim();
+			if (id && !aircraftIds.includes(id)) {
+				aircraftIds.push(id);
+			}
 		});
+
+		if (aircraftIds.length === 0) {
+			if (fetchStatus) {
+				fetchStatus.innerHTML = `⚠️ Keine Flugzeug-IDs gefunden! Bitte tragen Sie zuerst Flugzeugkennungen ein.`;
+			}
+			return;
+		}
+
+		if (fetchStatus) {
+			fetchStatus.innerHTML = `<span class="animate-pulse">🔄 Lade Flugdaten für ${aircraftIds.length} Flugzeuge...</span>`;
+		}
+
+		// Flugdaten für jedes Flugzeug abrufen und anwenden
+		fetchAndApplyAllAircraftData(
+			aircraftIds,
+			currentDate,
+			nextDate,
+			airportCode
+		);
+	} catch (error) {
+		console.error("Fehler beim Sammeln der Flugzeug-IDs:", error);
+		const fetchStatus = document.getElementById("fetchStatus");
+		if (fetchStatus) {
+			fetchStatus.innerHTML = `❌ Fehler: ${
+				error.message || "Unbekannter Fehler"
+			}`;
+		}
+	}
+}
+
+/**
+ * Ruft Flugdaten für alle Flugzeug-IDs ab und wendet sie an
+ * @param {string[]} aircraftIds - Liste der Flugzeug-IDs
+ * @param {string} currentDate - Aktuelles Datum
+ * @param {string} nextDate - Nächstes Datum
+ * @param {string} airportCode - IATA-Flughafencode
+ */
+async function fetchAndApplyAllAircraftData(
+	aircraftIds,
+	currentDate,
+	nextDate,
+	airportCode
+) {
+	try {
+		const fetchStatus = document.getElementById("fetchStatus");
+		if (fetchStatus) {
+			fetchStatus.innerHTML = `<span class="animate-pulse">🔄 Lade Daten für ${aircraftIds.length} Flugzeuge...</span>`;
+		}
+
+		// Status für bessere Benutzererfahrung
+		let processed = 0;
+		const total = aircraftIds.length;
+		const results = {
+			success: 0,
+			failed: 0,
+		};
+
+		// API-Anfragen sequentiell durchführen, um die API nicht zu überlasten
+		for (const aircraftId of aircraftIds) {
+			try {
+				processed++;
+				if (fetchStatus) {
+					fetchStatus.innerHTML = `<span class="animate-pulse">✈️ Verarbeite ${aircraftId} (${processed}/${total})...</span>`;
+				}
+
+				// API-Fassade verwenden, falls verfügbar
+				let flightData;
+				if (window.FlightDataAPI) {
+					flightData = await window.FlightDataAPI.getAircraftFlights(
+						aircraftId,
+						currentDate
+					);
+				} else if (window.AeroDataBoxAPI) {
+					flightData = await window.AeroDataBoxAPI.getAircraftFlights(
+						aircraftId,
+						currentDate
+					);
+				} else {
+					if (fetchStatus) {
+						fetchStatus.innerHTML = "❌ Keine API für Flugdaten verfügbar";
+					}
+					continue;
+				}
+
+				// Daten auf alle Kacheln anwenden, die diese Flugzeug-ID haben
+				const updated = updateAllInstancesOfAircraft(
+					aircraftId,
+					flightData,
+					airportCode
+				);
+				if (updated) {
+					results.success++;
+				} else {
+					results.failed++;
+				}
+
+				// Kleine Pause zwischen den Anfragen für bessere API-Performance
+				await new Promise((resolve) => setTimeout(resolve, 500));
+			} catch (error) {
+				console.error(`Fehler bei ${aircraftId}:`, error);
+				results.failed++;
+				// Fehler für einzelne Flugzeuge werden geloggt, aber der Prozess wird fortgesetzt
+			}
+		}
+
+		// Abschlussmeldung
+		if (fetchStatus) {
+			fetchStatus.innerHTML = `✅ Flugdaten aktualisiert: ${results.success} erfolgreich, ${results.failed} fehlgeschlagen`;
+		}
+
+		// Erfolg nach kurzem Delay zurücksetzen
+		setTimeout(() => {
+			if (fetchStatus) {
+				fetchStatus.textContent = "Bereit zum Abrufen von Flugdaten";
+			}
+		}, 8000);
+	} catch (error) {
+		console.error("Fehler bei der Verarbeitung aller Flugzeug-IDs:", error);
+		const fetchStatus = document.getElementById("fetchStatus");
+		if (fetchStatus) {
+			fetchStatus.innerHTML = `❌ Fehler: ${
+				error.message || "Unbekannter Fehler"
+			}`;
+		}
+	}
+}
+
+/**
+ * Aktualisiert alle Kacheln, die eine bestimmte Flugzeug-ID haben
+ * @param {string} aircraftId - Die Flugzeug-ID
+ * @param {object} flightData - Die abgerufenen Flugdaten
+ * @param {string} preferredAirport - Bevorzugter Flughafen (IATA-Code)
+ * @returns {boolean} - true, wenn mindestens eine Kachel aktualisiert wurde
+ */
+function updateAllInstancesOfAircraft(
+	aircraftId,
+	flightData,
+	preferredAirport
+) {
+	try {
+		// Alle Kacheln mit dieser Flugzeug-ID finden
+		const cells = document.querySelectorAll(".hangar-cell");
+		let found = false;
+
+		cells.forEach((cell) => {
+			const aircraftInput = cell.querySelector(".aircraft-id");
+			if (aircraftInput && aircraftInput.value.trim() === aircraftId) {
+				found = true;
+
+				// Zellen-ID bestimmen
+				const cellId = aircraftInput.id.split("-")[1];
+
+				// Flugdaten extrahieren und anwenden
+				applyFlightDataToCell(cellId, flightData, preferredAirport);
+			}
+		});
+
+		if (!found) {
+			console.log(`Keine Kachel mit Aircraft ID ${aircraftId} gefunden.`);
+		}
+
+		return found;
+	} catch (error) {
+		console.error(
+			`Fehler beim Aktualisieren der Kacheln für ${aircraftId}:`,
+			error
+		);
+		return false;
+	}
+}
+
+/**
+ * Wendet Flugdaten auf eine Kachel an
+ * @param {string} cellId - ID der Kachel
+ * @param {object} flightData - Die abgerufenen Flugdaten
+ * @param {string} preferredAirport - Bevorzugter Flughafen (IATA-Code)
+ */
+function applyFlightDataToCell(cellId, flightData, preferredAirport) {
+	try {
+		// Standard-Werte falls keine Daten gefunden werden
+		let departureTime = "--:--";
+		let arrivalTime = "--:--";
+		let originCode = "---";
+		let destCode = "---";
+
+		// Extrahieren der Flugdaten wenn vorhanden
+		if (flightData && flightData.data && flightData.data.length > 0) {
+			// Wenn wir mehrere Flüge haben, versuchen wir den passendsten zu finden
+			// (z.B. den, der den bevorzugten Flughafen enthält)
+			let flight = flightData.data[0]; // Standard: erster Flug
+
+			if (preferredAirport && flightData.data.length > 1) {
+				// Suche nach Flügen mit dem bevorzugten Flughafen
+				const matchingFlight = flightData.data.find((f) => {
+					return (
+						f.flightPoints &&
+						f.flightPoints.some((point) => point.iataCode === preferredAirport)
+					);
+				});
+
+				if (matchingFlight) {
+					flight = matchingFlight;
+				}
+			}
+
+			if (flight.flightPoints && flight.flightPoints.length >= 2) {
+				const departure = flight.flightPoints.find(
+					(point) => point.departurePoint
+				);
+				const arrival = flight.flightPoints.find((point) => point.arrivalPoint);
+
+				if (departure) {
+					originCode = departure.iataCode || "---";
+					if (
+						departure.departure &&
+						departure.departure.timings &&
+						departure.departure.timings.length > 0
+					) {
+						const timeStr = departure.departure.timings[0].value;
+						departureTime = timeStr.substring(0, 5); // HH:MM Format
+					}
+				}
+
+				if (arrival) {
+					destCode = arrival.iataCode || "---";
+					if (
+						arrival.arrival &&
+						arrival.arrival.timings &&
+						arrival.arrival.timings.length > 0
+					) {
+						const timeStr = arrival.arrival.timings[0].value;
+						arrivalTime = timeStr.substring(0, 5); // HH:MM Format
+					}
+				}
+			}
+		}
+
+		// UI-Elemente aktualisieren
+		const arrivalTimeEl = document.getElementById(`arrival-time-${cellId}`);
+		const departureTimeEl = document.getElementById(`departure-time-${cellId}`);
+		const positionEl = document.getElementById(`position-${cellId}`);
+
+		if (arrivalTimeEl) arrivalTimeEl.textContent = arrivalTime;
+		if (departureTimeEl) departureTimeEl.textContent = departureTime;
+		if (positionEl) positionEl.textContent = `${originCode}→${destCode}`;
+
+		// Tow-Status aktualisieren basierend auf Flugdaten
+		updateTowStatus(cellId, departureTime);
+
+		console.log(
+			`Kachel ${cellId} mit Flugdaten aktualisiert: ${originCode}→${destCode}, Abflug: ${departureTime}, Ankunft: ${arrivalTime}`
+		);
+
+		return true;
+	} catch (error) {
+		console.error(
+			`Fehler beim Anwenden der Flugdaten auf Kachel ${cellId}:`,
+			error
+		);
+		return false;
+	}
+}
+
+/**
+ * Aktualisiert den Tow-Status basierend auf der Abflugzeit
+ * @param {string} cellId - ID der Kachel
+ * @param {string} departureTime - Abflugzeit im Format "HH:MM"
+ */
+function updateTowStatus(cellId, departureTime) {
+	try {
+		const towStatus = document.getElementById(`tow-status-${cellId}`);
+		if (!towStatus) return;
+
+		// Bestimme den Status basierend auf der Abflugzeit
+		let status;
+		let label;
+
+		if (departureTime === "--:--") {
+			// Wenn keine Abflugzeit verfügbar ist, zufälligen Status verwenden
+			const statuses = ["tow-initiated", "tow-ongoing", "tow-on-position"];
+			const labels = ["Initiated", "In Progress", "On Position"];
+			const randomIndex = Math.floor(Math.random() * statuses.length);
+			status = statuses[randomIndex];
+			label = labels[randomIndex];
+		} else {
+			// Aktuelle Zeit und Abflugzeit für Vergleich vorbereiten
+			const now = new Date();
+			const [hours, minutes] = departureTime.split(":").map(Number);
+			const departureDate = new Date();
+			departureDate.setHours(hours, minutes, 0);
+
+			// Zeitdifferenz in Minuten
+			const diffMinutes = Math.floor((departureDate - now) / (1000 * 60));
+
+			// Status basierend auf Zeitdifferenz
+			if (diffMinutes < -15) {
+				// Abflug verpasst oder bereits erfolgt
+				status = "tow-on-position";
+				label = "Departed";
+			} else if (diffMinutes < 45) {
+				// Weniger als 45 Minuten bis zum Abflug: an Position
+				status = "tow-on-position";
+				label = "On Position";
+			} else if (diffMinutes < 90) {
+				// Weniger als 90 Minuten: unterwegs zur Position
+				status = "tow-ongoing";
+				label = "In Progress";
+			} else {
+				// Noch lange Zeit bis zum Abflug
+				status = "tow-initiated";
+				label = "Initiated";
+			}
+		}
+
+		// Status anwenden
+		towStatus.className = `tow-status ${status}`;
+		towStatus.textContent = label;
+	} catch (error) {
+		console.error(
+			`Fehler beim Aktualisieren des Tow-Status für Kachel ${cellId}:`,
+			error
+		);
+	}
 }
 
 /**

@@ -15,6 +15,34 @@ const AeroDataBoxAPI = (() => {
 		rapidApiHost: "aerodatabox.p.rapidapi.com",
 		rapidApiKey: "ad46b0002emsh24ee20863379507p1010e6jsn17e9247ba903", // RapidAPI Key
 		debugMode: true, // Debug-Modus für zusätzliche Konsolenausgaben
+		rateLimitDelay: 1200, // 1.2 Sekunden Verzögerung zwischen API-Anfragen
+		useMockData: false, // Wenn true, werden Testdaten statt API-Anfragen verwendet
+	};
+
+	// Tracking der letzten API-Anfrage für Rate Limiting
+	let lastApiCall = 0;
+
+	/**
+	 * Ratenbegrenzer für API-Aufrufe
+	 * @param {Function} apiCall - Die auszuführende API-Funktion
+	 * @returns {Promise} Ergebnis der API-Anfrage
+	 */
+	const rateLimiter = async (apiCall) => {
+		const now = Date.now();
+		const timeSinceLastCall = now - lastApiCall;
+
+		if (timeSinceLastCall < config.rateLimitDelay) {
+			const waitTime = config.rateLimitDelay - timeSinceLastCall;
+			if (config.debugMode) {
+				console.log(
+					`Rate Limiting: Warte ${waitTime}ms vor nächstem API-Aufruf`
+				);
+			}
+			await new Promise((resolve) => setTimeout(resolve, waitTime));
+		}
+
+		lastApiCall = Date.now();
+		return apiCall();
 	};
 
 	/**
@@ -55,54 +83,115 @@ const AeroDataBoxAPI = (() => {
 	 */
 	const getAircraftFlights = async (aircraftRegistration, date) => {
 		try {
+			// Registrierung normalisieren
+			const registration = aircraftRegistration.trim().toUpperCase();
+
+			if (config.useMockData) {
+				if (config.debugMode) {
+					console.log(
+						`Mock-Modus aktiviert, generiere Testdaten für ${registration}`
+					);
+				}
+				return generateTestFlightData(registration, date);
+			}
+
 			updateFetchStatus(
-				`Suche Flüge für Aircraft ${aircraftRegistration} am ${date}...`
+				`Suche Flüge für Aircraft ${registration} am ${date}...`
 			);
 
-			// AeroDataBox API-Pfad für Registrierungssuche
-			const apiUrl = `${config.baseUrl}${config.flightsEndpoint}/registration/${aircraftRegistration}/${date}`;
+			// API-Aufruf mit Rate Limiting
+			return await rateLimiter(async () => {
+				// AeroDataBox API-Pfad für Registrierungssuche mit RapidAPI-Parametern
+				const apiUrl = `${config.baseUrl}${config.flightsEndpoint}/reg/${registration}/${date}?withAircraftImage=false&withLocation=false`;
 
-			// API-Anfrage durchführen
-			const response = await fetch(apiUrl, {
-				headers: {
-					"X-RapidAPI-Host": config.rapidApiHost,
-					"X-RapidAPI-Key": config.rapidApiKey,
-				},
-			});
-
-			if (!response.ok) {
-				// Bei Fehlern Testdaten verwenden
-				if (response.status === 404) {
-					updateFetchStatus(
-						`Keine echten Daten für ${aircraftRegistration} gefunden, generiere Testdaten`,
-						false
-					);
-					return generateTestFlightData(aircraftRegistration, date);
+				if (config.debugMode) {
+					console.log(`API-Anfrage URL: ${apiUrl}`);
 				}
 
-				const errorText = await response.text();
-				throw new Error(
-					`API-Anfrage fehlgeschlagen: ${response.status} ${response.statusText}. Details: ${errorText}`
-				);
-			}
+				// API-Anfrage durchführen mit RapidAPI-Headers
+				const response = await fetch(apiUrl, {
+					method: "GET",
+					headers: {
+						"x-rapidapi-key": config.rapidApiKey,
+						"x-rapidapi-host": config.rapidApiHost,
+					},
+				});
 
-			const data = await response.json();
+				if (!response.ok) {
+					// Bei Fehlern Testdaten verwenden
+					if (response.status === 404) {
+						updateFetchStatus(
+							`Keine echten Daten für ${registration} gefunden, generiere Testdaten`,
+							false
+						);
+						return generateTestFlightData(registration, date);
+					}
 
-			if (config.debugMode) {
-				console.log(`AeroDataBox API-Antwort:`, data);
-			}
+					const errorText = await response.text();
+					throw new Error(
+						`API-Anfrage fehlgeschlagen: ${response.status} ${response.statusText}. Details: ${errorText}`
+					);
+				}
 
-			// Formatieren der Antwort in ein einheitliches Format
-			return convertToUnifiedFormat(data, aircraftRegistration, date);
+				const data = await response.json();
+
+				if (config.debugMode) {
+					console.log(`AeroDataBox API-Antwort für ${registration}:`, data);
+				}
+
+				// Formatieren der Antwort in ein einheitliches Format
+				return convertToUnifiedFormat(data, registration, date);
+			});
 		} catch (error) {
-			console.error("Fehler bei AeroDataBox API-Anfrage:", error);
+			console.error(
+				`Fehler bei AeroDataBox API-Anfrage für ${aircraftRegistration}:`,
+				error
+			);
 			updateFetchStatus(
-				`Verwende Testdaten für ${aircraftRegistration} (API-Fehler)`,
-				false
+				`Verwende Testdaten für ${aircraftRegistration} (API-Fehler: ${error.message})`,
+				true
 			);
 
 			// Bei Fehlern Testdaten zurückgeben
 			return generateTestFlightData(aircraftRegistration, date);
+		}
+	};
+
+	/**
+	 * Ruft Flugdaten für mehrere Flugzeuge ab
+	 * @param {string[]} registrations - Liste der Flugzeugregistrierungen
+	 * @param {string} date - Datum im Format YYYY-MM-DD
+	 * @returns {Promise<Object[]>} Liste der Flugdaten
+	 */
+	const getMultipleAircraftFlights = async (registrations, date) => {
+		try {
+			updateFetchStatus(
+				`Beginne Abruf für ${registrations.length} Flugzeuge...`
+			);
+
+			const results = [];
+			for (const reg of registrations) {
+				try {
+					updateFetchStatus(`Rufe Daten für ${reg} ab...`);
+					const data = await getAircraftFlights(reg, date);
+					results.push({ registration: reg, data });
+				} catch (error) {
+					console.error(`Fehler bei ${reg}:`, error);
+					results.push({
+						registration: reg,
+						error: error.message,
+						data: generateTestFlightData(reg, date), // Fallback zu Testdaten
+					});
+				}
+			}
+
+			updateFetchStatus(
+				`Alle Flugdaten abgerufen (${results.length} Flugzeuge)`
+			);
+			return results;
+		} catch (error) {
+			console.error("Fehler beim Abrufen mehrerer Flugzeugdaten:", error);
+			throw error;
 		}
 	};
 
@@ -120,36 +209,39 @@ const AeroDataBoxAPI = (() => {
 			const withAircraftImage = true;
 			const withLocation = true;
 
-			// AeroDataBox API-Pfad für Flight Status
-			const apiUrl = `${config.baseUrl}${config.statusEndpoint}/${number}/${date}?withAircraftImage=${withAircraftImage}&withLocation=${withLocation}`;
+			// API-Aufruf mit Rate Limiting
+			return await rateLimiter(async () => {
+				// AeroDataBox API-Pfad für Flight Status mit RapidAPI-Parametern
+				const apiUrl = `${config.baseUrl}${config.statusEndpoint}/${number}/${date}?withAircraftImage=${withAircraftImage}&withLocation=${withLocation}`;
 
-			if (config.debugMode) {
-				console.log(`API-Anfrage URL: ${apiUrl}`);
-			}
+				if (config.debugMode) {
+					console.log(`API-Anfrage URL: ${apiUrl}`);
+				}
 
-			// API-Anfrage durchführen
-			const response = await fetch(apiUrl, {
-				headers: {
-					"X-RapidAPI-Host": config.rapidApiHost,
-					"X-RapidAPI-Key": config.rapidApiKey,
-				},
+				// API-Anfrage durchführen mit RapidAPI-Headers
+				const response = await fetch(apiUrl, {
+					headers: {
+						"x-rapidapi-key": config.rapidApiKey,
+						"x-rapidapi-host": config.rapidApiHost,
+					},
+				});
+
+				if (!response.ok) {
+					const errorText = await response.text();
+					console.error(`API-Fehler: ${response.status} - ${errorText}`);
+					throw new Error(
+						`Flugstatus-Anfrage fehlgeschlagen: ${response.status} ${response.statusText}`
+					);
+				}
+
+				const data = await response.json();
+
+				if (config.debugMode) {
+					console.log(`Flugstatus-Antwort:`, data);
+				}
+
+				return data;
 			});
-
-			if (!response.ok) {
-				const errorText = await response.text();
-				console.error(`API-Fehler: ${response.status} - ${errorText}`);
-				throw new Error(
-					`Flugstatus-Anfrage fehlgeschlagen: ${response.status} ${response.statusText}`
-				);
-			}
-
-			const data = await response.json();
-
-			if (config.debugMode) {
-				console.log(`Flugstatus-Antwort:`, data);
-			}
-
-			return data;
 		} catch (error) {
 			console.error("Fehler beim Abrufen des Flugstatus:", error);
 			updateFetchStatus(
@@ -504,9 +596,17 @@ const AeroDataBoxAPI = (() => {
 	return {
 		updateAircraftData,
 		getAircraftFlights,
-		getFlightStatus, // Neue Methode exportieren
+		getMultipleAircraftFlights, // Neue Methode exportieren
+		getFlightStatus,
 		updateFetchStatus,
 		init,
+		setMockMode: (useMock) => {
+			// Neue Funktion zum Umschalten des Mock-Modus
+			config.useMockData = useMock;
+			console.log(
+				`AeroDataBox API Mock-Modus ${useMock ? "aktiviert" : "deaktiviert"}`
+			);
+		},
 	};
 })();
 
