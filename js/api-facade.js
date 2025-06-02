@@ -110,7 +110,7 @@ const FlightDataAPI = (() => {
 	/**
 	 * Erstellt das Provider-Selektor-Element
 	 * @returns {HTMLElement} Provider-Selektor-Container
-	 */
+	 
 	const createProviderSelector = () => {
 		const providerSelectorContainer = document.createElement("div");
 		providerSelectorContainer.className = "mb-3";
@@ -128,7 +128,7 @@ const FlightDataAPI = (() => {
                 API-Provider für Flugdaten
             </p>
         `;
-
+*/
 		// Event-Listener für Provider-Änderung
 		setTimeout(() => {
 			const selector = document.getElementById("apiProviderSelect");

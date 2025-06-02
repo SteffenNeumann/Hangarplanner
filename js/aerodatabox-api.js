@@ -7,8 +7,7 @@
 const AeroDataBoxAPI = (() => {
 	// API-Konfiguration
 	const config = {
-		apiKey:
-			"eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiJ3d3cuYWVyb2RhdGFib3guY29tIiwiaXNzIjoiaHR0cHM6Ly9hdXRoLmFlcm9kYXRhYm94LmNvbS9vYXV0aDIvdG9rZW4iLCJleHAiOjQ4NDM5MzA4MTYsInN1YiI6IkhBTkdBUlBMQU5ORVIiLCJzY29wZSI6WyJhaXJjcmFmdHM6cmVhZCIsImFpcmNyYWZ0LXNjaGVkdWxlczpyZWFkIl19.fGixcekDQJ3_8xNhD6ON48J9GmhGBrybfVOgCZUYm46crXdXgnrZn9eZ8JO7dUcP5fLu_T-FT0S9vTGxgkv6aOLC2PlgOUUy0d_oB_SMev3QRG_pKRIGZhrbWxQdZg9Q-BXXQl3xGxKns5dUYyJYo1RzrYk1sk7r9OmB_px1fJG1XQdBwV7nKJfJrYgHDek_hHr8BL-KJp2kcJOtUHYVPdmyAMaqXPbNi5tIM43RuWTx7iYJ8tk6oLxoXVKpNYxRvV6AFw3KDhfx8m27st0C3edf5SIu1SigywII4NHpnt1EK6PzE4RKzPNr3xfjsmkNY0lAWOTznt95DLrgmRpPzA",
+		// RapidAPI wird immer verwendet - keine alternative Auswahl mehr
 		baseUrl: "https://aerodatabox.p.rapidapi.com",
 		flightsEndpoint: "/flights",
 		statusEndpoint: "/status",
@@ -101,7 +100,7 @@ const AeroDataBoxAPI = (() => {
 
 			// API-Aufruf mit Rate Limiting
 			return await rateLimiter(async () => {
-				// AeroDataBox API-Pfad für Registrierungssuche mit RapidAPI-Parametern
+				// Immer RapidAPI verwenden - keine Alternativen mehr
 				const apiUrl = `${config.baseUrl}${config.flightsEndpoint}/reg/${registration}/${date}?withAircraftImage=false&withLocation=false`;
 
 				if (config.debugMode) {
@@ -211,7 +210,7 @@ const AeroDataBoxAPI = (() => {
 
 			// API-Aufruf mit Rate Limiting
 			return await rateLimiter(async () => {
-				// AeroDataBox API-Pfad für Flight Status mit RapidAPI-Parametern
+				// Immer RapidAPI verwenden - keine Alternativen mehr
 				const apiUrl = `${config.baseUrl}${config.statusEndpoint}/${number}/${date}?withAircraftImage=${withAircraftImage}&withLocation=${withLocation}`;
 
 				if (config.debugMode) {
@@ -570,7 +569,9 @@ const AeroDataBoxAPI = (() => {
 	 */
 	const init = () => {
 		try {
-			console.log("AeroDataBox API-Modul initialisiert");
+			console.log(
+				"AeroDataBox API-Modul initialisiert (RapidAPI wird verwendet)"
+			);
 
 			// Testaufruf, um die API zu prüfen (nur im Debug-Modus)
 			if (config.debugMode) {
@@ -596,12 +597,11 @@ const AeroDataBoxAPI = (() => {
 	return {
 		updateAircraftData,
 		getAircraftFlights,
-		getMultipleAircraftFlights, // Neue Methode exportieren
+		getMultipleAircraftFlights,
 		getFlightStatus,
 		updateFetchStatus,
 		init,
 		setMockMode: (useMock) => {
-			// Neue Funktion zum Umschalten des Mock-Modus
 			config.useMockData = useMock;
 			console.log(
 				`AeroDataBox API Mock-Modus ${useMock ? "aktiviert" : "deaktiviert"}`
