@@ -449,8 +449,14 @@
 
 			/* Explizitere Regeln für die Sidebar im eingeklappten Zustand */
 			.sidebar-collapsed .sidebar-container {
-				width: 48px !important; /* !important um andere Regeln zu überschreiben */
-				min-width: 48px !important;
+				width: 0 !important; /* Vollständig ausblenden */
+				min-width: 0 !important;
+				max-width: 0 !important;
+				padding: 0 !important;
+				margin: 0 !important;
+				overflow: hidden !important;
+				opacity: 0 !important;
+				visibility: hidden !important;
 			}
 
 			/* Wichtig: Sidebar-Content Handling verbessern */
@@ -471,30 +477,24 @@
 
 			/* Verbesserte Toggle-Button-Position und Stil */
 			#menuToggle {
-				position: fixed;
-				top: 15px;
-				right: 320px; /* Richtige Position wenn ausgeklappt - am Rand der Sidebar */
+				position: static; /* Statt fixed, damit er im regulären Dokumentenfluss bleibt */
 				font-size: 18px;
 				font-weight: bold;
 				cursor: pointer;
-				width: 32px;
-				height: 32px;
-				display: flex;
-				justify-content: center;
-				align-items: center;
+				padding: 5px 10px;
 				border-radius: 4px;
-				background-color: rgba(255, 255, 255, 0.2);
+				background-color: #3a4354;
 				transition: all 0.3s ease;
-				z-index: 1000; /* Höherer z-index für Sichtbarkeit */
+				z-index: 100;
 				border: none;
 				color: white;
 				outline: none;
+				box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 			}
 
-			/* Anpassung der Button-Position im eingeklappten Zustand */
+			/* Anpassung der Button-Rotation im eingeklappten Zustand */
 			body.sidebar-collapsed #menuToggle {
 				transform: rotate(180deg);
-				right: 60px; /* Position wenn eingeklappt - Abstand vom rechten Rand */
 			}
 
 			/* Einheitliche Formularelemente */
@@ -694,16 +694,20 @@
 			<div class="flex-grow flex flex-col content-container">
 				<!-- Header mit Titel und Aktionen -->
 				<header
-					class="bg-industrial-medium p-4 shadow-md flex justify-between items-center">
-					<h1 class="text-2xl font-bold tracking-wide">Hangar Planner</h1>
-					<!-- Toggle-Button für Sidebar - jetzt als Button-Element mit Outline entfernt -->
-					<button id="menuToggle" class="menu-toggle focus:outline-none">
+					class="bg-white p-4 shadow-md flex justify-between items-center">
+					<h1 class="text-xl font-thin tracking-wide text-industrial-dark">
+						Hangar Planner
+					</h1>
+					<!-- Toggle-Button mit verbesserter Sichtbarkeit und Position -->
+					<button
+						id="menuToggle"
+						class="menu-toggle focus:outline-none bg-industrial-dark text-white px-2 py-1 rounded hover:bg-industrial-accent z-50">
 						«
 					</button>
 				</header>
 
-				<!-- Hangar-Kacheln Bereich - Hintergrund auf Weiß geändert -->
-				<div class="flex-grow bg-white p-6 overflow-auto hangar-container">
+				<!-- Hangar-Kacheln Bereich - Padding weiter reduziert -->
+				<div class="flex-grow bg-white p-3 overflow-auto hangar-container">
 					<!-- Abschnitt 1 Container -->
 					<div class="section-container">
 						<div id="hangarGrid" class="grid grid-cols-4 gap-4">
