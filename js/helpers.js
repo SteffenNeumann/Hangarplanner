@@ -139,6 +139,73 @@ function debounce(func, wait) {
 	};
 }
 
+/**
+ * Hilfsfunktion zum Debuggen des Sidebar-Status
+ */
+function checkSidebarStatus() {
+	const body = document.body;
+	const menuToggleBtn = document.getElementById("menuToggle");
+	const isSidebarCollapsed = body.classList.contains("sidebar-collapsed");
+
+	console.log(
+		"Sidebar Status:",
+		isSidebarCollapsed ? "Eingeklappt" : "Ausgeklappt"
+	);
+	console.log(
+		"Toggle Button Text:",
+		menuToggleBtn ? menuToggleBtn.textContent : "Nicht gefunden"
+	);
+	console.log("Body Klassen:", body.className);
+
+	return {
+		isCollapsed: isSidebarCollapsed,
+		buttonText: menuToggleBtn ? menuToggleBtn.textContent : null,
+		bodyClasses: body.className,
+	};
+}
+
+// Globale Verfügbarkeit für die Debugging-Funktion
+window.checkSidebarStatus = checkSidebarStatus;
+
+// Füge die Funktion zum vorhandenen helpers-Objekt hinzu, falls es existiert
+if (window.helpers) {
+	window.helpers.checkSidebarStatus = checkSidebarStatus;
+}
+
+/**
+ * Setzt den Sidebar-Status explizit auf ausgeklappt beim ersten Laden
+ */
+function resetSidebarState() {
+	localStorage.setItem("sidebarCollapsed", "false");
+	console.log(
+		"Sidebar-Zustand auf ausgeklappt zurückgesetzt (localStorage: false)"
+	);
+
+	if (window.toggleSidebar) {
+		window.toggleSidebar(false);
+		return "Sidebar wurde ausgeklappt";
+	} else {
+		return "toggleSidebar-Funktion nicht gefunden";
+	}
+}
+
+// Globale Verfügbarkeit für Debugging
+window.resetSidebarState = resetSidebarState;
+
+// Nach dem ersten Laden der Seite einmal prüfen und ggf. korrigieren
+document.addEventListener("DOMContentLoaded", function () {
+	setTimeout(() => {
+		// Wenn die Sidebar trotz allem noch eingeklappt ist, automatisch ausklappen
+		const body = document.body;
+		if (body.classList.contains("sidebar-collapsed")) {
+			console.warn(
+				"Sidebar ist nach Laden immer noch eingeklappt - korrigiere..."
+			);
+			resetSidebarState();
+		}
+	}, 1000);
+});
+
 // Exportieren der Hilfsfunktionen
 window.helpers = {
 	showNotification,

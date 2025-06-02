@@ -435,36 +435,181 @@
 			}
 
 			/* Modernisierte Sidebar-Styles */
-			.sidebar-section-title {
-				font-size: 1.05rem;
-				font-weight: 600;
-				margin-bottom: 0.75rem;
+			/* Verbesserte Sidebar-Container-Stile */
+			.sidebar-container {
+				width: 320px; /* Einheitliche Breite für die Sidebar */
+				min-width: 320px;
+				flex-shrink: 0;
+				transition: width 0.3s ease, min-width 0.3s ease;
+				overflow-y: auto;
+				overflow-x: hidden;
+				border-left: 1px solid rgba(255, 255, 255, 0.1);
+				position: relative;
+			}
+
+			/* Explizitere Regeln für die Sidebar im eingeklappten Zustand */
+			.sidebar-collapsed .sidebar-container {
+				width: 48px !important; /* !important um andere Regeln zu überschreiben */
+				min-width: 48px !important;
+			}
+
+			/* Wichtig: Sidebar-Content Handling verbessern */
+			.sidebar-content {
+				opacity: 1;
+				visibility: visible;
+				transition: opacity 0.2s ease, visibility 0s;
+				padding: 15px;
+				width: 100%;
+			}
+
+			/* Spezifischere Regeln für Sidebar-Content im eingeklappten Zustand */
+			body.sidebar-collapsed .sidebar-content {
+				opacity: 0;
+				visibility: hidden;
+				transition: opacity 0.1s ease, visibility 0s 0.1s;
+			}
+
+			/* Verbesserte Toggle-Button-Position und Stil */
+			#menuToggle {
+				position: fixed;
+				top: 15px;
+				right: 320px; /* Richtige Position wenn ausgeklappt - am Rand der Sidebar */
+				font-size: 18px;
+				font-weight: bold;
+				cursor: pointer;
+				width: 32px;
+				height: 32px;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				border-radius: 4px;
+				background-color: rgba(255, 255, 255, 0.2);
+				transition: all 0.3s ease;
+				z-index: 1000; /* Höherer z-index für Sichtbarkeit */
+				border: none;
+				color: white;
+				outline: none;
+			}
+
+			/* Anpassung der Button-Position im eingeklappten Zustand */
+			body.sidebar-collapsed #menuToggle {
+				transform: rotate(180deg);
+				right: 60px; /* Position wenn eingeklappt - Abstand vom rechten Rand */
+			}
+
+			/* Einheitliche Formularelemente */
+			.sidebar-form-control {
+				display: block;
+				width: 100%;
+				padding: 0.5rem;
+				background-color: #3a4354;
+				border: 1px solid rgba(255, 255, 255, 0.1);
+				border-radius: 4px;
+				color: white;
+				font-size: 14px;
+				transition: all 0.2s ease;
+			}
+
+			.sidebar-form-control:focus {
+				border-color: #ff7043;
+				outline: none;
+				box-shadow: 0 0 0 2px rgba(255, 112, 67, 0.3);
+			}
+
+			/* Input-Gruppen für einheitliche Breite */
+			.sidebar-input-group {
+				display: flex;
+				margin-bottom: 10px;
+				width: 100%;
+				gap: 8px;
+			}
+
+			.sidebar-input-group input {
+				flex: 1;
+				min-width: 0; /* Wichtig für korrekte Breite in Flexbox */
+			}
+
+			.sidebar-input-group button {
+				flex-shrink: 0;
+				white-space: nowrap;
+			}
+
+			/* Standardisierte Button-Breiten */
+			.sidebar-btn {
+				padding: 0.5rem 1rem;
+				border-radius: 4px;
+				font-size: 14px;
+				font-weight: 500;
+				cursor: pointer;
+				transition: all 0.2s ease;
+				border: none;
+			}
+
+			.sidebar-btn-primary {
+				background-color: #ff7043;
 				color: white;
 			}
 
-			.sidebar-section {
-				padding: 1rem;
-				border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+			.sidebar-btn-primary:hover {
+				background-color: #f85d2c;
 			}
 
-			.sidebar-header {
-				padding: 1rem;
-				background-color: #3a4354; /* Dunkleres Blau für Header */
-				border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+			.sidebar-btn-secondary {
+				background-color: #d1d5db;
+				color: #3a4354;
 			}
 
-			.mode-toggle-container {
+			.sidebar-btn-secondary:hover {
+				background-color: #c2c7cf;
+			}
+
+			/* Einheitlicher Container für Formularelemente */
+			.sidebar-form-group {
+				margin-bottom: 16px;
+				width: 100%;
+			}
+
+			.sidebar-form-group label {
+				display: block;
+				margin-bottom: 6px;
+				font-size: 14px;
+				color: rgba(255, 255, 255, 0.8);
+			}
+
+			.sidebar-form-row {
 				display: flex;
 				align-items: center;
-				margin-bottom: 0.75rem;
+				gap: 8px;
+				margin-bottom: 10px;
+				width: 100%;
 			}
 
-			.mode-toggle {
-				margin-left: auto;
-				margin-right: 0;
+			.sidebar-form-row label {
+				margin-bottom: 0;
+				width: 40%;
+				text-align: right;
+				color: rgba(255, 255, 255, 0.8);
+				font-size: 14px;
 			}
 
-			/* Sidebar-Menü-Styles */
+			.sidebar-form-row .input-container {
+				width: 60%;
+			}
+
+			/* Dropdown-Styles für Konsistenz */
+			.sidebar-form-select {
+				display: block;
+				width: 100%;
+				padding: 0.5rem;
+				background-color: #3a4354;
+				border: 1px solid rgba(255, 255, 255, 0.1);
+				border-radius: 4px;
+				color: white;
+				font-size: 14px;
+				transition: all 0.2s ease;
+			}
+
+			/* Sidebar-Akkordeon-Stile */
 			.sidebar-accordion-item {
 				border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 			}
@@ -508,7 +653,7 @@
 
 			.sidebar-accordion-content {
 				background-color: #4b5975; /* Etwas hellere Farbe als Header */
-				padding: 14px 16px;
+				padding: 16px;
 				display: flex;
 				flex-direction: column;
 				gap: 12px;
@@ -551,10 +696,10 @@
 				<header
 					class="bg-industrial-medium p-4 shadow-md flex justify-between items-center">
 					<h1 class="text-2xl font-bold tracking-wide">Hangar Planner</h1>
-					<!-- Toggle-Button für Sidebar -->
-					<div id="menuToggle" class="menu-toggle">
-						<span>»</span>
-					</div>
+					<!-- Toggle-Button für Sidebar - jetzt als Button-Element mit Outline entfernt -->
+					<button id="menuToggle" class="menu-toggle focus:outline-none">
+						«
+					</button>
 				</header>
 
 				<!-- Hangar-Kacheln Bereich - Hintergrund auf Weiß geändert -->
@@ -1340,122 +1485,117 @@
 			<!-- Einklappbares Rechtes Menü -->
 			<div
 				id="sidebarMenu"
-				class="sidebar-container bg-industrial-medium border-l border-industrial-light flex flex-col">
-				<!-- Haupttitel des Menüs -->
-				<div class="sidebar-header">
-					<h2 class="text-xl font-semibold">Hangar Menu</h2>
-				</div>
-
-				<!-- Ansichtsverwaltung als eigene Sektion -->
-				<div class="sidebar-accordion-item">
-					<div class="sidebar-accordion-header">
-						<div class="sidebar-header-content">
-							<i class="sidebar-icon">⚙️</i>
-							<h3 class="sidebar-section-title">Project Settings</h3>
-						</div>
-						<i class="dropdown-arrow">▼</i>
+				class="sidebar-container bg-industrial-medium flex flex-col">
+				<!-- Hauptinhalt der Sidebar -->
+				<div class="sidebar-content">
+					<!-- Haupttitel des Menüs -->
+					<div class="sidebar-header">
+						<h2 class="text-xl font-semibold">Hangar Menu</h2>
 					</div>
-					<div class="sidebar-accordion-content">
-						<!-- Mode Toggle Switch -->
-						<div class="menu-info-row">
-							<div class="menu-info-label">View/Edit Mode:</div>
-							<div class="menu-info-value">
-								<div class="mode-toggle">
-									<span class="mode-toggle-label text-xs">View</span>
-									<label class="toggle-switch">
-										<input type="checkbox" id="modeToggle" checked />
-										<span class="toggle-slider"></span>
-									</label>
-									<span class="mode-toggle-label text-xs">Edit</span>
+
+					<!-- Ansichtsverwaltung als eigene Sektion -->
+					<div class="sidebar-accordion-item">
+						<div class="sidebar-accordion-header">
+							<div class="sidebar-header-content">
+								<i class="sidebar-icon">⚙️</i>
+								<h3 class="sidebar-section-title">Project Settings</h3>
+							</div>
+							<i class="dropdown-arrow">▼</i>
+						</div>
+						<div class="sidebar-accordion-content">
+							<!-- Mode Toggle Switch -->
+							<div class="sidebar-form-group">
+								<div class="sidebar-form-row">
+									<label for="modeToggle">View/Edit Mode:</label>
+									<div class="input-container">
+										<div class="mode-toggle">
+											<span class="mode-toggle-label text-xs">View</span>
+											<label class="toggle-switch">
+												<input type="checkbox" id="modeToggle" checked />
+												<span class="toggle-slider"></span>
+											</label>
+											<span class="mode-toggle-label text-xs">Edit</span>
+										</div>
+									</div>
 								</div>
 							</div>
-						</div>
 
-						<!-- Project Name -->
-						<div class="menu-info-row">
-							<div class="menu-info-label">Project Name:</div>
-							<div class="menu-info-value">
+							<!-- Project Name -->
+							<div class="sidebar-form-group">
+								<label for="projectName">Project Name:</label>
 								<input
 									id="projectName"
 									type="text"
 									placeholder="Project Name"
-									class="bg-industrial-dark text-white px-3 py-1 rounded form-control w-full" />
+									class="sidebar-form-control" />
 								<input type="hidden" id="projectId" value="" />
 							</div>
-						</div>
 
-						<!-- Save/Load Buttons -->
-						<div class="menu-button-row">
-							<button
-								id="saveBtn"
-								class="bg-industrial-accent hover:bg-opacity-80 px-4 py-1 rounded font-medium">
-								Save
-							</button>
-							<button
-								id="loadBtn"
-								class="bg-industrial-light text-industrial-dark hover:bg-opacity-80 px-4 py-1 rounded font-medium">
-								Load
-							</button>
+							<!-- Save/Load Buttons -->
+							<div class="sidebar-input-group">
+								<button
+									id="saveBtn"
+									class="sidebar-btn sidebar-btn-primary flex-1">
+									Save
+								</button>
+								<button
+									id="loadBtn"
+									class="sidebar-btn sidebar-btn-secondary flex-1">
+									Load
+								</button>
+							</div>
 						</div>
 					</div>
-				</div>
 
-				<!-- Display Options Sektion -->
-				<div class="sidebar-accordion-item">
-					<div class="sidebar-accordion-header">
-						<div class="sidebar-header-content">
-							<i class="sidebar-icon">🔳</i>
-							<h3 class="sidebar-section-title">Display Options</h3>
+					<!-- Display Options Sektion -->
+					<div class="sidebar-accordion-item">
+						<div class="sidebar-accordion-header">
+							<div class="sidebar-header-content">
+								<i class="sidebar-icon">🔳</i>
+								<h3 class="sidebar-section-title">Display Options</h3>
+							</div>
+							<i class="dropdown-arrow">▼</i>
 						</div>
-						<i class="dropdown-arrow">▼</i>
-					</div>
-					<div class="sidebar-accordion-content">
-						<div class="menu-info-row">
-							<div class="menu-info-label">Primary Tiles:</div>
-							<div class="menu-info-value">
-								<div class="flex items-center space-x-2">
+						<div class="sidebar-accordion-content">
+							<div class="sidebar-form-group">
+								<label for="tilesCount">Primary Tiles:</label>
+								<div class="sidebar-input-group">
 									<input
 										type="number"
 										id="tilesCount"
 										min="1"
 										max="12"
 										value="8"
-										class="w-20 px-2 py-1 bg-industrial-dark rounded form-control" />
+										class="sidebar-form-control" />
 									<button
 										id="updateTilesBtn"
-										class="bg-industrial-accent px-3 py-1 rounded text-white">
+										class="sidebar-btn sidebar-btn-primary">
 										Update
 									</button>
 								</div>
 							</div>
-						</div>
 
-						<div class="menu-info-row">
-							<div class="menu-info-label">Secondary Tiles:</div>
-							<div class="menu-info-value">
-								<div class="flex items-center space-x-2">
+							<div class="sidebar-form-group">
+								<label for="secondaryTilesCount">Secondary Tiles:</label>
+								<div class="sidebar-input-group">
 									<input
 										type="number"
 										id="secondaryTilesCount"
 										min="0"
 										max="12"
-										value="0"
-										class="w-20 px-2 py-1 bg-industrial-dark rounded form-control" />
+										value="4"
+										class="sidebar-form-control" />
 									<button
 										id="updateSecondaryTilesBtn"
-										class="bg-industrial-accent px-3 py-1 rounded text-white">
+										class="sidebar-btn sidebar-btn-primary">
 										Update
 									</button>
 								</div>
 							</div>
-						</div>
 
-						<div class="menu-info-row">
-							<div class="menu-info-label">Layout:</div>
-							<div class="menu-info-value">
-								<select
-									id="layoutType"
-									class="bg-industrial-dark text-white px-2 py-1 rounded form-control w-full">
+							<div class="sidebar-form-group">
+								<label for="layoutType">Layout:</label>
+								<select id="layoutType" class="sidebar-form-select">
 									<option value="1">1 Column</option>
 									<option value="2">2 Columns</option>
 									<option value="3">3 Columns</option>
@@ -1464,338 +1604,335 @@
 							</div>
 						</div>
 					</div>
-				</div>
 
-				<!-- Suche nach Flugzeugen - mit verbessertem Hinweis -->
-				<div class="sidebar-accordion-item">
-					<div class="sidebar-accordion-header">
-						<div class="sidebar-header-content">
-							<i class="sidebar-icon">🔍</i>
-							<h3 class="sidebar-section-title">Search Aircraft</h3>
+					<!-- Suche nach Flugzeugen -->
+					<div class="sidebar-accordion-item">
+						<div class="sidebar-accordion-header">
+							<div class="sidebar-header-content">
+								<i class="sidebar-icon">🔍</i>
+								<h3 class="sidebar-section-title">Search Aircraft</h3>
+							</div>
+							<i class="dropdown-arrow">▼</i>
 						</div>
-						<i class="dropdown-arrow">▼</i>
+						<div class="sidebar-accordion-content">
+							<div class="sidebar-input-group">
+								<input
+									type="text"
+									id="searchAircraft"
+									placeholder="Flugzeug-ID (z.B. D-AIZZ, N12345)"
+									class="sidebar-form-control"
+									title="Geben Sie eine gültige Flugzeugkennung ein, z.B. D-AIZZ oder N12345" />
+								<button id="btnSearch" class="sidebar-btn sidebar-btn-primary">
+									Search
+								</button>
+							</div>
+						</div>
 					</div>
-					<div class="sidebar-accordion-content">
-						<div class="flex">
-							<input
-								type="text"
-								id="searchAircraft"
-								placeholder="Flugzeug-ID (z.B. D-AIZZ, N12345)"
-								class="flex-grow px-2 py-1 bg-industrial-dark rounded-l form-control"
-								title="Geben Sie eine gültige Flugzeugkennung ein, z.B. D-AIZZ oder N12345" />
+
+					<!-- Flugdaten abrufen -->
+					<div class="sidebar-accordion-item">
+						<div class="sidebar-accordion-header">
+							<div class="sidebar-header-content">
+								<i class="sidebar-icon">✈️</i>
+								<h3 class="sidebar-section-title">Flight Data</h3>
+							</div>
+							<i class="dropdown-arrow">▼</i>
+						</div>
+						<div id="flightDataContent" class="sidebar-accordion-content">
+							<div class="sidebar-form-group">
+								<label for="currentDateInput">Tag (letzter Flug):</label>
+								<input
+									type="date"
+									id="currentDateInput"
+									class="sidebar-form-control" />
+							</div>
+							<div class="sidebar-form-group">
+								<label for="nextDateInput">Tag (erster Flug):</label>
+								<input
+									type="date"
+									id="nextDateInput"
+									class="sidebar-form-control" />
+							</div>
+
+							<!-- IATA-Code Eingabefeld -->
+							<div class="sidebar-form-group">
+								<label for="airportCodeInput">Flughafen (IATA-Code):</label>
+								<input
+									type="text"
+									id="airportCodeInput"
+									name="airportCode"
+									placeholder="z.B. FRA, MUC"
+									maxlength="3"
+									value="MUC"
+									style="text-transform: uppercase"
+									class="sidebar-form-control" />
+								<p class="mt-1 text-xs text-gray-400">
+									Geben Sie einen IATA-Flughafencode ein, um die Suche zu
+									verfeinern.
+								</p>
+							</div>
+
 							<button
-								id="btnSearch"
-								class="bg-industrial-accent px-3 py-1 rounded-r">
-								Search
+								id="fetchFlightData"
+								class="sidebar-btn sidebar-btn-primary w-full">
+								Update Data
 							</button>
+							<div id="fetchStatus" class="text-sm text-center">
+								Ready to retrieve flight data
+							</div>
 						</div>
 					</div>
-				</div>
 
-				<!-- Flugdaten abrufen - aktualisierter Bereich -->
-				<div class="sidebar-accordion-item">
-					<div class="sidebar-accordion-header">
-						<div class="sidebar-header-content">
-							<i class="sidebar-icon">✈️</i>
-							<h3 class="sidebar-section-title">Flight Data</h3>
+					<!-- PDF Export Funktion -->
+					<div class="sidebar-accordion-item">
+						<div class="sidebar-accordion-header">
+							<div class="sidebar-header-content">
+								<i class="sidebar-icon">📄</i>
+								<h3 class="sidebar-section-title">Export Plan</h3>
+							</div>
+							<i class="dropdown-arrow">▼</i>
 						</div>
-						<i class="dropdown-arrow">▼</i>
-					</div>
-					<div id="flightDataContent" class="sidebar-accordion-content">
-						<div class="mb-3">
-							<label class="text-xs block mb-1">Tag (letzter Flug):</label>
-							<input
-								type="date"
-								id="currentDateInput"
-								class="w-full bg-industrial-dark text-white px-2 py-1 rounded form-control" />
-						</div>
-						<div class="mb-3">
-							<label class="text-xs block mb-1">Tag (erster Flug):</label>
-							<input
-								type="date"
-								id="nextDateInput"
-								class="w-full bg-industrial-dark text-white px-2 py-1 rounded form-control" />
-						</div>
-
-						<!-- Neues Flughafen-Eingabefeld -->
-						<div class="mb-3">
-							<label class="text-xs block mb-1">Flughafen (IATA-Code):</label>
-							<input
-								type="text"
-								id="airportCodeInput"
-								name="airportCode"
-								placeholder="z.B. FRA, MUC"
-								maxlength="3"
-								value="FRA"
-								style="text-transform: uppercase"
-								class="w-full bg-industrial-dark text-white px-2 py-1 rounded form-control" />
-							<p class="mt-1 text-xs text-gray-400">
-								Geben Sie einen IATA-Flughafencode ein, um die Suche zu
-								verfeinern.
-							</p>
-						</div>
-
-						<button
-							id="fetchFlightData"
-							class="w-full bg-industrial-accent hover:bg-opacity-80 px-4 py-2 rounded font-medium mb-3">
-							Update Data
-						</button>
-						<div id="fetchStatus" class="text-sm text-center">
-							Ready to retrieve flight data
-						</div>
-					</div>
-				</div>
-
-				<!-- PDF Export Funktion -->
-				<div class="sidebar-accordion-item">
-					<div class="sidebar-accordion-header">
-						<div class="sidebar-header-content">
-							<i class="sidebar-icon">📄</i>
-							<h3 class="sidebar-section-title">Export Plan</h3>
-						</div>
-						<i class="dropdown-arrow">▼</i>
-					</div>
-					<div class="sidebar-accordion-content">
-						<div class="menu-info-row">
-							<div class="menu-info-label">File name:</div>
-							<div class="menu-info-value">
+						<div class="sidebar-accordion-content">
+							<div class="sidebar-form-group">
+								<label for="pdfFilename">File name:</label>
 								<input
 									type="text"
 									id="pdfFilename"
 									value="Hangar_Plan"
-									class="w-full px-2 py-1 bg-industrial-dark rounded form-control" />
+									class="sidebar-form-control" />
 							</div>
-						</div>
 
-						<div class="menu-option-row">
-							<div class="flex items-center">
-								<input type="checkbox" id="includeNotes" checked class="mr-2" />
-								<label for="includeNotes" class="text-sm">Include Notes</label>
+							<div class="sidebar-form-group">
+								<div class="flex items-center">
+									<input
+										type="checkbox"
+										id="includeNotes"
+										checked
+										class="mr-2" />
+									<label for="includeNotes">Include Notes</label>
+								</div>
 							</div>
-						</div>
 
-						<div class="menu-option-row">
-							<div class="flex items-center">
-								<input
-									type="checkbox"
-									id="landscapeMode"
-									checked
-									class="mr-2" />
-								<label for="landscapeMode" class="text-sm"
-									>Landscape Mode</label
-								>
+							<div class="sidebar-form-group">
+								<div class="flex items-center">
+									<input
+										type="checkbox"
+										id="landscapeMode"
+										checked
+										class="mr-2" />
+									<label for="landscapeMode">Landscape Mode</label>
+								</div>
 							</div>
-						</div>
 
-						<div class="menu-button-row">
 							<button
 								id="exportPdfBtn"
-								class="bg-industrial-accent hover:bg-opacity-80 px-4 py-1 rounded font-medium">
+								class="sidebar-btn sidebar-btn-primary w-full">
 								Export PDF
 							</button>
 						</div>
 					</div>
-				</div>
 
-				<!-- Versteckte File-Input-Elemente -->
-				<input type="file" id="jsonFileInput" accept=".json" class="hidden" />
-				<input
-					type="file"
-					id="settingsFileInput"
-					accept=".json"
-					class="hidden" />
-			</div>
-		</div>
-		<!-- Schließender div für "flex h-screen" -->
-
-		<!-- Modales Fenster für Laden -->
-		<div
-			id="loadModal"
-			class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-			<div class="bg-industrial-medium rounded-lg p-6 w-96 max-w-full">
-				<h2 class="text-xl font-bold mb-4">Load Hangar Plan</h2>
-				<div class="mb-4">
+					<!-- Versteckte File-Input-Elemente -->
+					<input type="file" id="jsonFileInput" accept=".json" class="hidden" />
 					<input
-						id="loadProjectName"
-						type="text"
-						placeholder="Enter Project Name"
-						class="w-full bg-industrial-dark text-white px-3 py-2 rounded form-control" />
-				</div>
-				<div class="flex justify-end space-x-3">
-					<button
-						id="cancelLoad"
-						class="px-4 py-2 bg-industrial-light text-industrial-dark rounded">
-						Cancel
-					</button>
-					<button
-						id="confirmLoad"
-						class="px-4 py-2 bg-industrial-accent rounded">
-						Load
-					</button>
+						type="file"
+						id="settingsFileInput"
+						accept=".json"
+						class="hidden" />
 				</div>
 			</div>
-		</div>
 
-		<!-- E-Mail-Erfolgsmeldung Modal -->
-		<div
-			id="emailSentModal"
-			class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-			<div class="bg-industrial-medium rounded-lg p-6 w-96 max-w-full">
-				<h2 class="text-xl font-bold mb-4">Email Sent</h2>
-				<p class="mb-4">Your hangar plan has been sent successfully.</p>
-				<div class="flex justify-end">
-					<button
-						id="emailOkBtn"
-						class="px-4 py-2 bg-industrial-accent rounded">
-						OK
-					</button>
+			<!-- Modales Fenster für Laden -->
+			<div
+				id="loadModal"
+				class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+				<div class="bg-industrial-medium rounded-lg p-6 w-96 max-w-full">
+					<h2 class="text-xl font-bold mb-4">Load Hangar Plan</h2>
+					<div class="mb-4">
+						<input
+							id="loadProjectName"
+							type="text"
+							placeholder="Enter Project Name"
+							class="w-full bg-industrial-dark text-white px-3 py-2 rounded form-control" />
+					</div>
+					<div class="flex justify-end space-x-3">
+						<button
+							id="cancelLoad"
+							class="px-4 py-2 bg-industrial-light text-industrial-dark rounded">
+							Cancel
+						</button>
+						<button
+							id="confirmLoad"
+							class="px-4 py-2 bg-industrial-accent rounded">
+							Load
+						</button>
+					</div>
 				</div>
 			</div>
-		</div>
 
-		<!-- Ausgelagerte JavaScript-Dateien -->
-		<script src="js/helpers.js"></script>
-		<script src="js/fileManager.js"></script>
-		<script src="js/hangar-ui.js"></script>
-		<script src="js/hangar-data.js"></script>
-		<!-- API-Implementierungen -->
-		<script src="js/aerodatabox-api.js"></script>
-		<script src="js/amadeus-api.js"></script>
-		<!-- API-Fassade -->
-		<script src="js/api-facade.js"></script>
-		<!-- Event-Handler und Hauptanwendung -->
-		<script src="js/hangar-events.js"></script>
-		<script src="js/hangar-pdf.js"></script>
-		<script src="js/hangar.js"></script>
+			<!-- E-Mail-Erfolgsmeldung Modal -->
+			<div
+				id="emailSentModal"
+				class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+				<div class="bg-industrial-medium rounded-lg p-6 w-96 max-w-full">
+					<h2 class="text-xl font-bold mb-4">Email Sent</h2>
+					<p class="mb-4">Your hangar plan has been sent successfully.</p>
+					<div class="flex justify-end">
+						<button
+							id="emailOkBtn"
+							class="px-4 py-2 bg-industrial-accent rounded">
+							OK
+						</button>
+					</div>
+				</div>
+			</div>
 
-		<!-- Event-Handler für den "Info anzeigen"-Button -->
-		<script>
-			document.addEventListener("DOMContentLoaded", function () {
-				// Event-Handler für den Ordnerstruktur-Info-Button
-				const showFolderInfoBtn = document.getElementById("showFolderInfoBtn");
-				if (showFolderInfoBtn) {
-					showFolderInfoBtn.addEventListener("click", function () {
-						// Diese Funktion wird in folderManager.js definiert
-						if (typeof window.folderManager !== "undefined") {
-							window.folderManager.showFolderStructureInfo();
-						} else {
-							// Fallback, falls die Funktion nicht verfügbar ist
-							alert(
-								"Empfohlene Ordnerstruktur: HangarPlanner/Projekte/ für Projekte und HangarPlanner/Einstellungen/ für Einstellungen"
+			<!-- Ausgelagerte JavaScript-Dateien -->
+			<script src="js/helpers.js"></script>
+			<script src="js/debug-helpers.js"></script>
+			<script src="js/fileManager.js"></script>
+			<script src="js/hangar-ui.js"></script>
+			<script src="js/hangar-data.js"></script>
+			<!-- API-Implementierungen -->
+			<script src="js/aerodatabox-api.js"></script>
+			<script src="js/amadeus-api.js"></script>
+			<!-- API-Fassade -->
+			<script src="js/api-facade.js"></script>
+			<!-- Event-Handler und Hauptanwendung -->
+			<script src="js/hangar-events.js"></script>
+			<script src="js/hangar-pdf.js"></script>
+			<script src="js/hangar.js"></script>
+
+			<!-- Event-Handler für den "Info anzeigen"-Button -->
+			<script>
+				document.addEventListener("DOMContentLoaded", function () {
+					// Event-Handler für den Ordnerstruktur-Info-Button
+					const showFolderInfoBtn =
+						document.getElementById("showFolderInfoBtn");
+					if (showFolderInfoBtn) {
+						showFolderInfoBtn.addEventListener("click", function () {
+							// Diese Funktion wird in folderManager.js definiert
+							if (typeof window.folderManager !== "undefined") {
+								window.folderManager.showFolderStructureInfo();
+							} else {
+								// Fallback, falls die Funktion nicht verfügbar ist
+								alert(
+									"Empfohlene Ordnerstruktur: HangarPlanner/Projekte/ für Projekte und HangarPlanner/Einstellungen/ für Einstellungen"
+								);
+							}
+						});
+					}
+
+					// Initialisierung der UI, wenn Funktionen verfügbar sind
+					if (typeof initializeUI === "function") {
+						initializeUI();
+					}
+
+					if (typeof setupUIEventListeners === "function") {
+						setupUIEventListeners();
+					}
+				});
+			</script>
+
+			<!-- Event-Handler für die neue Statusdarstellung -->
+			<script>
+				document.addEventListener("DOMContentLoaded", function () {
+					// Bestehendes DOMContentLoaded-Event erweitern
+					// ...existing code...
+
+					// Status-Dropdown-Handler für die neuen Statusfarben
+					document.querySelectorAll(".status-selector").forEach((select) => {
+						// Initial Status setzen
+						updateStatusLight(select);
+
+						// Event-Listener für Änderungen
+						select.addEventListener("change", function () {
+							updateStatusLight(this);
+						});
+					});
+
+					// Funktion zum Aktualisieren des Statuslichts
+					function updateStatusLight(select) {
+						const cellId = select.id.split("-")[1];
+						const statusValue = select.value;
+						const statusLight = document.querySelector(
+							`.status-light[data-cell="${cellId}"]`
+						);
+
+						if (statusLight) {
+							// Alle Status-Klassen entfernen
+							statusLight.classList.remove(
+								"status-ready",
+								"status-maintenance",
+								"status-aog"
 							);
+							// Neue Status-Klasse hinzufügen
+							statusLight.classList.add(`status-${statusValue}`);
+							// Status-Datenwert aktualisieren
+							statusLight.setAttribute("data-status", statusValue);
+						}
+					}
+				});
+			</script>
+
+			<!-- Notizfelder in allen Kacheln auf Englisch ändern mit direktem DOM-Skript -->
+			<script>
+				document.addEventListener("DOMContentLoaded", function () {
+					// Bestehender Code...
+
+					// Alle Notizfelder auf Englisch umstellen
+					document.querySelectorAll(".notes-textarea").forEach((textarea) => {
+						if (
+							textarea.getAttribute("placeholder") === "Notizen eingeben..." ||
+							!textarea.getAttribute("placeholder")
+						) {
+							textarea.setAttribute("placeholder", "Enter notes...");
 						}
 					});
-				}
 
-				// Initialisierung der UI, wenn Funktionen verfügbar sind
-				if (typeof initializeUI === "function") {
-					initializeUI();
-				}
-
-				if (typeof setupUIEventListeners === "function") {
-					setupUIEventListeners();
-				}
-			});
-		</script>
-
-		<!-- Event-Handler für die neue Statusdarstellung -->
-		<script>
-			document.addEventListener("DOMContentLoaded", function () {
-				// Bestehendes DOMContentLoaded-Event erweitern
-				// ...existing code...
-
-				// Status-Dropdown-Handler für die neuen Statusfarben
-				document.querySelectorAll(".status-selector").forEach((select) => {
-					// Initial Status setzen
-					updateStatusLight(select);
-
-					// Event-Listener für Änderungen
-					select.addEventListener("change", function () {
-						updateStatusLight(this);
+					// Status-Dropdowns Hintergrundfarbe forcieren
+					document.querySelectorAll(".status-selector").forEach((select) => {
+						select.style.backgroundColor = "#e6eaef";
 					});
 				});
+			</script>
 
-				// Funktion zum Aktualisieren des Statuslichts
-				function updateStatusLight(select) {
-					const cellId = select.id.split("-")[1];
-					const statusValue = select.value;
-					const statusLight = document.querySelector(
-						`.status-light[data-cell="${cellId}"]`
-					);
+			<!-- Robustheitsskript für dynamisch erzeugte Elemente -->
+			<script>
+				// Sofort ausführen und dann erneut verzögert (um dynamisch erstellte Elemente zu erfassen)
+				function updateTextareasAndSelects() {
+					// Alle Notizfelder auf Englisch umstellen
+					document.querySelectorAll(".notes-textarea").forEach((textarea) => {
+						if (
+							textarea.getAttribute("placeholder") === "Notizen eingeben..." ||
+							!textarea.getAttribute("placeholder")
+						) {
+							textarea.setAttribute("placeholder", "Enter notes...");
+						}
+					});
 
-					if (statusLight) {
-						// Alle Status-Klassen entfernen
-						statusLight.classList.remove(
-							"status-ready",
-							"status-maintenance",
-							"status-aog"
-						);
-						// Neue Status-Klasse hinzufügen
-						statusLight.classList.add(`status-${statusValue}`);
-						// Status-Datenwert aktualisieren
-						statusLight.setAttribute("data-status", statusValue);
-					}
+					// Status-Dropdowns Hintergrundfarbe forcieren
+					document.querySelectorAll(".status-selector").forEach((select) => {
+						select.style.backgroundColor = "#e6eaef";
+					});
 				}
-			});
-		</script>
 
-		<!-- Notizfelder in allen Kacheln auf Englisch ändern mit direktem DOM-Skript -->
-		<script>
-			document.addEventListener("DOMContentLoaded", function () {
-				// Bestehender Code...
+				// Mehrfach ausführen um sicherzustellen, dass auch nachträglich generierte Elemente erfasst werden
+				document.addEventListener("DOMContentLoaded", function () {
+					// Sofort ausführen
+					updateTextareasAndSelects();
 
-				// Alle Notizfelder auf Englisch umstellen
-				document.querySelectorAll(".notes-textarea").forEach((textarea) => {
-					if (
-						textarea.getAttribute("placeholder") === "Notizen eingeben..." ||
-						!textarea.getAttribute("placeholder")
-					) {
-						textarea.setAttribute("placeholder", "Enter notes...");
-					}
+					// Dann nochmal mit Verzögerungen
+					setTimeout(updateTextareasAndSelects, 500);
+					setTimeout(updateTextareasAndSelects, 1500);
+
+					// Auch bei UI-Änderungen erneut ausführen
+					document.addEventListener(
+						"secondaryTilesCreated",
+						updateTextareasAndSelects
+					);
 				});
-
-				// Status-Dropdowns Hintergrundfarbe forcieren
-				document.querySelectorAll(".status-selector").forEach((select) => {
-					select.style.backgroundColor = "#e6eaef";
-				});
-			});
-		</script>
-
-		<!-- Robustheitsskript für dynamisch erzeugte Elemente -->
-		<script>
-			// Sofort ausführen und dann erneut verzögert (um dynamisch erstellte Elemente zu erfassen)
-			function updateTextareasAndSelects() {
-				// Alle Notizfelder auf Englisch umstellen
-				document.querySelectorAll(".notes-textarea").forEach((textarea) => {
-					if (
-						textarea.getAttribute("placeholder") === "Notizen eingeben..." ||
-						!textarea.getAttribute("placeholder")
-					) {
-						textarea.setAttribute("placeholder", "Enter notes...");
-					}
-				});
-
-				// Status-Dropdowns Hintergrundfarbe forcieren
-				document.querySelectorAll(".status-selector").forEach((select) => {
-					select.style.backgroundColor = "#e6eaef";
-				});
-			}
-
-			// Mehrfach ausführen um sicherzustellen, dass auch nachträglich generierte Elemente erfasst werden
-			document.addEventListener("DOMContentLoaded", function () {
-				// Sofort ausführen
-				updateTextareasAndSelects();
-
-				// Dann nochmal mit Verzögerungen
-				setTimeout(updateTextareasAndSelects, 500);
-				setTimeout(updateTextareasAndSelects, 1500);
-
-				// Auch bei UI-Änderungen erneut ausführen
-				document.addEventListener(
-					"secondaryTilesCreated",
-					updateTextareasAndSelects
-				);
-			});
-		</script>
+			</script>
+		</div>
 	</body>
 </html>

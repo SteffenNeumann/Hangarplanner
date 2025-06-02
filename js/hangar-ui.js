@@ -663,7 +663,7 @@ function adjustScaling() {
 		const isSidebarCollapsed =
 			document.body.classList.contains("sidebar-collapsed");
 		const windowWidth = window.innerWidth;
-		const sidebarWidth = isSidebarCollapsed ? 0 : 300;
+		const sidebarWidth = isSidebarCollapsed ? 48 : 320; // Angepasst auf die neue feste Sidebar-Breite
 		const availableWidth = windowWidth - sidebarWidth;
 
 		// Content-Container Breite anpassen
@@ -963,6 +963,149 @@ function adjustManualInputWidths() {
 	}
 }
 
+// Komplett überarbeitete Funktion zum Initialisieren des Sidebar-Toggle-Mechanismus
+function initializeSidebarToggle() {
+	const menuToggleBtn = document.getElementById("menuToggle");
+	const body = document.body;
+	const sidebar = document.getElementById("sidebarMenu");
+
+	if (!menuToggleBtn) {
+		console.error("Menu Toggle Button nicht gefunden!");
+		return;
+	}
+
+	// Funktion zum Umschalten der Sidebar mit robuster Zustandsverwaltung
+	function toggleSidebar(forceState) {
+		try {
+			// Bestimme den aktuellen Zustand
+			const currentlyCollapsed = body.classList.contains("sidebar-collapsed");
+
+			// Bestimme den gewünschten Zustand
+			let shouldCollapse;
+
+			// Wenn forceState ein Boolean ist, nehmen wir diesen Wert
+			if (typeof forceState === "boolean") {
+				shouldCollapse = forceState;
+			}
+			// Sonst umschalten basierend auf aktuellem Zustand
+			else {
+				shouldCollapse = !currentlyCollapsed;
+			}
+
+			console.log(
+				"Toggle Sidebar: Aktuell eingeklappt =",
+				currentlyCollapsed,
+				"Soll eingeklappt werden =",
+				shouldCollapse
+			);
+
+			// Nur ändern, wenn sich der Zustand wirklich ändert
+			if (currentlyCollapsed !== shouldCollapse) {
+				if (shouldCollapse) {
+					// Sidebar einklappen
+					body.classList.add("sidebar-collapsed");
+					menuToggleBtn.textContent = "»";
+					menuToggleBtn.setAttribute("title", "Menü aufklappen");
+					console.log("Sidebar eingeklappt");
+				} else {
+					// Sidebar ausklappen
+					body.classList.remove("sidebar-collapsed");
+					menuToggleBtn.textContent = "«";
+					menuToggleBtn.setAttribute("title", "Menü einklappen");
+					console.log("Sidebar ausgeklappt");
+				}
+
+				// Speichern im localStorage als String "true" oder "false"
+				localStorage.setItem("sidebarCollapsed", String(shouldCollapse));
+
+				// Layout neu berechnen
+				setTimeout(adjustScaling, 100);
+			} else {
+				console.log("Keine Änderung an Sidebar-Status nötig");
+			}
+		} catch (err) {
+			console.error("Fehler beim Umschalten der Sidebar:", err);
+		}
+
+		return false; // Event-Bubbling verhindern
+	}
+
+	// Click-Ereignis für den Toggle-Button
+	menuToggleBtn.addEventListener("click", function (e) {
+		e.preventDefault();
+		toggleSidebar(); // Ohne Parameter = umschalten
+	});
+
+	// Direkte Zugriffmöglichkeit auf die Toggle-Funktion
+	window.toggleSidebar = toggleSidebar;
+
+	// Initialen Zustand aus localStorage laden (Standard: ausgeklappt)
+	const savedState = localStorage.getItem("sidebarCollapsed");
+
+	// Beim ersten Laden soll die Sidebar ausgeklappt sein (false = ausgeklappt)
+	// Nur wenn explizit "true" gespeichert ist, wird sie eingeklappt
+	const initialState = savedState === "true";
+
+	console.log("Gespeicherter Sidebar-Status:", savedState);
+	console.log(
+		"Sidebar soll beim Start sein:",
+		initialState ? "Eingeklappt" : "Ausgeklappt"
+	);
+
+	// Initialen Zustand setzen
+	toggleSidebar(initialState);
+
+	// Sicherstellen, dass der Toggle-Button das richtige Symbol zeigt
+	if (initialState) {
+		menuToggleBtn.textContent = "»";
+		menuToggleBtn.setAttribute("title", "Menü aufklappen");
+	} else {
+		menuToggleBtn.textContent = "«";
+		menuToggleBtn.setAttribute("title", "Menü einklappen");
+	}
+}
+
+// Initialisiere die Akkordeon-Funktionalität für die Sidebar - Fehlerbehandlung verbessert
+function initializeSidebarAccordion() {
+	const accordionHeaders = document.querySelectorAll(
+		".sidebar-accordion-header"
+	);
+
+	if (accordionHeaders.length === 0) {
+		console.warn("Keine Accordion-Header gefunden!");
+		return;
+	}
+
+	accordionHeaders.forEach((header) => {
+		header.addEventListener("click", function () {
+			// Toggle für das aktuell geklickte Element
+			this.classList.toggle("collapsed");
+			const content = this.nextElementSibling;
+
+			if (!content) {
+				console.warn("Kein Content-Element gefunden für:", this);
+				return;
+			}
+
+			if (this.classList.contains("collapsed")) {
+				content.style.maxHeight = "0";
+				content.style.padding = "0 16px";
+				content.style.overflow = "hidden";
+				const arrow = this.querySelector(".dropdown-arrow");
+				if (arrow) arrow.style.transform = "rotate(-90deg)";
+			} else {
+				content.style.maxHeight = "1000px"; // Großer Wert für variable Inhalte
+				content.style.padding = "16px";
+				content.style.overflow = "visible";
+				const arrow = this.querySelector(".dropdown-arrow");
+				if (arrow) arrow.style.transform = "none";
+			}
+		});
+	});
+
+	console.log(`${accordionHeaders.length} Accordion-Header initialisiert`);
+}
+
 // Exportiere alle benötigten Funktionen und Module
 window.hangarUI = {
 	uiSettings,
@@ -1001,7 +1144,14 @@ window.hangarUI = {
 			// Zweiten Aufruf für bessere Browser-Kompatibilität nach kurzem Delay
 			setTimeout(() => window.hangarUI.adjustScaling(), 200);
 		}, 100);
+
+		// Sidebar-Toggle und Accordion initialisieren
+		initializeSidebarToggle();
+		initializeSidebarAccordion();
 	},
+	// Füge diese Funktionen zum Exportobjekt hinzu
+	initializeSidebarToggle,
+	initializeSidebarAccordion,
 };
 
 /**
