@@ -848,7 +848,7 @@ function applyTileSizes(minWidth, maxWidth) {
 
 				const textarea = notesContainer.querySelector("textarea");
 				if (textarea) {
-					textarea.setAttribute("placeholder", "Notizen eingeben...");
+					textarea.setAttribute("placeholder", "Enter notes...");
 				}
 			}
 		});
@@ -1248,7 +1248,6 @@ function initializeFlightDataSection() {
 	}
 }
 
-// Falls es bereits eine initializeUI-Funktion gibt, diese erweitern:
 // Ursprüngliche initializeUI-Funktion
 function initializeUI() {
 	// Bestehender Code...
