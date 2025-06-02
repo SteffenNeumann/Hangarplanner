@@ -114,16 +114,18 @@ class FileManager {
 			const fileName = `${
 				projectData.metadata?.projectName || "HangarPlan"
 			}.json`;
-			const jsonString = JSON.stringify(projectData, null, 2);
 
 			// Prüfen ob File System API verwendet werden kann
 			if (this.fileSystemSupported) {
 				try {
 					window.showNotification("Datei-Dialog wird geöffnet...", "info");
 
-					// File Picker öffnen
+					// File Picker öffnen - hier ist der Dialog sichtbar
 					const fileHandle = await this.openSaveDialog(fileName);
 					console.log("File Handle erhalten:", fileHandle);
+
+					// Erst NACH der Dialogauswahl JSON erstellen
+					const jsonString = JSON.stringify(projectData, null, 2);
 
 					// In Datei schreiben
 					const writable = await fileHandle.createWritable();
@@ -142,13 +144,15 @@ class FileManager {
 						return false;
 					}
 
-					// Fallback zum Standard-Download
+					// Fallback zum Standard-Download nur bei echten Fehlern
 					console.warn("Fallback auf Standard-Download:", error.message);
+					const jsonString = JSON.stringify(projectData, null, 2);
 					this.downloadFile(jsonString, fileName);
 					return true;
 				}
 			} else {
 				// Standard-Download wenn File System API nicht unterstützt wird
+				const jsonString = JSON.stringify(projectData, null, 2);
 				this.downloadFile(jsonString, fileName);
 				window.showNotification(
 					"Projekt wurde als Download gespeichert",
