@@ -890,26 +890,26 @@ function updateStatusLights(cellId) {
 
 		const selectedStatus = statusSelect.value;
 
-		// Alle Statuslichter für diese Kachel finden
-		const statusLights = document.querySelectorAll(
+		// Statuslicht für diese Kachel finden
+		const statusLight = document.querySelector(
 			`.status-light[data-cell="${cellId}"]`
 		);
 
-		// Alle Lichter zurücksetzen (dimmen)
-		statusLights.forEach((light) => {
-			light.classList.remove("active");
-		});
-
-		// Ausgewähltes Licht aktivieren
-		const activeLight = document.querySelector(
-			`.status-light[data-cell="${cellId}"][data-status="${selectedStatus}"]`
-		);
-		if (activeLight) {
-			activeLight.classList.add("active");
+		if (statusLight) {
+			// Alle Status-Klassen entfernen
+			statusLight.classList.remove(
+				"status-ready",
+				"status-maintenance",
+				"status-aog"
+			);
+			// Neue Status-Klasse hinzufügen
+			statusLight.classList.add(`status-${selectedStatus}`);
+			// Status-Attribut aktualisieren
+			statusLight.setAttribute("data-status", selectedStatus);
 		}
 	} catch (error) {
 		console.error(
-			`Fehler beim Aktualisieren der Statuslichter für Kachel ${cellId}:`,
+			`Fehler beim Aktualisieren des Statuslichts für Kachel ${cellId}:`,
 			error
 		);
 	}

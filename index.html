@@ -88,9 +88,16 @@
 				padding: 2rem;
 			}
 
-			/* Header-Bereich der Karten anpassen */
-			.hangar-cell .bg-industrial-medium {
+			/* Header-Bereich der Karten anpassen - GEÄNDERT: Weißer Hintergrund */
+			.hangar-cell .card-header {
 				border-radius: 12px 12px 0 0; /* Abrundung oben anpassen */
+				background-color: white; /* Weißer Hintergrund wie Karte */
+				border-bottom: 1px solid var(--border-light);
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				padding: 0.35rem 0.6rem;
+				min-height: 36px;
 			}
 
 			/* Grid-Definition mit dynamischem Zwischenraum */
@@ -103,46 +110,54 @@
 				transform-origin: top left;
 			}
 
-			/* Moderneres Styling für Statusanzeigen */
+			/* NEU: Einzelnes Statuslicht mit besserer Sichtbarkeit */
+			.status-indicator {
+				display: flex;
+				align-items: center;
+				gap: 6px;
+			}
+
+			/* NEU: Einzelnes Statuslicht */
 			.status-light {
 				width: 14px;
 				height: 14px;
 				border-radius: 50%;
 				display: inline-block;
-				margin-right: 4px;
-				opacity: 0.3;
-				transition: all 0.3s ease;
-				border: 1px solid rgba(255, 255, 255, 0.3);
-			}
-
-			.status-light.active {
 				opacity: 1;
-				box-shadow: 0 0 8px rgba(255, 255, 255, 0.6); /* Reduzierter Leuchteffekt */
-				transform: scale(1.15);
+				transition: all 0.3s ease;
+				border: 1px solid rgba(0, 0, 0, 0.1);
+				box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
 			}
 
-			/* Modernisierte horizontale Status-Anzeige */
-			.status-container {
+			/* Verschiedene Statusfarben */
+			.status-ready {
+				background-color: #22c55e; /* Grün */
+			}
+
+			.status-maintenance {
+				background-color: #f59e0b; /* Gelb */
+			}
+
+			.status-aog {
+				background-color: #ef4444; /* Rot */
+			}
+
+			/* NEU: Kompakter Header mit Status-Dropdown */
+			.status-dropdown-container {
 				display: flex;
 				align-items: center;
 				gap: 6px;
-				padding: 2px 5px;
-				border-radius: 4px; /* Weniger abgerundet */
-				background-color: rgba(93, 107, 137, 0.8); /* Subtilere Farbe */
 			}
 
-			/* Status-Beschriftungen für die Ampeln */
-			.status-indicator {
-				display: flex;
-				align-items: center;
-				margin-bottom: 4px;
-			}
-
-			.status-indicator span {
-				font-size: 10px;
-				margin-left: 2px;
-				color: white;
-				opacity: 0.9; /* Bessere Lesbarkeit */
+			/* Modernisierter kompakter Status-Dropdown */
+			.status-selector {
+				font-size: 12px;
+				padding: 2px 6px;
+				border-radius: 3px;
+				background-color: #f3f4f6;
+				border: 1px solid #e5e7eb;
+				color: #4b5563;
+				height: 26px;
 			}
 
 			/* Modernisierter Tow-Status */
@@ -181,7 +196,7 @@
 			.info-label {
 				text-align: right;
 				font-weight: 500;
-				color: var(--text-medium); /* Modernere Textfarbe */
+				color: #4b5563; /* Mittleres Grau für Labels */
 				white-space: nowrap;
 				padding-right: 5px;
 				width: fit-content;
@@ -192,32 +207,35 @@
 			}
 
 			.info-value {
-				color: #ff7043; /* Akzentfarbe für Werte */
+				color: #4b5563; /* NEU: Standardgrau statt Akzentfarbe */
 				white-space: nowrap;
 				overflow: hidden;
 				text-overflow: ellipsis;
 				font-weight: 500; /* Etwas fetter für bessere Lesbarkeit */
 			}
 
-			/* Notizfeld mit modernerem Design */
+			/* Notizfeld mit einzeiliger Darstellung */
 			.notes-container {
 				display: flex;
 				flex-direction: column;
-				flex-grow: 1;
 				margin-top: 0.5rem;
 				margin-bottom: 0.75rem;
-				min-height: 50px;
 			}
 
+			/* NEU: Einzeiliges Notizfeld */
 			.notes-textarea {
-				flex-grow: 1;
 				resize: none;
-				min-height: 40px;
+				height: 30px; /* Feste Höhe für eine Zeile */
+				min-height: 30px;
+				max-height: 30px;
 				border: 1px solid var(--border-light);
 				border-radius: 3px;
 				padding: 6px;
 				font-size: 0.85rem;
 				color: var(--text-dark);
+				overflow-y: hidden; /* Überlauf verstecken */
+				white-space: nowrap; /* Text nicht umbrechen */
+				text-overflow: ellipsis; /* Überlaufenden Text mit ... anzeigen */
 			}
 
 			.notes-textarea:focus {
@@ -327,21 +345,39 @@
 				transform: translateX(24px);
 			}
 
-			/* PDF Export Styles */
-			.pdf-export-container {
+			/* Position Container im Header */
+			.position-container {
 				display: flex;
-				flex-direction: column;
-				gap: 10px;
+				align-items: center;
+				gap: 4px;
 			}
 
-			.pdf-preview {
-				border: 1px solid var(--border-light);
-				border-radius: 4px;
-				padding: 8px;
-				background-color: var(--highlight-light);
+			.position-label {
+				font-size: 12px;
+				font-weight: 500;
+				color: #4b5563;
 			}
 
-			/* NEU: Schlichter Divider mit OUTER SECTION Beschriftung */
+			.position-input {
+				width: 40px;
+				text-align: center;
+				font-size: 12px;
+				border: 1px solid #e5e7eb;
+				border-radius: 3px;
+				padding: 2px 4px;
+				background-color: white;
+				color: #1f2937;
+			}
+
+			/* NEU: Header-Elemente-Container für Flexibilität */
+			.header-elements {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				width: 100%;
+			}
+
+			/* Korrektur des Section Dividers CSS */
 			.section-divider {
 				width: 100%;
 				height: 1px; /* Dünner */
@@ -386,117 +422,6 @@
 				margin-top: 0 !important;
 			}
 
-			/* Spezielle Klasse für den Container der Sections */
-			.section-container {
-				width: 100%;
-				transform: none;
-			}
-
-			/* Verbesserte und verfeinerte Media Queries - beibehalten */
-			@media (max-width: 1800px) {
-				:root {
-					--scale-factor: 0.95;
-					--grid-gap: 16px; /* Reduzierter Abstand */
-				}
-			}
-
-			@media (max-width: 1650px) {
-				:root {
-					--scale-factor: 0.9;
-					--grid-gap: 16px; /* Reduzierter Abstand */
-				}
-			}
-
-			@media (max-width: 1500px) {
-				:root {
-					--scale-factor: 0.82; /* Zusätzlich reduziert */
-					--grid-gap: 14px; /* Reduzierter Abstand */
-				}
-			}
-
-			@media (max-width: 1350px) {
-				:root {
-					--scale-factor: 0.75; /* Zusätzlich reduziert */
-					--grid-gap: 12px; /* Reduzierter Abstand */
-				}
-			}
-
-			@media (max-width: 1200px) {
-				:root {
-					--scale-factor: 0.65; /* Zusätzlich reduziert */
-					--grid-gap: 10px; /* Reduzierter Abstand */
-				}
-			}
-
-			/* Kompakteres moderneres Header-Layout */
-			.bg-industrial-medium.px-3.py-2 {
-				padding: 0.35rem 0.6rem;
-				display: flex;
-				flex-wrap: nowrap;
-				align-items: center;
-				justify-content: space-between;
-				background-color: #5d6b89; /* Helleres Blau für Header */
-				min-height: 36px;
-				border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-			}
-
-			/* Modernisierter Toggle-Button */
-			.menu-toggle {
-				position: relative;
-				width: 30px;
-				height: 30px;
-				background-color: #ff7043;
-				border: none; /* Kein Rand für schlichteres Design */
-				border-radius: 4px; /* Weniger abgerundet */
-				display: flex;
-				justify-content: center;
-				align-items: center;
-				cursor: pointer;
-				z-index: 9999;
-				color: white;
-				font-weight: bold;
-				box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Subtiler Schatten */
-				transition: all 0.3s ease;
-				margin-right: 20px;
-			}
-
-			.menu-toggle:hover {
-				transform: scale(1.05);
-				background-color: #f55a2b; /* Leicht dunkleres Orange bei Hover */
-			}
-
-			/* Button im eingeklappten Zustand - nur Rotation */
-			.sidebar-collapsed .menu-toggle {
-				transform: rotate(180deg);
-			}
-
-			/* Modernisierter Project Controls Bereich */
-			.project-controls {
-				padding: 1rem;
-				border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-				background-color: transparent;
-				display: flex;
-				flex-direction: column;
-				gap: 0.5rem;
-			}
-
-			.project-controls .edit-mode-container {
-				display: flex;
-				align-items: center;
-				justify-content: space-between;
-				margin-bottom: 0.5rem;
-			}
-
-			.project-controls .save-load-container {
-				display: flex;
-				align-items: center;
-				gap: 0.5rem;
-			}
-
-			.project-controls .save-load-container button {
-				flex: 1;
-			}
-
 			/* Modernisierte Sidebar-Styles */
 			.sidebar-section-title {
 				font-size: 1.05rem;
@@ -527,43 +452,7 @@
 				margin-right: 0;
 			}
 
-			/* Sidebar Collapse-Verhalten - beibehalten */
-			.sidebar-container {
-				width: 300px;
-				transition: transform 0.3s ease, width 0.3s ease;
-				transform: translateX(0);
-				overflow-y: auto;
-				max-height: 100vh;
-				padding: 0;
-				background-color: #5d6b89; /* Helleres Mittelblau */
-			}
-
-			.sidebar-collapsed .sidebar-container {
-				transform: translateX(100%);
-				width: 0;
-			}
-
-			.content-container {
-				transition: width 0.3s ease, max-width 0.3s ease;
-				background-color: var(--bg-color-light); /* Heller Hintergrund */
-			}
-
-			.sidebar-collapsed .content-container {
-				width: 100% !important;
-				max-width: 100% !important;
-			}
-
-			/* Menu Toggle Button Rotation */
-			.menu-toggle span {
-				transition: transform 0.3s ease;
-				display: block;
-			}
-
-			.sidebar-collapsed .menu-toggle span {
-				transform: rotate(180deg);
-			}
-
-			/* Modernisierte Sidebar-Menü-Styles */
+			/* Sidebar-Menü-Styles */
 			.sidebar-accordion-item {
 				border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 			}
@@ -613,64 +502,32 @@
 				gap: 12px;
 			}
 
-			/* Wichtig: Ausblenden wenn collapsed - verbesserte Spezifität */
-			.sidebar-accordion-header.collapsed + .sidebar-accordion-content {
-				display: none !important;
+			/* Info-Row und Button-Row im Menü */
+			.menu-info-row {
+				display: flex;
+				flex-direction: column;
+				gap: 4px;
+				margin-bottom: 10px;
 			}
 
-			/* Anpassungen für bessere Form-Controls in der Sidebar */
-			.sidebar-accordion-content input[type="text"],
-			.sidebar-accordion-content input[type="number"],
-			.sidebar-accordion-content select {
-				background-color: rgba(255, 255, 255, 0.08);
-				border: 1px solid rgba(255, 255, 255, 0.1);
-				border-radius: 3px;
-				color: white;
-				padding: 6px 8px;
-			}
-
-			.sidebar-accordion-content button {
-				border-radius: 3px;
-				padding: 6px 10px;
-				font-weight: 500;
-				transition: all 0.2s;
-			}
-
-			.sidebar-accordion-content button:hover {
-				opacity: 0.9;
-			}
-
-			/* Anpassungen für bessere Select-Elemente in Kacheln */
-			.hangar-cell select {
-				border: 1px solid var(--border-light);
-				border-radius: 3px;
+			.menu-info-label {
 				font-size: 0.85rem;
-				color: var(--text-dark);
-				background-color: var(--bg-color-medium);
+				color: rgba(255, 255, 255, 0.8);
 			}
 
-			/* Angepasster Header-Bereich */
-			header.bg-industrial-medium {
-				background-color: #3a4354;
-				box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+			.menu-info-value {
+				width: 100%;
 			}
 
-			header h1 {
-				font-weight: 600;
-				letter-spacing: 0.02em;
+			.menu-button-row {
+				display: flex;
+				gap: 8px;
+				justify-content: space-between;
+				margin-top: 8px;
 			}
 
-			/* Hier den fehlerhaften CSS-Code korrigieren */
-			.api-provider-selector {
-				margin-bottom: 1rem;
-				color: #f5f5f5;
-			}
-
-			/* Falls es sich um einen Media Query handelt */
-			@media (max-width: 768px) {
-				.api-provider-selector {
-					margin-bottom: 0.5rem;
-				}
+			.menu-option-row {
+				margin: 8px 0;
 			}
 		</style>
 	</head>
@@ -694,40 +551,35 @@
 					<div class="section-container">
 						<div id="hangarGrid" class="grid grid-cols-4 gap-4">
 							<!-- 8 Hangar-Kacheln hier -->
-							<!-- Kachel 1 -->
+							<!-- Kachel 1 - NEU GESTALTET -->
 							<div
 								class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
-								<!-- Header mit Statusleiste -->
-								<div
-									class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-									<div class="status-container">
-										<span
-											class="status-light bg-status-green"
-											data-cell="1"
-											data-status="ready"></span>
-										<span
-											class="status-light bg-status-yellow"
-											data-cell="1"
-											data-status="maintenance"></span>
-										<span
-											class="status-light bg-status-red"
-											data-cell="1"
-											data-status="aog"></span>
+								<!-- Header mit Statuslicht und Status-Dropdown -->
+								<div class="card-header">
+									<div class="header-elements">
+										<!-- Statuslicht und Dropdown -->
+										<div class="status-dropdown-container">
+											<span
+												class="status-light status-ready"
+												data-cell="1"
+												data-status="ready"></span>
+											<select id="status-1" class="status-selector">
+												<option value="ready">Ready</option>
+												<option value="maintenance">MX</option>
+												<option value="aog">AOG</option>
+											</select>
+										</div>
+
+										<!-- Position -->
+										<div class="position-container">
+											<span class="position-label">Position:</span>
+											<input
+												type="text"
+												placeholder="1A"
+												id="hangar-position-1"
+												class="position-input" />
+										</div>
 									</div>
-									<div class="flex items-center">
-										<span class="text-xs text-white font-medium mr-2"
-											>Position:</span
-										>
-										<input
-											type="text"
-											placeholder="1A"
-											id="hangar-position-1"
-											class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
-									</div>
-									<input
-										type="text"
-										placeholder="Manual Input"
-										class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
 								</div>
 
 								<!-- Hauptbereich -->
@@ -755,62 +607,45 @@
 										</div>
 									</div>
 
-									<!-- Notizen mit flexibler Höhe -->
+									<!-- Notizen mit einer Zeile -->
 									<div class="notes-container">
-										<label
-											class="block text-sm text-industrial-dark font-medium mb-1"
-											>Notes:</label
-										>
 										<textarea
 											id="notes-1"
-											class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
-									</div>
-
-									<div class="mt-auto">
-										<select
-											id="status-1"
-											class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
-											<option value="ready">Ready</option>
-											<option value="maintenance">Maintenance</option>
-											<option value="aog">AOG</option>
-										</select>
+											placeholder="Notizen eingeben..."
+											class="notes-textarea"></textarea>
 									</div>
 								</div>
 							</div>
 
-							<!-- Kachel 2 mit optimiertem Layout -->
+							<!-- Kachel 2 mit neuem Layout -->
 							<div
 								class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
-								<div
-									class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-									<div class="status-container">
-										<span
-											class="status-light bg-status-green"
-											data-cell="2"
-											data-status="ready"></span>
-										<span
-											class="status-light bg-status-yellow"
-											data-cell="2"
-											data-status="maintenance"></span>
-										<span
-											class="status-light bg-status-red"
-											data-cell="2"
-											data-status="aog"></span>
+								<!-- Header mit Statuslicht und Status-Dropdown -->
+								<div class="card-header">
+									<div class="header-elements">
+										<!-- Statuslicht und Dropdown -->
+										<div class="status-dropdown-container">
+											<span
+												class="status-light status-ready"
+												data-cell="2"
+												data-status="ready"></span>
+											<select id="status-2" class="status-selector">
+												<option value="ready">Ready</option>
+												<option value="maintenance">MX</option>
+												<option value="aog">AOG</option>
+											</select>
+										</div>
+
+										<!-- Position -->
+										<div class="position-container">
+											<span class="position-label">Position:</span>
+											<input
+												type="text"
+												placeholder="1B"
+												id="hangar-position-2"
+												class="position-input" />
+										</div>
 									</div>
-									<div class="flex items-center">
-										<span class="text-xs text-white font-medium mr-2"
-											>Position:</span
-										>
-										<input
-											type="text"
-											placeholder="1B"
-											id="hangar-position-2"
-											class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
-									</div>
-									<input
-										type="text"
-										placeholder="Manual Input"
-										class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
 								</div>
 
 								<div class="p-4 flex-grow flex flex-col">
@@ -837,62 +672,45 @@
 										</div>
 									</div>
 
-									<!-- Notizen mit flexibler Höhe -->
+									<!-- Notizen mit einer Zeile -->
 									<div class="notes-container">
-										<label
-											class="block text-sm text-industrial-dark font-medium mb-1"
-											>Notes:</label
-										>
 										<textarea
 											id="notes-2"
-											class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
-									</div>
-
-									<div class="mt-auto">
-										<select
-											id="status-2"
-											class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
-											<option value="ready">Ready</option>
-											<option value="maintenance">Maintenance</option>
-											<option value="aog">AOG</option>
-										</select>
+											placeholder="Notizen eingeben..."
+											class="notes-textarea"></textarea>
 									</div>
 								</div>
 							</div>
 
-							<!-- Kachel 3 mit optimiertem Layout -->
+							<!-- Kachel 3 mit neuem Layout -->
 							<div
 								class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
-								<div
-									class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-									<div class="status-container">
-										<span
-											class="status-light bg-status-green"
-											data-cell="3"
-											data-status="ready"></span>
-										<span
-											class="status-light bg-status-yellow"
-											data-cell="3"
-											data-status="maintenance"></span>
-										<span
-											class="status-light bg-status-red"
-											data-cell="3"
-											data-status="aog"></span>
+								<!-- Header mit Statuslicht und Status-Dropdown -->
+								<div class="card-header">
+									<div class="header-elements">
+										<!-- Statuslicht und Dropdown -->
+										<div class="status-dropdown-container">
+											<span
+												class="status-light status-ready"
+												data-cell="3"
+												data-status="ready"></span>
+											<select id="status-3" class="status-selector">
+												<option value="ready">Ready</option>
+												<option value="maintenance">MX</option>
+												<option value="aog">AOG</option>
+											</select>
+										</div>
+
+										<!-- Position -->
+										<div class="position-container">
+											<span class="position-label">Position:</span>
+											<input
+												type="text"
+												placeholder="2A"
+												id="hangar-position-3"
+												class="position-input" />
+										</div>
 									</div>
-									<div class="flex items-center">
-										<span class="text-xs text-white font-medium mr-2"
-											>Position:</span
-										>
-										<input
-											type="text"
-											placeholder="2A"
-											id="hangar-position-3"
-											class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
-									</div>
-									<input
-										type="text"
-										placeholder="Manual Input"
-										class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
 								</div>
 
 								<div class="p-4 flex-grow flex flex-col">
@@ -919,62 +737,45 @@
 										</div>
 									</div>
 
-									<!-- Notizen mit flexibler Höhe -->
+									<!-- Notizen mit einer Zeile -->
 									<div class="notes-container">
-										<label
-											class="block text-sm text-industrial-dark font-medium mb-1"
-											>Notes:</label
-										>
 										<textarea
 											id="notes-3"
-											class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
-									</div>
-
-									<div class="mt-auto">
-										<select
-											id="status-3"
-											class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
-											<option value="ready">Ready</option>
-											<option value="maintenance">Maintenance</option>
-											<option value="aog">AOG</option>
-										</select>
+											placeholder="Notizen eingeben..."
+											class="notes-textarea"></textarea>
 									</div>
 								</div>
 							</div>
 
-							<!-- Kachel 4 mit optimiertem Layout + Notizfeld -->
+							<!-- Kachel 4 mit neuem Layout + Notizfeld -->
 							<div
 								class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
-								<div
-									class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-									<div class="status-container">
-										<span
-											class="status-light bg-status-green"
-											data-cell="4"
-											data-status="ready"></span>
-										<span
-											class="status-light bg-status-yellow"
-											data-cell="4"
-											data-status="maintenance"></span>
-										<span
-											class="status-light bg-status-red"
-											data-cell="4"
-											data-status="aog"></span>
+								<!-- Header mit Statuslicht und Status-Dropdown -->
+								<div class="card-header">
+									<div class="header-elements">
+										<!-- Statuslicht und Dropdown -->
+										<div class="status-dropdown-container">
+											<span
+												class="status-light status-ready"
+												data-cell="4"
+												data-status="ready"></span>
+											<select id="status-4" class="status-selector">
+												<option value="ready">Ready</option>
+												<option value="maintenance">MX</option>
+												<option value="aog">AOG</option>
+											</select>
+										</div>
+
+										<!-- Position -->
+										<div class="position-container">
+											<span class="position-label">Position:</span>
+											<input
+												type="text"
+												placeholder="2B"
+												id="hangar-position-4"
+												class="position-input" />
+										</div>
 									</div>
-									<div class="flex items-center">
-										<span class="text-xs text-white font-medium mr-2"
-											>Position:</span
-										>
-										<input
-											type="text"
-											placeholder="2B"
-											id="hangar-position-4"
-											class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
-									</div>
-									<input
-										type="text"
-										placeholder="Manual Input"
-										class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
 								</div>
 
 								<div class="p-4 flex-grow flex flex-col">
@@ -1001,25 +802,12 @@
 										</div>
 									</div>
 
-									<!-- Notizen mit flexibler Höhe -->
+									<!-- Notizen mit einer Zeile -->
 									<div class="notes-container">
-										<label
-											class="block text-sm text-industrial-dark font-medium mb-1"
-											>Notes:</label
-										>
 										<textarea
 											id="notes-4"
-											class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
-									</div>
-
-									<div class="mt-auto">
-										<select
-											id="status-4"
-											class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
-											<option value="ready">Ready</option>
-											<option value="maintenance">Maintenance</option>
-											<option value="aog">AOG</option>
-										</select>
+											placeholder="Notizen eingeben..."
+											class="notes-textarea"></textarea>
 									</div>
 								</div>
 							</div>
@@ -1028,37 +816,32 @@
 							<!-- Kachel 5 -->
 							<div
 								class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
-								<!-- Header-Bereich wie bei Kachel 1-4 -->
-								<div
-									class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-									<div class="status-container">
-										<span
-											class="status-light bg-status-green"
-											data-cell="5"
-											data-status="ready"></span>
-										<span
-											class="status-light bg-status-yellow"
-											data-cell="5"
-											data-status="maintenance"></span>
-										<span
-											class="status-light bg-status-red"
-											data-cell="5"
-											data-status="aog"></span>
+								<!-- Header mit Statuslicht und Status-Dropdown -->
+								<div class="card-header">
+									<div class="header-elements">
+										<!-- Statuslicht und Dropdown -->
+										<div class="status-dropdown-container">
+											<span
+												class="status-light status-ready"
+												data-cell="5"
+												data-status="ready"></span>
+											<select id="status-5" class="status-selector">
+												<option value="ready">Ready</option>
+												<option value="maintenance">MX</option>
+												<option value="aog">AOG</option>
+											</select>
+										</div>
+
+										<!-- Position -->
+										<div class="position-container">
+											<span class="position-label">Position:</span>
+											<input
+												type="text"
+												placeholder="2C"
+												id="hangar-position-5"
+												class="position-input" />
+										</div>
 									</div>
-									<div class="flex items-center">
-										<span class="text-xs text-white font-medium mr-2"
-											>Position:</span
-										>
-										<input
-											type="text"
-											placeholder="2C"
-											id="hangar-position-5"
-											class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
-									</div>
-									<input
-										type="text"
-										placeholder="Manual Input"
-										class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
 								</div>
 
 								<!-- Hauptbereich mit Infos und Notizfeld -->
@@ -1082,63 +865,45 @@
 										</div>
 									</div>
 
-									<!-- Notizfeld hinzugefügt -->
+									<!-- Notizfeld einzeilig -->
 									<div class="notes-container">
-										<label
-											class="block text-sm text-industrial-dark font-medium mb-1"
-											>Notes:</label
-										>
 										<textarea
 											id="notes-5"
-											class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
-									</div>
-
-									<div class="mt-auto">
-										<select
-											id="status-5"
-											class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
-											<option value="ready">Ready</option>
-											<option value="maintenance">Maintenance</option>
-											<option value="aog">AOG</option>
-										</select>
+											placeholder="Notizen eingeben..."
+											class="notes-textarea"></textarea>
 									</div>
 								</div>
 							</div>
 
-							<!-- Kachel 6 -->
+							<!-- Kachel 6 mit neuem Design -->
 							<div
 								class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
-								<!-- Header-Bereich -->
-								<div
-									class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-									<div class="status-container">
-										<span
-											class="status-light bg-status-green"
-											data-cell="6"
-											data-status="ready"></span>
-										<span
-											class="status-light bg-status-yellow"
-											data-cell="6"
-											data-status="maintenance"></span>
-										<span
-											class="status-light bg-status-red"
-											data-cell="6"
-											data-status="aog"></span>
+								<!-- Header mit Statuslicht und Status-Dropdown -->
+								<div class="card-header">
+									<div class="header-elements">
+										<!-- Statuslicht und Dropdown -->
+										<div class="status-dropdown-container">
+											<span
+												class="status-light status-ready"
+												data-cell="6"
+												data-status="ready"></span>
+											<select id="status-6" class="status-selector">
+												<option value="ready">Ready</option>
+												<option value="maintenance">MX</option>
+												<option value="aog">AOG</option>
+											</select>
+										</div>
+
+										<!-- Position -->
+										<div class="position-container">
+											<span class="position-label">Position:</span>
+											<input
+												type="text"
+												placeholder="2D"
+												id="hangar-position-6"
+												class="position-input" />
+										</div>
 									</div>
-									<div class="flex items-center">
-										<span class="text-xs text-white font-medium mr-2"
-											>Position:</span
-										>
-										<input
-											type="text"
-											placeholder="2D"
-											id="hangar-position-6"
-											class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
-									</div>
-									<input
-										type="text"
-										placeholder="Manual Input"
-										class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
 								</div>
 
 								<!-- Hauptbereich -->
@@ -1162,63 +927,45 @@
 										</div>
 									</div>
 
-									<!-- Notizen mit flexibler Höhe -->
+									<!-- Notizen einzeilig -->
 									<div class="notes-container">
-										<label
-											class="block text-sm text-industrial-dark font-medium mb-1"
-											>Notes:</label
-										>
 										<textarea
 											id="notes-6"
-											class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
-									</div>
-
-									<div class="mt-auto">
-										<select
-											id="status-6"
-											class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
-											<option value="ready">Ready</option>
-											<option value="maintenance">Maintenance</option>
-											<option value="aog">AOG</option>
-										</select>
+											placeholder="Notizen eingeben..."
+											class="notes-textarea"></textarea>
 									</div>
 								</div>
 							</div>
 
-							<!-- Kachel 7 -->
+							<!-- Kachel 7 mit neuem Design -->
 							<div
 								class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
-								<!-- Header-Bereich -->
-								<div
-									class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-									<div class="status-container">
-										<span
-											class="status-light bg-status-green"
-											data-cell="7"
-											data-status="ready"></span>
-										<span
-											class="status-light bg-status-yellow"
-											data-cell="7"
-											data-status="maintenance"></span>
-										<span
-											class="status-light bg-status-red"
-											data-cell="7"
-											data-status="aog"></span>
+								<!-- Header mit Statuslicht und Status-Dropdown -->
+								<div class="card-header">
+									<div class="header-elements">
+										<!-- Statuslicht und Dropdown -->
+										<div class="status-dropdown-container">
+											<span
+												class="status-light status-ready"
+												data-cell="7"
+												data-status="ready"></span>
+											<select id="status-7" class="status-selector">
+												<option value="ready">Ready</option>
+												<option value="maintenance">MX</option>
+												<option value="aog">AOG</option>
+											</select>
+										</div>
+
+										<!-- Position -->
+										<div class="position-container">
+											<span class="position-label">Position:</span>
+											<input
+												type="text"
+												placeholder="2E"
+												id="hangar-position-7"
+												class="position-input" />
+										</div>
 									</div>
-									<div class="flex items-center">
-										<span class="text-xs text-white font-medium mr-2"
-											>Position:</span
-										>
-										<input
-											type="text"
-											placeholder="2E"
-											id="hangar-position-7"
-											class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
-									</div>
-									<input
-										type="text"
-										placeholder="Manual Input"
-										class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
 								</div>
 
 								<!-- Hauptbereich -->
@@ -1242,62 +989,45 @@
 										</div>
 									</div>
 
+									<!-- Notizen einzeilig -->
 									<div class="notes-container">
-										<label
-											class="block text-sm text-industrial-dark font-medium mb-1"
-											>Notes:</label
-										>
 										<textarea
 											id="notes-7"
-											class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
-									</div>
-
-									<div class="mt-auto">
-										<select
-											id="status-7"
-											class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
-											<option value="ready">Ready</option>
-											<option value="maintenance">Maintenance</option>
-											<option value="aog">AOG</option>
-										</select>
+											placeholder="Notizen eingeben..."
+											class="notes-textarea"></textarea>
 									</div>
 								</div>
 							</div>
 
-							<!-- Kachel 8 -->
+							<!-- Kachel 8 mit neuem Design -->
 							<div
 								class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
-								<!-- Header-Bereich -->
-								<div
-									class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-									<div class="status-container">
-										<span
-											class="status-light bg-status-green"
-											data-cell="8"
-											data-status="ready"></span>
-										<span
-											class="status-light bg-status-yellow"
-											data-cell="8"
-											data-status="maintenance"></span>
-										<span
-											class="status-light bg-status-red"
-											data-cell="8"
-											data-status="aog"></span>
+								<!-- Header mit Statuslicht und Status-Dropdown -->
+								<div class="card-header">
+									<div class="header-elements">
+										<!-- Statuslicht und Dropdown -->
+										<div class="status-dropdown-container">
+											<span
+												class="status-light status-ready"
+												data-cell="8"
+												data-status="ready"></span>
+											<select id="status-8" class="status-selector">
+												<option value="ready">Ready</option>
+												<option value="maintenance">MX</option>
+												<option value="aog">AOG</option>
+											</select>
+										</div>
+
+										<!-- Position -->
+										<div class="position-container">
+											<span class="position-label">Position:</span>
+											<input
+												type="text"
+												placeholder="2F"
+												id="hangar-position-8"
+												class="position-input" />
+										</div>
 									</div>
-									<div class="flex items-center">
-										<span class="text-xs text-white font-medium mr-2"
-											>Position:</span
-										>
-										<input
-											type="text"
-											placeholder="2F"
-											id="hangar-position-8"
-											class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
-									</div>
-									<input
-										type="text"
-										placeholder="Manual Input"
-										class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
 								</div>
 
 								<!-- Hauptbereich -->
@@ -1321,24 +1051,12 @@
 										</div>
 									</div>
 
+									<!-- Notizen einzeilig -->
 									<div class="notes-container">
-										<label
-											class="block text-sm text-industrial-dark font-medium mb-1"
-											>Notes:</label
-										>
 										<textarea
 											id="notes-8"
-											class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
-									</div>
-
-									<div class="mt-auto">
-										<select
-											id="status-8"
-											class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
-											<option value="ready">Ready</option>
-											<option value="maintenance">Maintenance</option>
-											<option value="aog">AOG</option>
-										</select>
+											placeholder="Notizen eingeben..."
+											class="notes-textarea"></textarea>
 									</div>
 								</div>
 							</div>
@@ -1346,36 +1064,32 @@
 							<!-- Kachel 9 -->
 							<div
 								class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
-								<div
-									class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-									<div class="status-container">
-										<span
-											class="status-light bg-status-green"
-											data-cell="9"
-											data-status="ready"></span>
-										<span
-											class="status-light bg-status-yellow"
-											data-cell="9"
-											data-status="maintenance"></span>
-										<span
-											class="status-light bg-status-red"
-											data-cell="9"
-											data-status="aog"></span>
+								<!-- Header mit Statuslicht und Status-Dropdown -->
+								<div class="card-header">
+									<div class="header-elements">
+										<!-- Statuslicht und Dropdown -->
+										<div class="status-dropdown-container">
+											<span
+												class="status-light status-ready"
+												data-cell="9"
+												data-status="ready"></span>
+											<select id="status-9" class="status-selector">
+												<option value="ready">Ready</option>
+												<option value="maintenance">MX</option>
+												<option value="aog">AOG</option>
+											</select>
+										</div>
+
+										<!-- Position -->
+										<div class="position-container">
+											<span class="position-label">Position:</span>
+											<input
+												type="text"
+												placeholder="3A"
+												id="hangar-position-9"
+												class="position-input" />
+										</div>
 									</div>
-									<div class="flex items-center">
-										<span class="text-xs text-white font-medium mr-2"
-											>Position:</span
-										>
-										<input
-											type="text"
-											placeholder="3A"
-											id="hangar-position-9"
-											class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
-									</div>
-									<input
-										type="text"
-										placeholder="Manual Input"
-										class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
 								</div>
 
 								<div class="p-4 flex-grow flex flex-col">
@@ -1407,52 +1121,38 @@
 											id="notes-9"
 											class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
 									</div>
-
-									<div class="mt-auto">
-										<select
-											id="status-9"
-											class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
-											<option value="ready">Ready</option>
-											<option value="maintenance">Maintenance</option>
-											<option value="aog">AOG</option>
-										</select>
-									</div>
 								</div>
 							</div>
 
 							<!-- Kachel 10 -->
 							<div
 								class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
-								<div
-									class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-									<div class="status-container">
-										<span
-											class="status-light bg-status-green"
-											data-cell="10"
-											data-status="ready"></span>
-										<span
-											class="status-light bg-status-yellow"
-											data-cell="10"
-											data-status="maintenance"></span>
-										<span
-											class="status-light bg-status-red"
-											data-cell="10"
-											data-status="aog"></span>
+								<!-- Header mit Statuslicht und Status-Dropdown -->
+								<div class="card-header">
+									<div class="header-elements">
+										<!-- Statuslicht und Dropdown -->
+										<div class="status-dropdown-container">
+											<span
+												class="status-light status-ready"
+												data-cell="10"
+												data-status="ready"></span>
+											<select id="status-10" class="status-selector">
+												<option value="ready">Ready</option>
+												<option value="maintenance">MX</option>
+												<option value="aog">AOG</option>
+											</select>
+										</div>
+
+										<!-- Position -->
+										<div class="position-container">
+											<span class="position-label">Position:</span>
+											<input
+												type="text"
+												placeholder="3B"
+												id="hangar-position-10"
+												class="position-input" />
+										</div>
 									</div>
-									<div class="flex items-center">
-										<span class="text-xs text-white font-medium mr-2"
-											>Position:</span
-										>
-										<input
-											type="text"
-											placeholder="3B"
-											id="hangar-position-10"
-											class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
-									</div>
-									<input
-										type="text"
-										placeholder="Manual Input"
-										class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
 								</div>
 
 								<div class="p-4 flex-grow flex flex-col">
@@ -1476,23 +1176,10 @@
 									</div>
 
 									<div class="notes-container">
-										<label
-											class="block text-sm text-industrial-dark font-medium mb-1"
-											>Notes:</label
-										>
 										<textarea
 											id="notes-10"
-											class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
-									</div>
-
-									<div class="mt-auto">
-										<select
-											id="status-10"
-											class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
-											<option value="ready">Ready</option>
-											<option value="maintenance">Maintenance</option>
-											<option value="aog">AOG</option>
-										</select>
+											placeholder="Notizen eingeben..."
+											class="notes-textarea"></textarea>
 									</div>
 								</div>
 							</div>
@@ -1500,36 +1187,32 @@
 							<!-- Kachel 11 -->
 							<div
 								class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
-								<div
-									class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-									<div class="status-container">
-										<span
-											class="status-light bg-status-green"
-											data-cell="11"
-											data-status="ready"></span>
-										<span
-											class="status-light bg-status-yellow"
-											data-cell="11"
-											data-status="maintenance"></span>
-										<span
-											class="status-light bg-status-red"
-											data-cell="11"
-											data-status="aog"></span>
+								<!-- Header mit Statuslicht und Status-Dropdown -->
+								<div class="card-header">
+									<div class="header-elements">
+										<!-- Statuslicht und Dropdown -->
+										<div class="status-dropdown-container">
+											<span
+												class="status-light status-ready"
+												data-cell="11"
+												data-status="ready"></span>
+											<select id="status-11" class="status-selector">
+												<option value="ready">Ready</option>
+												<option value="maintenance">MX</option>
+												<option value="aog">AOG</option>
+											</select>
+										</div>
+
+										<!-- Position -->
+										<div class="position-container">
+											<span class="position-label">Position:</span>
+											<input
+												type="text"
+												placeholder="3C"
+												id="hangar-position-11"
+												class="position-input" />
+										</div>
 									</div>
-									<div class="flex items-center">
-										<span class="text-xs text-white font-medium mr-2"
-											>Position:</span
-										>
-										<input
-											type="text"
-											placeholder="3C"
-											id="hangar-position-11"
-											class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
-									</div>
-									<input
-										type="text"
-										placeholder="Manual Input"
-										class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
 								</div>
 
 								<div class="p-4 flex-grow flex flex-col">
@@ -1556,23 +1239,10 @@
 									</div>
 
 									<div class="notes-container">
-										<label
-											class="block text-sm text-industrial-dark font-medium mb-1"
-											>Notes:</label
-										>
 										<textarea
 											id="notes-11"
-											class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
-									</div>
-
-									<div class="mt-auto">
-										<select
-											id="status-11"
-											class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
-											<option value="ready">Ready</option>
-											<option value="maintenance">Maintenance</option>
-											<option value="aog">AOG</option>
-										</select>
+											placeholder="Notizen eingeben..."
+											class="notes-textarea"></textarea>
 									</div>
 								</div>
 							</div>
@@ -1580,36 +1250,32 @@
 							<!-- Kachel 12 -->
 							<div
 								class="hangar-cell bg-white rounded-lg shadow-md flex flex-col">
-								<div
-									class="bg-industrial-medium px-3 py-2 rounded-t-lg flex justify-between items-center">
-									<div class="status-container">
-										<span
-											class="status-light bg-status-green"
-											data-cell="12"
-											data-status="ready"></span>
-										<span
-											class="status-light bg-status-yellow"
-											data-cell="12"
-											data-status="maintenance"></span>
-										<span
-											class="status-light bg-status-red"
-											data-cell="12"
-											data-status="aog"></span>
+								<!-- Header mit Statuslicht und Status-Dropdown -->
+								<div class="card-header">
+									<div class="header-elements">
+										<!-- Statuslicht und Dropdown -->
+										<div class="status-dropdown-container">
+											<span
+												class="status-light status-ready"
+												data-cell="12"
+												data-status="ready"></span>
+											<select id="status-12" class="status-selector">
+												<option value="ready">Ready</option>
+												<option value="maintenance">MX</option>
+												<option value="aog">AOG</option>
+											</select>
+										</div>
+
+										<!-- Position -->
+										<div class="position-container">
+											<span class="position-label">Position:</span>
+											<input
+												type="text"
+												placeholder="3D"
+												id="hangar-position-12"
+												class="position-input" />
+										</div>
 									</div>
-									<div class="flex items-center">
-										<span class="text-xs text-white font-medium mr-2"
-											>Position:</span
-										>
-										<input
-											type="text"
-											placeholder="3D"
-											id="hangar-position-12"
-											class="text-xs bg-industrial-dark rounded px-2 py-1 w-10 text-white text-center" />
-									</div>
-									<input
-										type="text"
-										placeholder="Manual Input"
-										class="text-xs bg-industrial-dark rounded px-2 py-1 w-64 text-white" />
 								</div>
 
 								<div class="p-4 flex-grow flex flex-col">
@@ -1636,23 +1302,10 @@
 									</div>
 
 									<div class="notes-container">
-										<label
-											class="block text-sm text-industrial-dark font-medium mb-1"
-											>Notes:</label
-										>
 										<textarea
 											id="notes-12"
-											class="notes-textarea w-full px-2 py-1 bg-gray-50 border border-industrial-light rounded text-industrial-dark text-sm"></textarea>
-									</div>
-
-									<div class="mt-auto">
-										<select
-											id="status-12"
-											class="w-full p-2 bg-industrial-light text-industrial-dark rounded status-selector">
-											<option value="ready">Ready</option>
-											<option value="maintenance">Maintenance</option>
-											<option value="aog">AOG</option>
-										</select>
+											placeholder="Notizen eingeben..."
+											class="notes-textarea"></textarea>
 									</div>
 								</div>
 							</div>
@@ -2029,6 +1682,47 @@
 
 				if (typeof setupUIEventListeners === "function") {
 					setupUIEventListeners();
+				}
+			});
+		</script>
+
+		<!-- Event-Handler für die neue Statusdarstellung -->
+		<script>
+			document.addEventListener("DOMContentLoaded", function () {
+				// Bestehendes DOMContentLoaded-Event erweitern
+				// ...existing code...
+
+				// Status-Dropdown-Handler für die neuen Statusfarben
+				document.querySelectorAll(".status-selector").forEach((select) => {
+					// Initial Status setzen
+					updateStatusLight(select);
+
+					// Event-Listener für Änderungen
+					select.addEventListener("change", function () {
+						updateStatusLight(this);
+					});
+				});
+
+				// Funktion zum Aktualisieren des Statuslichts
+				function updateStatusLight(select) {
+					const cellId = select.id.split("-")[1];
+					const statusValue = select.value;
+					const statusLight = document.querySelector(
+						`.status-light[data-cell="${cellId}"]`
+					);
+
+					if (statusLight) {
+						// Alle Status-Klassen entfernen
+						statusLight.classList.remove(
+							"status-ready",
+							"status-maintenance",
+							"status-aog"
+						);
+						// Neue Status-Klasse hinzufügen
+						statusLight.classList.add(`status-${statusValue}`);
+						// Status-Datenwert aktualisieren
+						statusLight.setAttribute("data-status", statusValue);
+					}
 				}
 			});
 		</script>
