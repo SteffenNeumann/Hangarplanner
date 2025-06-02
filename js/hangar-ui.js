@@ -684,21 +684,14 @@ function adjustScaling() {
 			`${sectionSpacing}px`
 		);
 
-		// Grid-Abstände dynamisch anpassen ohne Skalierung der Kacheln
-		let gridGap;
-		if (availableWidth > 1800) gridGap = 20;
-		else if (availableWidth > 1650) gridGap = 16;
-		else if (availableWidth > 1500) gridGap = 14;
-		else if (availableWidth > 1350) gridGap = 12;
-		else if (availableWidth > 1200) gridGap = 10;
-		else gridGap = 8;
-
+		// Grid-Abstände - Immer auf 16px setzen für konsistentes Layout
+		let gridGap = 16; // Konstanter Wert statt Berechnung für Konsistenz
 		document.documentElement.style.setProperty("--grid-gap", `${gridGap}px`);
 
 		// WICHTIG: Feste Kachelgrößen definieren - nicht mehr dynamisch
-		const cardBaseWidth = 180; // Erhöhte feste Basisgröße
-		const cardMinWidth = 180; // Garantierte Mindestbreite
-		const cardMaxWidth = 280; // Maximale Breite begrenzen
+		const cardBaseWidth = 150; // Reduziert von 180
+		const cardMinWidth = 150; // Reduziert von 180
+		const cardMaxWidth = 250; // Reduziert von 280
 
 		document.documentElement.style.setProperty(
 			"--card-base-width",
@@ -723,15 +716,16 @@ function adjustScaling() {
 		const hangarGrid = document.getElementById("hangarGrid");
 		const secondaryGrid = document.getElementById("secondaryHangarGrid");
 
-		// Gemeinsame Eigenschaften für beide Grids - Keine Skalierung mehr
+		// Gemeinsame Eigenschaften für beide Grids mit verbesserter Zentrierung
 		const gridConfig = {
-			transform: "none", // Kein Skalieren mehr
-			width: "100%", // Volle Breite ohne Skalierungskompensation
-			gridTemplateColumns: `repeat(${layout}, minmax(${cardMinWidth}px, ${cardMaxWidth}px))`, // Feste Größen
-			gap: `${gridGap}px`,
+			transform: "none",
+			width: "100%",
+			gridTemplateColumns: `repeat(${layout}, minmax(${cardMinWidth}px, auto))`, // auto statt fit-content für konsistentere Breiten
+			gap: `16px`, // Explizit 16px
 			display: "grid",
-			justifyContent: "center", // Horizontale Zentrierung des Grids
-			margin: "0 auto", // Zusätzliche Zentrierung im Container
+			justifyContent: "center", // Wichtig: Explizite Zentrierung
+			alignItems: "start", // Ausrichtung oben für gleichmäßiges Layout
+			margin: "0 auto",
 		};
 
 		// Primären Grid konfigurieren
@@ -795,62 +789,54 @@ function adjustScaling() {
  */
 function applyTileSizes(minWidth, maxWidth) {
 	try {
-		// Alle Kacheln auswählen
 		const cells = document.querySelectorAll(".hangar-cell");
 
 		cells.forEach((cell) => {
-			// Feste Größen zuweisen ohne Skalierung
+			// Verbessertes Layout mit zentrierung
 			cell.style.minWidth = `${minWidth}px`;
-			cell.style.width = "100%";
+			cell.style.width = "auto"; // auto statt fit-content für Konsistenz
 			cell.style.maxWidth = `${maxWidth}px`;
+			cell.style.margin = "0 auto"; // Zentrierung in der Zelle
+			cell.style.justifySelf = "center"; // Zusätzliche Grid-Zentrierung
 
-			// Flex-Basis auf auto für besseres Grid-Verhalten
-			cell.style.flexBasis = "auto";
-
-			// Zentrieren in der Zelle
-			cell.style.margin = "0 auto";
-			cell.style.justifySelf = "center";
-
-			// Kompaktere innere Abstände für kleinere Kacheln
+			// Deutlich kompaktere Innenabstände
 			const contentDiv = cell.querySelector("div.p-4");
 			if (contentDiv) {
-				contentDiv.style.padding = "0.75rem";
+				contentDiv.style.padding = "0.4rem"; // Sehr kompakt (war 0.6rem)
 			}
 
-			// Vergrößerte Schriftgrößen für Aircraft ID
+			// Kompaktere Schriftgrößen für Aircraft ID
 			const aircraftId = cell.querySelector(".aircraft-id");
 			if (aircraftId) {
-				aircraftId.style.fontSize = "1.2rem"; // Größere Schriftgröße
+				aircraftId.style.fontSize = "1.1rem"; // Etwas kleiner (war 1.2rem)
 				aircraftId.style.fontWeight = "600"; // Etwas fettere Schrift
-				aircraftId.style.padding = "0.4rem"; // Mehr Polsterung
-				aircraftId.style.marginBottom = "0.6rem"; // Mehr Abstand nach unten
+				aircraftId.style.padding = "0.25rem"; // Reduziert (war 0.4rem)
+				aircraftId.style.marginBottom = "0.25rem"; // Reduziert (war 0.6rem)
 				aircraftId.style.color = "#2d3142"; // Dunklere Farbe für besseren Kontrast
+				aircraftId.style.borderBottom = "none"; // Entfernen der unteren Trennlinie
 			}
 
-			// Manual Input entfernen falls vorhanden (wie vom User gewünscht)
-			const manualInput = cell.querySelector(
-				'input[placeholder="Manual Input"]'
-			);
-			if (manualInput) {
-				const headerContainer = manualInput.closest(".bg-industrial-medium");
-				if (headerContainer) {
-					manualInput.remove();
-				}
+			// Entfernen der Headertrennlinie
+			const cardHeader = cell.querySelector(".card-header");
+			if (cardHeader) {
+				cardHeader.style.borderBottom = "none";
 			}
 
-			// Notes-Labels entfernen und als Placeholder setzen
-			const notesContainer = cell.querySelector(".notes-container");
-			if (notesContainer) {
-				const label = notesContainer.querySelector("label");
-				if (label) {
-					label.remove();
-				}
-
-				const textarea = notesContainer.querySelector("textarea");
-				if (textarea) {
-					textarea.setAttribute("placeholder", "Enter notes...");
-				}
+			// Notizfeld Rahmen entfernen
+			const textarea = cell.querySelector("textarea");
+			if (textarea) {
+				textarea.style.border = "1px solid transparent"; // Unsichtbarer Rahmen
 			}
+
+			// Verstärkter äußerer Rahmen
+			cell.style.boxShadow =
+				"8px 8px 12px rgba(166, 166, 185, 0.25), -8px -8px 12px rgba(255, 255, 255, 0.7)";
+			cell.style.border = "1px solid rgba(150, 150, 180, 0.25)";
+
+			// Reduziere auch die Größen von Labels und Values
+			cell.querySelectorAll(".info-label, .info-value").forEach((el) => {
+				el.style.fontSize = "0.8rem";
+			});
 		});
 	} catch (error) {
 		console.error("Fehler bei der Größenanpassung der Kacheln:", error);

@@ -32,9 +32,9 @@
 			:root {
 				--scale-factor: 1;
 				--inv-scale: 1;
-				--grid-gap: 16px;
-				--card-base-width: 128px;
-				--card-min-width: 128px;
+				--grid-gap: 16px; /* Explizit auf 16px setzen für gleichmäßigen Abstand */
+				--card-base-width: 110px; /* Reduziert von 128px */
+				--card-min-width: 110px; /* Reduziert von 128px */
 				--section-spacing: 12px;
 				--fixed-section-spacing: 12px;
 
@@ -61,24 +61,25 @@
 
 			.hangar-cell {
 				transition: all 0.3s ease;
-				width: 100%;
+				width: auto; /* auto statt fit-content für konsistentere Breiten */
 				min-width: var(--card-min-width) !important;
-				max-width: 280px !important;
+				max-width: 250px !important; /* Reduziert von 280px */
 				flex-basis: var(--card-base-width) !important;
 				margin: 0 auto;
 				box-sizing: border-box;
 				transform-origin: center center;
-				/* Moderneres, ausbalanciertes Neumorphismus-Design mit subtileren Schatten */
+				justify-self: center; /* Zentrierung in der Grid-Zelle */
+				/* Verstärkter äußerer Rahmen für bessere Sichtbarkeit */
 				box-shadow: 8px 8px 12px rgba(166, 166, 185, 0.25),
 					-8px -8px 12px rgba(255, 255, 255, 0.7) !important;
-				border: 1px solid rgba(200, 200, 220, 0.15); /* Feinerer, kaum sichtbarer Rahmen */
+				border: 1px solid rgba(150, 150, 180, 0.25); /* Leicht sichtbarerer Rahmen */
 				border-radius: 12px;
 				background-color: #e6eaef; /* Leicht hellerer Hintergrund für bessere Balance */
 			}
 
 			.hangar-cell:hover {
 				/* Minimaler, subtiler Hover-Effekt nach modernen Standards */
-				border-color: rgba(200, 200, 220, 0.35);
+				border-color: rgba(150, 150, 180, 0.35);
 				transform: translateY(-1px);
 			}
 
@@ -92,22 +93,23 @@
 			.hangar-cell .card-header {
 				border-radius: 12px 12px 0 0; /* Abrundung oben anpassen */
 				background-color: white; /* Weißer Hintergrund wie Karte */
-				border-bottom: 1px solid var(--border-light);
+				border-bottom: none; /* Rahmen entfernt */
 				display: flex;
 				justify-content: space-between;
 				align-items: center;
-				padding: 0.35rem 0.6rem;
-				min-height: 36px;
+				padding: 0.25rem 0.5rem; /* Reduziert von 0.35rem 0.6rem */
+				min-height: 32px; /* Reduziert von 36px */
 			}
 
-			/* Grid-Definition mit dynamischem Zwischenraum */
+			/* Grid-Definition mit fixem Zwischenraum und Zentrierung */
 			#hangarGrid,
 			#secondaryHangarGrid {
 				display: grid;
-				gap: var(--grid-gap);
+				gap: 16px; /* Explizit gesetzt statt Variable für konsistentes Layout */
 				width: 100%;
 				transition: all 0.3s ease;
 				transform-origin: top left;
+				justify-content: center; /* Explizite Zentrierung auf Grid-Ebene */
 			}
 
 			/* NEU: Einzelnes Statuslicht mit besserer Sichtbarkeit */
@@ -119,8 +121,8 @@
 
 			/* NEU: Einzelnes Statuslicht */
 			.status-light {
-				width: 14px;
-				height: 14px;
+				width: 12px; /* Reduziert von 14px */
+				height: 12px; /* Reduziert von 14px */
 				border-radius: 50%;
 				display: inline-block;
 				opacity: 1;
@@ -161,37 +163,47 @@
 				height: 26px;
 			}
 
-			/* Modernisierter Tow-Status */
+			/* Optimierte Tow-Status Labels */
 			.tow-status {
 				display: inline-block;
-				padding: 2px 6px;
-				border-radius: 3px; /* Weniger abgerundet */
+				padding: 1px 4px;
+				border-radius: 3px;
 				font-size: 12px;
 				font-weight: 500;
+				text-align: center;
+				min-width: 80px;
+				width: fit-content;
+				margin: 0 auto;
+				white-space: nowrap;
+				box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+				background-color: #f3f4f6; /* Standardhintergrund für Sichtbarkeit */
+				color: #4b5563; /* Standardtextfarbe */
 			}
 
-			.tow-initiated {
+			/* Spezifische Towing-Status-Stile mit verbesserten Farben */
+			.tow-status.tow-initiated {
 				background-color: #fff1e6; /* Hellere Hintergrundfarbe */
 				color: #b45309; /* Dunklere Textfarbe für Kontrast */
 			}
 
-			.tow-ongoing {
+			.tow-status.tow-ongoing {
 				background-color: #e0f2fe; /* Hellere Blautöne */
 				color: #0369a1;
 			}
 
-			.tow-on-position {
+			.tow-status.tow-on-position {
 				background-color: #dcfce7; /* Helleres Grün */
 				color: #166534;
 			}
 
-			/* Angepasste Ausrichtung für Infobereiche */
+			/* Info-Grid Layout für bessere Ausrichtung der Status Labels */
 			.info-grid {
 				display: grid;
 				grid-template-columns: auto auto;
-				gap: 0.5rem;
-				align-items: center;
+				gap: 0.25rem; /* Reduziert von 0.5rem */
+				align-items: center; /* Vertikale Zentrierung verbessern */
 				min-width: 0;
+				margin-bottom: 0.25rem; /* Reduziert von impliziten mb-3 (0.75rem) */
 			}
 
 			.info-label {
@@ -204,7 +216,7 @@
 				min-width: min-content;
 				overflow: hidden;
 				text-overflow: ellipsis;
-				font-size: 0.85rem; /* Etwas kleinere Schrift */
+				font-size: 0.8rem; /* Reduziert von 0.85rem */
 			}
 
 			.info-value {
@@ -213,44 +225,45 @@
 				overflow: hidden;
 				text-overflow: ellipsis;
 				font-weight: 500; /* Etwas fetter für bessere Lesbarkeit */
+				font-size: 0.8rem; /* Explizite kleinere Schrift */
 			}
 
 			/* Notizfeld mit einzeiliger Darstellung */
 			.notes-container {
 				display: flex;
 				flex-direction: column;
-				margin-top: 0.5rem;
-				margin-bottom: 0.75rem;
+				margin-top: 0.25rem; /* Reduziert von 0.5rem */
+				margin-bottom: 0.25rem; /* Reduziert von 0.75rem */
 			}
 
 			/* NEU: Einzeiliges Notizfeld mit stärkerer Spezifität und !important */
 			.notes-textarea,
 			textarea.notes-textarea {
 				resize: none !important;
-				height: 30px !important;
-				min-height: 30px !important;
-				max-height: 30px !important;
-				border: 1px solid var(--border-light);
+				height: 22px !important; /* Reduziert von 30px */
+				min-height: 22px !important; /* Reduziert von 30px */
+				max-height: 22px !important; /* Reduziert von 30px */
+				border: 1px solid transparent; /* Rahmen unsichtbar machen */
 				border-radius: 3px;
-				padding: 5px 8px !important; /* Angepasstes Padding für bessere vertikale Zentrierung */
-				font-size: 0.85rem;
+				padding: 2px 8px !important; /* Reduziert von 5px 8px */
+				font-size: 0.8rem; /* Reduziert von 0.85rem */
 				color: var(--text-dark);
 				overflow-y: hidden !important;
 				white-space: nowrap !important;
 				text-overflow: ellipsis !important;
-				line-height: 20px !important; /* Angepasste Zeilenhöhe */
+				line-height: 18px !important; /* Reduziert von 20px */
 				display: flex !important;
 				align-items: center !important; /* Text vertikal zentrieren */
 			}
 
-			/* Stil für die Aircraft ID mit hellerem Design */
+			/* Stil für die Aircraft ID mit kompakterem Design */
 			.aircraft-id {
 				text-align: center;
 				font-weight: bold;
 				font-size: 0.95rem;
-				padding: 0.3rem;
-				margin-bottom: 0.5rem;
-				border-bottom: 1px solid var(--border-light); /* Leichterer Rahmen */
+				padding: 0.25rem; /* Reduziert von 0.3rem */
+				margin-bottom: 0.25rem; /* Reduziert von 0.5rem */
+				border-bottom: none; /* Rahmen entfernt */
 				background-color: transparent;
 				width: 100%;
 				color: var(--text-dark);
