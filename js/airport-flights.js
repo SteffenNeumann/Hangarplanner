@@ -58,7 +58,7 @@ const AirportFlights = (() => {
 			let arrivals = [];
 			let departures = [];
 
-			if (response && typeof response === "object") {
+			if (response && typeof response === 'object') {
 				// Format: {departures: Array, arrivals: Array}
 				if (Array.isArray(response.departures)) {
 					departures = response.departures;
@@ -71,13 +71,13 @@ const AirportFlights = (() => {
 				if (Array.isArray(response)) {
 					// Fallback: Wenn response ein Array ist
 					const flightData = response;
-					arrivals = flightData.filter((flight) => flight.arrival);
-					departures = flightData.filter((flight) => flight.departure);
+					arrivals = flightData.filter(flight => flight.arrival);
+					departures = flightData.filter(flight => flight.departure);
 				} else if (response.data && Array.isArray(response.data)) {
 					// Fallback: Wenn response.data ein Array ist
 					const flightData = response.data;
-					arrivals = flightData.filter((flight) => flight.arrival);
-					departures = flightData.filter((flight) => flight.departure);
+					arrivals = flightData.filter(flight => flight.arrival);
+					departures = flightData.filter(flight => flight.departure);
 				}
 			} else {
 				console.warn("API-Antwort hat unerwartetes Format:", response);
@@ -131,34 +131,34 @@ const AirportFlights = (() => {
 				);
 			}
 
-			// Suche den Container für die Anzeige
-			const container = document.getElementById("hangarGrid");
-			if (!container) {
-				console.error("Container für Fluganzeige nicht gefunden");
+			// Suche den Container für die Anzeige - wir wollen die Flugdaten am Ende der Seite einfügen
+			// Zuerst versuchen wir, das Ende des Hauptinhalts zu finden
+			const mainContent = document.querySelector('main') || document.body;
+			if (!mainContent) {
+				console.error("Hauptinhalt nicht gefunden");
 				return;
 			}
-
+			
 			// Bestehende Fluginfos entfernen falls vorhanden
-			const existingFlightInfo = document.getElementById(
-				"airport-flights-container"
-			);
+			const existingFlightInfo = document.getElementById("airport-flights-container");
 			if (existingFlightInfo) {
 				existingFlightInfo.remove();
 			}
 
-			// Erstelle einen Container für die Fluginfos
+			// Erstelle einen Container für die Fluginfos mit der gleichen Breite wie der Seiteninhalt
 			const flightInfoContainer = document.createElement("div");
 			flightInfoContainer.id = "airport-flights-container";
-			flightInfoContainer.className = "w-full my-4";
-
-			// Erstelle einen Divider mit Label - zeige Operator-Filter an, falls verwendet
+			
+			// Verwende inline styling und Klassen für ein konsistentes Layout
+			flightInfoContainer.className = "container mx-auto px-4 my-8";
+			
+			// Erstelle einen Divider mit Label
 			const divider = document.createElement("div");
 			divider.className = "flex items-center my-4";
-			const labelText =
-				operatorCode.trim() !== ""
-					? `Todays Flight's at ${airportCode} (Operator: ${operatorCode.toUpperCase()})`
-					: `Todays Flight's at ${airportCode}`;
-
+			const labelText = operatorCode.trim() !== "" 
+				? `Flights at ${airportCode} (Operator: ${operatorCode.toUpperCase()})` 
+				: `Flights at ${airportCode}`;
+				
 			divider.innerHTML = `
                 <div class="flex-grow h-px bg-gray-300"></div>
                 <div class="px-4 text-lg font-medium text-gray-600">${labelText}</div>
@@ -167,14 +167,11 @@ const AirportFlights = (() => {
 
 			// Erstelle die Fluglistenansicht
 			const flightList = document.createElement("div");
-			flightList.className = "grid grid-cols-1 gap-4 mt-4";
+			flightList.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-4";
 
 			// Sortiere die Flüge nach Zeit
 			arrivals.sort((a, b) => {
-				if (
-					!a.arrival?.scheduledTime?.local ||
-					!b.arrival?.scheduledTime?.local
-				)
+				if (!a.arrival?.scheduledTime?.local || !b.arrival?.scheduledTime?.local)
 					return 0;
 				return (
 					new Date(a.arrival.scheduledTime.local) -
@@ -183,18 +180,15 @@ const AirportFlights = (() => {
 			});
 
 			departures.sort((a, b) => {
-				if (
-					!a.departure?.scheduledTime?.local ||
-					!b.departure?.scheduledTime?.local
-				)
+				if (!a.departure?.scheduledTime?.local || !b.departure?.scheduledTime?.local)
 					return 0;
 				return (
 					new Date(a.departure.scheduledTime.local) -
 					new Date(b.departure.scheduledTime.local)
 				);
 			});
-
-			// Formatierung der Flüge
+			
+			// Formatierung der Flüge - mit besonderem Fokus auf korrekte Zeitanzeige
 			const formatFlightItem = (flight, isArrival) => {
 				try {
 					const pointData = isArrival ? flight.arrival : flight.departure;
@@ -212,21 +206,39 @@ const AirportFlights = (() => {
 						? flight.departure?.airport?.iata
 						: flight.arrival?.airport?.iata;
 
-					// Sicheres Abrufen der Zeit
-					let time = "--:--";
+					// Sicheres Abrufen und Formatieren der Zeit
+					let timeDisplay = "--:--";
+					let scheduledTime = null;
+					
 					if (pointData.scheduledTime && pointData.scheduledTime.local) {
 						try {
-							time = new Date(pointData.scheduledTime.local).toLocaleTimeString(
-								"de-DE",
-								{
-									hour: "2-digit",
-									minute: "2-digit",
-								}
-							);
+							scheduledTime = new Date(pointData.scheduledTime.local);
+							timeDisplay = scheduledTime.toLocaleTimeString("de-DE", {
+								hour: "2-digit",
+								minute: "2-digit"
+							});
 						} catch (e) {
-							console.warn("Fehler beim Parsen der Zeit:", e);
+							console.warn("Fehler beim Parsen der Zeit:", e, pointData.scheduledTime);
+						}
+					} else if (typeof pointData.scheduledTime === 'string') {
+						try {
+							scheduledTime = new Date(pointData.scheduledTime);
+							timeDisplay = scheduledTime.toLocaleTimeString("de-DE", {
+								hour: "2-digit",
+								minute: "2-digit"
+							});
+						} catch (e) {
+							console.warn("Fehler beim Parsen der Zeit als String:", e, pointData.scheduledTime);
 						}
 					}
+					
+					// Debug-Ausgabe zur Zeitermittlung
+					console.log(
+						`Zeitverarbeitung für ${flight.number || 'unbekannt'}: `,
+						pointData.scheduledTime,
+						"→ Formatiert:",
+						timeDisplay
+					);
 
 					const status = pointData.actualRunway
 						? "Gelandet"
@@ -254,6 +266,7 @@ const AirportFlights = (() => {
 					const registration = flight.aircraft?.reg || "-----";
 					const flightNumber = flight.number || "----";
 
+					// Verbesserte Zeitdarstellung mit größerer Schrift
 					return `
                         <div class="flex flex-col bg-white border rounded-lg shadow-sm p-4">
                             <div class="flex justify-between items-center">
@@ -268,16 +281,12 @@ const AirportFlights = (() => {
                             <div class="mt-2 flex items-center">
                                 <div class="flex-1">
                                     <div class="text-xs text-gray-500">${direction}</div>
-                                    <div class="text-lg font-medium">${time}</div>
+                                    <div class="text-xl font-medium">${timeDisplay}</div>
                                 </div>
-                                <div class="text-lg font-bold mx-2">${
-																	isArrival ? "←" : "→"
-																}</div>
+                                <div class="text-lg font-bold mx-2">${isArrival ? "←" : "→"}</div>
                                 <div class="flex-1 text-right">
                                     <div class="text-xs text-gray-500">Flughafen</div>
-                                    <div class="text-lg font-medium">${
-																			airport || "---"
-																		}</div>
+                                    <div class="text-lg font-medium">${airport || "---"}</div>
                                 </div>
                             </div>
                         </div>
@@ -298,7 +307,7 @@ const AirportFlights = (() => {
 			// Ankunftstabelle
 			if (arrivals.length > 0) {
 				const arrivalsTitle = document.createElement("h3");
-				arrivalsTitle.className = "text-lg font-bold mt-4";
+				arrivalsTitle.className = "text-lg font-bold col-span-full mt-4";
 				arrivalsTitle.textContent = `Ankünfte (${Math.min(
 					arrivals.length,
 					maxFlightsToShow
@@ -315,7 +324,7 @@ const AirportFlights = (() => {
 			// Abflugstabelle
 			if (departures.length > 0) {
 				const departuresTitle = document.createElement("h3");
-				departuresTitle.className = "text-lg font-bold mt-4";
+				departuresTitle.className = "text-lg font-bold col-span-full mt-4";
 				departuresTitle.textContent = `Abflüge (${Math.min(
 					departures.length,
 					maxFlightsToShow
@@ -333,14 +342,14 @@ const AirportFlights = (() => {
 			if (arrivals.length === 0 && departures.length === 0) {
 				const noFlightsMessage = document.createElement("p");
 				noFlightsMessage.className = "text-center text-gray-500 my-4";
-
+				
 				// Angepasste Meldung je nachdem, ob ein Operator-Filter aktiv ist
 				if (operatorCode.trim() !== "") {
 					noFlightsMessage.textContent = `Keine Flüge für Operator ${operatorCode.toUpperCase()} am Flughafen ${airportCode} im angegebenen Zeitraum gefunden.`;
 				} else {
 					noFlightsMessage.textContent = `Keine Flüge für ${airportCode} im angegebenen Zeitraum gefunden.`;
 				}
-
+				
 				flightList.appendChild(noFlightsMessage);
 			}
 
@@ -348,8 +357,8 @@ const AirportFlights = (() => {
 			flightInfoContainer.appendChild(divider);
 			flightInfoContainer.appendChild(flightList);
 
-			// Nach dem Hangar-Grid einfügen
-			container.after(flightInfoContainer);
+			// Füge den Container am Ende des Hauptinhalts ein, nach allen anderen Elementen
+			mainContent.appendChild(flightInfoContainer);
 
 			let statusMessage = `Flugdaten für ${airportCode} geladen (${arrivals.length} Ankünfte, ${departures.length} Abflüge)`;
 			if (operatorCode.trim() !== "") {
