@@ -1045,84 +1045,70 @@ const AeroDataBoxAPI = (() => {
 	};
 
 	/**
-	 * Generiert Fallback-Flugdaten für den Fall, dass die API fehlschlägt
-	 * @param {string} aircraftId - Flugzeugkennung
-	 * @param {string} currentDate - Aktuelles Datum
-	 * @param {string} nextDate - Folgedatum
-	 * @param {string} selectedAirport - Der ausgewählte Flughafen (z.B. "MUC")
-	 * @returns {Object} Generierte Flugdaten
+	 * Ruft Flugdaten für einen bestimmten Flughafen ab
+	 * @param {string} airportCode - IATA-Code des Flughafens (z.B. "MUC")
+	 * @param {string} startDateTime - Startzeit im Format YYYY-MM-DDThh:mm
+	 * @param {string} endDateTime - Endzeit im Format YYYY-MM-DDThh:mm
+	 * @returns {Promise<Object>} - Aufbereitete Flugdaten
 	 */
-	const generateFallbackFlightData = (
-		aircraftId,
-		currentDate,
-		nextDate,
-		selectedAirport = "MUC"
-	) => {
-		// Zufällige Zeit für Ankunft (zwischen 18:00-23:00 Uhr)
-		const arrivalHour = String(Math.floor(Math.random() * 6) + 18).padStart(
-			2,
-			"0"
-		);
-		const arrivalMinute = String(Math.floor(Math.random() * 60)).padStart(
-			2,
-			"0"
-		);
-		const arrivalTime = `${arrivalHour}:${arrivalMinute}`;
+	const getAirportFlights = async (airportCode, startDateTime, endDateTime) => {
+		try {
+			updateFetchStatus(`Suche Flüge für Flughafen ${airportCode}...`);
 
-		// Zufällige Zeit für Abflug am nächsten Tag (zwischen 06:00-12:00 Uhr)
-		const departureHour = String(Math.floor(Math.random() * 7) + 6).padStart(
-			2,
-			"0"
-		);
-		const departureMinute = String(Math.floor(Math.random() * 60)).padStart(
-			2,
-			"0"
-		);
-		const departureTime = `${departureHour}:${departureMinute}`;
+			// API-Aufruf mit Rate Limiting
+			return await rateLimiter(async () => {
+				const apiUrl = `${config.baseUrl}/flights/airports/iata/${airportCode}/${startDateTime}/${endDateTime}?withLeg=true&direction=Both&withCancelled=true&withCodeshared=true&withCargo=true&withPrivate=false&withLocation=false`;
 
-		// Zufällige Flughäfen auswählen, aber immer mit dem ausgewählten Flughafen arbeiten
-		const airports = ["FRA", "DUS", "HAM", "TXL", "STR"];
-		let randomDest;
-		do {
-			randomDest = airports[Math.floor(Math.random() * airports.length)];
-		} while (randomDest === selectedAirport); // Sicherstellen, dass Dest nicht gleich selectedAirport ist
+				if (config.debugMode) {
+					console.log(`API-Anfrage URL für Flughafen: ${apiUrl}`);
+				}
 
-		const result = {
-			arrivalTime: arrivalTime,
-			departureTime: departureTime,
-			position: `${selectedAirport}→${randomDest}`,
-			originCode: selectedAirport,
-			destCode: randomDest,
-			towStatus: ["initiated", "ongoing", "on-position"][
-				Math.floor(Math.random() * 3)
-			],
-			flightNumber: aircraftId,
-			airport: selectedAirport,
-			_generatedFallback: true,
-			// Detaillierte Information für UI
-			detail: {
-				arrival: {
-					airport: selectedAirport,
-					time: arrivalTime,
-					flightNumber: "LH" + Math.floor(Math.random() * 1000),
-					date: currentDate,
-				},
-				departure: {
-					airport: randomDest,
-					time: departureTime,
-					flightNumber: "LH" + Math.floor(Math.random() * 1000),
-					date:
-						nextDate ||
-						formatDate(new Date(new Date(currentDate).getTime() + 86400000)), // Nächster Tag
-				},
-			},
-		};
+				// API-Anfrage durchführen mit RapidAPI-Headers
+				const response = await fetch(apiUrl, {
+					method: "GET",
+					headers: {
+						"x-rapidapi-key": config.rapidApiKey,
+						"x-rapidapi-host": config.rapidApiHost,
+					},
+				});
 
-		if (config.debugMode) {
-			console.log(`Generierte Fallback-Daten für ${aircraftId}:`, result);
+				if (!response.ok) {
+					throw new Error(
+						`API-Anfrage fehlgeschlagen: ${response.status} ${response.statusText}`
+					);
+				}
+
+				const responseText = await response.text();
+
+				if (!responseText || responseText.trim() === "") {
+					throw new Error("Leere Antwort von der API erhalten");
+				}
+
+				let data;
+				try {
+					data = JSON.parse(responseText);
+				} catch (jsonError) {
+					console.error("JSON-Parsing-Fehler:", jsonError);
+					throw new Error("Fehlerhafte Daten empfangen");
+				}
+
+				if (config.debugMode) {
+					console.log(`Flughafen ${airportCode} API-Antwort:`, data);
+				}
+
+				return data;
+			});
+		} catch (error) {
+			console.error(
+				`Fehler bei der Flughafen-API-Anfrage für ${airportCode}:`,
+				error
+			);
+			updateFetchStatus(
+				`Fehler beim Abrufen von Flugdaten: ${error.message}`,
+				true
+			);
+			throw error;
 		}
-
-		return result;
 	};
 
 	/**
@@ -1143,6 +1129,32 @@ const AeroDataBoxAPI = (() => {
 					rapidApiHost: config.rapidApiHost,
 				});
 			}
+
+			// Patch für die UI-Überprüfungsfunktion im updateAircraftData
+			// Ersetze die Verwendung von Assignment to const variable
+			const originalUpdateAircraftData = updateAircraftData;
+			window.originalAeroDataBoxUpdateAircraftData = originalUpdateAircraftData; // Speichern Sie die originale Funktion woanders
+
+			// Definiere eine neue Funktion mit demselben Namen
+			window.AeroDataBoxAPI = window.AeroDataBoxAPI || {};
+			window.AeroDataBoxAPI.updateAircraftData = async function (
+				aircraftId,
+				currentDate,
+				nextDate
+			) {
+				const result = await originalUpdateAircraftData(
+					aircraftId,
+					currentDate,
+					nextDate
+				);
+
+				// Ersetze die bestehende UI-Überprüfungslogik
+				setTimeout(() => {
+					// Logik zur UI-Überprüfung hier...
+				}, 500);
+
+				return result;
+			};
 		} catch (error) {
 			console.error(
 				"Fehler bei der Initialisierung des AeroDataBox API-Moduls:",
@@ -1162,6 +1174,7 @@ const AeroDataBoxAPI = (() => {
 		getMultipleAircraftFlights,
 		getFlightStatus,
 		updateFetchStatus,
+		getAirportFlights, // Diese Funktion wird noch exportiert
 		init,
 		setMockMode: (useMock) => {
 			config.useMockData = useMock;
