@@ -18,8 +18,8 @@ const AirportFlights = (() => {
 		operatorCode = ""
 	) => {
 		try {
-			// Maximale Anzahl an Flügen pro Kategorie, die angezeigt werden sollen
-			const maxFlightsToShow = 10;
+			// Alle Flüge anzeigen (keine Begrenzung)
+			const maxFlightsToShow = 100; // Auf einen hohen Wert setzen, um alle Flüge anzuzeigen
 
 			// Standard-Zeitfenster: Heute 20:00 bis morgen 08:00 Uhr
 			const now = new Date();
@@ -147,6 +147,10 @@ const AirportFlights = (() => {
 			flightInfoContainer.id = "airport-flights-container";
 			flightInfoContainer.className = "section-container";
 			flightInfoContainer.style.marginTop = "2rem";
+			flightInfoContainer.style.maxWidth = "100%"; // Maximale Breite
+			flightInfoContainer.style.width = "auto"; // Anpassung an Container-Breite
+			flightInfoContainer.style.marginLeft = "auto"; // Zentrierung
+			flightInfoContainer.style.marginRight = "auto"; // Zentrierung
 			flightInfoContainer.style.backgroundColor = "white";
 			flightInfoContainer.style.borderRadius = "0.5rem";
 			flightInfoContainer.style.boxShadow = "0 1px 3px rgba(0,0,0,0.12)";
@@ -168,27 +172,17 @@ const AirportFlights = (() => {
 			// Container für die Flugdaten
 			const flightDataContainer = document.createElement("div");
 			flightDataContainer.style.width = "100%";
+			flightDataContainer.style.overflowX = "auto";
 
-			// Separate Container für Ankünfte und Abflüge
-			const arrivalsContainer = document.createElement("div");
-			arrivalsContainer.style.marginBottom = "1.5rem";
-
-			const departuresContainer = document.createElement("div");
-
-			// Ankunftsliste
+			// Ankunftsliste als Tabelle
 			if (arrivals.length > 0) {
 				const arrivalsTitle = document.createElement("h3");
 				arrivalsTitle.style.fontSize = "1.125rem";
 				arrivalsTitle.style.fontWeight = "500";
 				arrivalsTitle.style.color = "#3A4354";
 				arrivalsTitle.style.marginBottom = "0.75rem";
-				arrivalsTitle.style.borderBottom = "1px solid rgba(209, 213, 219, 0.5)";
-				arrivalsTitle.style.paddingBottom = "0.5rem";
-				arrivalsTitle.textContent = `Ankünfte (${Math.min(
-					arrivals.length,
-					maxFlightsToShow
-				)} von ${arrivals.length})`;
-				arrivalsContainer.appendChild(arrivalsTitle);
+				arrivalsTitle.textContent = `Ankünfte (${arrivals.length})`;
+				flightDataContainer.appendChild(arrivalsTitle);
 
 				// Sortieren der Ankünfte nach Zeit
 				arrivals.sort((a, b) => {
@@ -203,37 +197,45 @@ const AirportFlights = (() => {
 					);
 				});
 
-				// Grid-Container für die Flug-Karten
-				const flightCardsGrid = document.createElement("div");
-				flightCardsGrid.style.display = "grid";
-				flightCardsGrid.style.gridTemplateColumns =
-					"repeat(auto-fill, minmax(250px, 1fr))";
-				flightCardsGrid.style.gap = "1rem";
+				// Tabelle für Ankünfte erstellen
+				const arrivalsTable = document.createElement("table");
+				arrivalsTable.className = "flight-table arrivals-table";
+				arrivalsTable.style.width = "100%";
+				arrivalsTable.style.borderCollapse = "collapse";
+				arrivalsTable.style.marginBottom = "2rem";
 
-				// Liste der Ankünfte erstellen
-				arrivals.slice(0, maxFlightsToShow).forEach((flight) => {
-					const flightCard = createFlightCard(flight, true);
-					flightCardsGrid.appendChild(flightCard);
+				// Tabellenkopf erstellen mit geänderter Spaltenreihenfolge
+				const tableHead = document.createElement("thead");
+				tableHead.innerHTML = `
+					<tr>
+						<th>Registrierung</th>
+						<th>Flug</th>
+						<th>Ankunftszeit</th>
+						<th>Von</th>
+						<th>Status</th>
+					</tr>
+				`;
+				arrivalsTable.appendChild(tableHead);
+
+				// Tabellenkörper erstellen
+				const tableBody = document.createElement("tbody");
+				arrivals.forEach((flight) => {
+					tableBody.appendChild(createFlightTableRow(flight, true));
 				});
+				arrivalsTable.appendChild(tableBody);
 
-				arrivalsContainer.appendChild(flightCardsGrid);
+				flightDataContainer.appendChild(arrivalsTable);
 			}
 
-			// Abflugsliste
+			// Abflugsliste als Tabelle
 			if (departures.length > 0) {
 				const departuresTitle = document.createElement("h3");
 				departuresTitle.style.fontSize = "1.125rem";
 				departuresTitle.style.fontWeight = "500";
 				departuresTitle.style.color = "#3A4354";
 				departuresTitle.style.marginBottom = "0.75rem";
-				departuresTitle.style.borderBottom =
-					"1px solid rgba(209, 213, 219, 0.5)";
-				departuresTitle.style.paddingBottom = "0.5rem";
-				departuresTitle.textContent = `Abflüge (${Math.min(
-					departures.length,
-					maxFlightsToShow
-				)} von ${departures.length})`;
-				departuresContainer.appendChild(departuresTitle);
+				departuresTitle.textContent = `Abflüge (${departures.length})`;
+				flightDataContainer.appendChild(departuresTitle);
 
 				// Sortieren der Abflüge nach Zeit
 				departures.sort((a, b) => {
@@ -248,20 +250,33 @@ const AirportFlights = (() => {
 					);
 				});
 
-				// Grid-Container für die Flug-Karten
-				const flightCardsGrid = document.createElement("div");
-				flightCardsGrid.style.display = "grid";
-				flightCardsGrid.style.gridTemplateColumns =
-					"repeat(auto-fill, minmax(250px, 1fr))";
-				flightCardsGrid.style.gap = "1rem";
+				// Tabelle für Abflüge erstellen
+				const departuresTable = document.createElement("table");
+				departuresTable.className = "flight-table departures-table";
+				departuresTable.style.width = "100%";
+				departuresTable.style.borderCollapse = "collapse";
 
-				// Liste der Abflüge erstellen
-				departures.slice(0, maxFlightsToShow).forEach((flight) => {
-					const flightCard = createFlightCard(flight, false);
-					flightCardsGrid.appendChild(flightCard);
+				// Tabellenkopf erstellen mit geänderter Spaltenreihenfolge
+				const tableHead = document.createElement("thead");
+				tableHead.innerHTML = `
+					<tr>
+						<th>Registrierung</th>
+						<th>Flug</th>
+						<th>Abflugszeit</th>
+						<th>Nach</th>
+						<th>Status</th>
+					</tr>
+				`;
+				departuresTable.appendChild(tableHead);
+
+				// Tabellenkörper erstellen - alle Flüge anzeigen
+				const tableBody = document.createElement("tbody");
+				departures.forEach((flight) => {
+					tableBody.appendChild(createFlightTableRow(flight, false));
 				});
+				departuresTable.appendChild(tableBody);
 
-				departuresContainer.appendChild(flightCardsGrid);
+				flightDataContainer.appendChild(departuresTable);
 			}
 
 			// Keine Flüge gefunden
@@ -278,17 +293,122 @@ const AirportFlights = (() => {
 				}
 
 				flightDataContainer.appendChild(noFlightsMessage);
-			} else {
-				// Füge die Abschnitte dem Hauptcontainer hinzu
-				flightDataContainer.appendChild(arrivalsContainer);
-				flightDataContainer.appendChild(departuresContainer);
 			}
 
 			flightInfoContainer.appendChild(flightDataContainer);
 
-			// Hauptbereich finden und den Container einfügen
+			// CSS-Stile für die Tabellen hinzufügen
+			const styleElement = document.createElement("style");
+			styleElement.textContent = `
+				#airport-flights-container {
+					box-sizing: border-box;
+				}
+				
+				#airport-flights-container .flight-table {
+					width: 100%;
+					border-collapse: collapse;
+					margin-bottom: 1.5rem;
+					table-layout: auto;
+				}
+				
+				#airport-flights-container .flight-table th,
+				#airport-flights-container .flight-table td {
+					padding: 0.75rem;
+					text-align: left;
+					border-bottom: 1px solid #e5e7eb;
+					white-space: nowrap;
+				}
+				
+				#airport-flights-container .flight-table th {
+					background-color: #f9fafb;
+					font-weight: 600;
+					color: #374151;
+					font-size: 0.875rem;
+					text-transform: uppercase;
+					letter-spacing: 0.05em;
+					position: sticky;
+					top: 0;
+					z-index: 10;
+				}
+				
+				#airport-flights-container .flight-table tbody tr:nth-child(odd) {
+					background-color: #ffffff;
+				}
+				
+				#airport-flights-container .flight-table tbody tr:nth-child(even) {
+					background-color: #f9fafb;
+				}
+				
+				#airport-flights-container .flight-table tr:hover {
+					background-color: #f3f4f6;
+				}
+				
+				/* Erste Spalte als Hauptelement (Registrierung) */
+				#airport-flights-container .flight-reg {
+					font-weight: 600;
+					color: #111827;
+					font-size: 0.95rem;
+				}
+				
+				/* Andere Spalten als Informationselemente */
+				#airport-flights-container .flight-number,
+				#airport-flights-container .flight-time,
+				#airport-flights-container td:nth-child(4) {
+					font-weight: 400;
+					color: #6b7280;
+					font-size: 0.875rem;
+				}
+				
+				#airport-flights-container .flight-status {
+					padding: 0.25rem 0.5rem;
+					border-radius: 9999px;
+					font-size: 0.75rem;
+					font-weight: 500;
+					display: inline-block;
+				}
+				
+				/* Status-Farben beibehalten */
+				#airport-flights-container .status-scheduled {
+					background-color: #e5e7eb;
+					color: #4b5563;
+				}
+				
+				#airport-flights-container .status-airborne {
+					background-color: #dbeafe;
+					color: #2563eb;
+				}
+				
+				#airport-flights-container .status-landed {
+					background-color: #d1fae5;
+					color: #059669;
+				}
+				
+				#airport-flights-container .status-delayed {
+					background-color: #fef3c7;
+					color: #d97706;
+				}
+			`;
+			document.head.appendChild(styleElement);
+
+			// Hauptbereich finden und den Container einfügen - Breite an Container anpassen
 			const hangarContainer = document.querySelector(".hangar-container");
 			if (hangarContainer) {
+				// Container-Breite auslesen und anwenden
+				const hangarContainerStyle = window.getComputedStyle(hangarContainer);
+				const contentWidth = hangarContainerStyle.width;
+
+				// Padding des Containers berücksichtigen
+				const containerPadding =
+					parseFloat(hangarContainerStyle.paddingLeft) +
+					parseFloat(hangarContainerStyle.paddingRight);
+
+				// Breite abzüglich des internen Paddings setzen
+				if (contentWidth) {
+					flightInfoContainer.style.width = contentWidth;
+					// Padding des Flight-Containers berücksichtigen
+					flightInfoContainer.style.boxSizing = "border-box";
+				}
+
 				hangarContainer.appendChild(flightInfoContainer);
 
 				// Nach dem Einfügen zum Container scrollen
@@ -300,60 +420,6 @@ const AirportFlights = (() => {
 				// Fallback: an den Body anhängen
 				document.body.appendChild(flightInfoContainer);
 			}
-
-			// CSS-Stile für die Flugkarten hinzufügen
-			const styleElement = document.createElement("style");
-			styleElement.textContent = `
-				#airport-flights-container .card-header {
-					background-color: #5D6B89;
-					padding: 8px 12px;
-					color: white;
-				}
-				
-				#airport-flights-container .flight-header-info {
-					display: flex;
-					flex-direction: column;
-				}
-				
-				#airport-flights-container .flight-number {
-					font-weight: bold;
-					font-size: 1.1rem;
-				}
-				
-				#airport-flights-container .flight-reg {
-					font-size: 0.8rem;
-					opacity: 0.8;
-				}
-				
-				#airport-flights-container .flight-time-display {
-					font-size: 1.25rem;
-					font-weight: 500;
-				}
-				
-				#airport-flights-container .header-elements {
-					display: flex;
-					justify-content: space-between;
-					align-items: center;
-				}
-				
-				#airport-flights-container .info-grid {
-					display: grid;
-					grid-template-columns: auto 1fr;
-					gap: 0.5rem 1rem;
-					align-items: center;
-				}
-				
-				#airport-flights-container .info-label {
-					font-weight: 500;
-					color: #666;
-					font-size: 0.875rem;
-				}
-				
-				#airport-flights-container .info-value {
-					font-size: 0.95rem;
-				}
-			`;
-			document.head.appendChild(styleElement);
 
 			let statusMessage = `Flugdaten für ${airportCode} geladen (${arrivals.length} Ankünfte, ${departures.length} Abflüge)`;
 			if (operatorCode.trim() !== "") {
@@ -391,24 +457,13 @@ const AirportFlights = (() => {
 	};
 
 	/**
-	 * Erstellt eine Flug-Karte im Hangarplanner-Design
+	 * Erstellt eine Tabellenzeile für einen Flug
 	 * @param {Object} flight - Flugdaten
 	 * @param {boolean} isArrival - Handelt es sich um eine Ankunft
-	 * @returns {HTMLElement} - Die Flugkarte
+	 * @returns {HTMLElement} - Die Tabellenzeile
 	 */
-	const createFlightCard = (flight, isArrival) => {
-		// Container für die Flugkarte
-		const cardContainer = document.createElement("div");
-		cardContainer.style.backgroundColor = "white";
-		cardContainer.style.borderRadius = "0.5rem";
-		cardContainer.style.boxShadow = "0 1px 3px rgba(0,0,0,0.12)";
-		cardContainer.style.display = "flex";
-		cardContainer.style.flexDirection = "column";
-		cardContainer.style.overflow = "hidden";
-
-		// Header der Karte - ähnlich wie Hangar-Kacheln
-		const cardHeader = document.createElement("div");
-		cardHeader.className = "card-header";
+	const createFlightTableRow = (flight, isArrival) => {
+		const row = document.createElement("tr");
 
 		// Flugdetails extrahieren
 		const pointData = isArrival ? flight.arrival : flight.departure;
@@ -439,29 +494,6 @@ const AirportFlights = (() => {
 			}
 		}
 
-		// Header mit Flugnummer und Registrierung
-		const headerElements = document.createElement("div");
-		headerElements.className = "header-elements";
-		headerElements.innerHTML = `
-			<div class="flight-header-info">
-				<span class="flight-number">${flightNumber}</span>
-				<span class="flight-reg">${registration}</span>
-			</div>
-			<div class="flight-time-display">
-				${timeText}
-			</div>
-		`;
-
-		cardHeader.appendChild(headerElements);
-		cardContainer.appendChild(cardHeader);
-
-		// Hauptbereich der Karte
-		const cardBody = document.createElement("div");
-		cardBody.style.padding = "0.75rem";
-		cardBody.style.flexGrow = "1";
-		cardBody.style.display = "flex";
-		cardBody.style.flexDirection = "column";
-
 		// Status bestimmen
 		const status =
 			pointData && pointData.actualRunway
@@ -472,31 +504,34 @@ const AirportFlights = (() => {
 				? "Verspätet"
 				: "Geplant";
 
-		// Richtungssymbol
-		const directionSymbol = isArrival ? "←" : "→";
+		// CSS-Klasse für den Status
+		const statusClass =
+			status === "Gelandet"
+				? "status-landed"
+				: status === "In der Luft"
+				? "status-airborne"
+				: status === "Verspätet"
+				? "status-delayed"
+				: "status-scheduled";
 
-		// Information Grid ähnlich wie in den Hangar-Kacheln
-		const infoGrid = document.createElement("div");
-		infoGrid.className = "info-grid";
-		infoGrid.style.marginBottom = "0.5rem";
-
-		infoGrid.innerHTML = `
-			<div class="info-label">${isArrival ? "Von" : "Nach"}:</div>
-			<div class="info-value">${otherAirport}</div>
-
-			<div class="info-label">Status:</div>
-			<div class="info-value">${status}</div>
-
-			<div class="info-label">Richtung:</div>
-			<div class="info-value">${directionSymbol} ${
-			isArrival ? "Ankunft" : "Abflug"
-		}</div>
+		// Zelleninhalte erstellen - geänderte Reihenfolge (erst Registrierung, dann Flugnummer)
+		row.innerHTML = `
+			<td>
+				<span class="flight-reg">${registration}</span>
+			</td>
+			<td>
+				<span class="flight-number">${flightNumber}</span>
+			</td>
+			<td>
+				<span class="flight-time">${timeText}</span>
+			</td>
+			<td>${otherAirport}</td>
+			<td>
+				<span class="flight-status ${statusClass}">${status}</span>
+			</td>
 		`;
 
-		cardBody.appendChild(infoGrid);
-		cardContainer.appendChild(cardBody);
-
-		return cardContainer;
+		return row;
 	};
 
 	/**

@@ -612,3 +612,79 @@ body.sidebar-collapsed #menuToggle {
 	padding-bottom: 0.5rem;
 	margin-bottom: 1rem;
 }
+
+/* Tabellendarstellung für Flugdaten */
+#airport-flights-container .flight-table {
+	width: 100%;
+	border-collapse: collapse;
+	margin-bottom: 1.5rem;
+	font-size: 0.9rem;
+}
+
+#airport-flights-container .flight-table th,
+#airport-flights-container .flight-table td {
+	padding: 0.75rem;
+	text-align: left;
+	border-bottom: 1px solid #e5e7eb;
+}
+
+#airport-flights-container .flight-table th {
+	background-color: #f9fafb;
+	font-weight: 600;
+	color: #374151;
+	font-size: 0.875rem;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+#airport-flights-container .flight-table tbody tr:nth-child(even) {
+	background-color: #f9fafb;
+}
+
+#airport-flights-container .flight-table tr:hover {
+	background-color: #f3f4f6;
+}
+
+#airport-flights-container .flight-number {
+	font-weight: 600;
+	color: #111827;
+}
+
+#airport-flights-container .flight-reg {
+	color: #6b7280;
+	font-size: 0.875rem;
+}
+
+#airport-flights-container .flight-time {
+	font-weight: 600;
+	color: #111827;
+	font-size: 1rem;
+}
+
+#airport-flights-container .flight-status {
+	padding: 0.25rem 0.5rem;
+	border-radius: 9999px;
+	font-size: 0.75rem;
+	font-weight: 500;
+	display: inline-block;
+}
+
+#airport-flights-container .status-scheduled {
+	background-color: #e5e7eb;
+	color: #4b5563;
+}
+
+#airport-flights-container .status-airborne {
+	background-color: #dbeafe;
+	color: #2563eb;
+}
+
+#airport-flights-container .status-landed {
+	background-color: #d1fae5;
+	color: #059669;
+}
+
+#airport-flights-container .status-delayed {
+	background-color: #fef3c7;
+	color: #d97706;
+}
