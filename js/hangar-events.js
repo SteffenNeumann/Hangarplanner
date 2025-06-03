@@ -988,6 +988,11 @@ function updateAllInstancesOfAircraft(
 
 				// Flugdaten extrahieren und anwenden
 				applyFlightDataToCell(cellId, flightData, preferredAirport);
+
+				// Logging hinzufügen, um die Anwendung der Daten zu überprüfen
+				console.log(
+					`Flugdaten für ${aircraftId} auf Kachel ${cellId} angewendet`
+				);
 			}
 		});
 
@@ -1022,24 +1027,32 @@ function applyFlightDataToCell(cellId, flightData, preferredAirport) {
 		// Extrahieren der Flugdaten wenn vorhanden
 		if (flightData && flightData.data && flightData.data.length > 0) {
 			// Wenn wir mehrere Flüge haben, versuchen wir den passendsten zu finden
-			// (z.B. den, der den bevorzugten Flughafen enthält)
-			let flight = flightData.data[0]; // Standard: erster Flug
+			// Priorisieren von Flügen mit dem bevorzugten Flughafen
+			let flight = null;
 
-			if (preferredAirport && flightData.data.length > 1) {
+			if (preferredAirport) {
 				// Suche nach Flügen mit dem bevorzugten Flughafen
-				const matchingFlight = flightData.data.find((f) => {
+				flight = flightData.data.find((f) => {
 					return (
 						f.flightPoints &&
 						f.flightPoints.some((point) => point.iataCode === preferredAirport)
 					);
 				});
 
-				if (matchingFlight) {
-					flight = matchingFlight;
-				}
+				console.log(
+					`Flug mit Flughafen ${preferredAirport} ${
+						flight ? "gefunden" : "nicht gefunden"
+					}`
+				);
 			}
 
-			if (flight.flightPoints && flight.flightPoints.length >= 2) {
+			// Wenn kein passender Flug gefunden wurde, nehme den ersten
+			if (!flight && flightData.data.length > 0) {
+				flight = flightData.data[0];
+				console.log(`Verwende ersten verfügbaren Flug`);
+			}
+
+			if (flight && flight.flightPoints && flight.flightPoints.length >= 2) {
 				const departure = flight.flightPoints.find(
 					(point) => point.departurePoint
 				);
@@ -1053,7 +1066,7 @@ function applyFlightDataToCell(cellId, flightData, preferredAirport) {
 						departure.departure.timings.length > 0
 					) {
 						const timeStr = departure.departure.timings[0].value;
-						departureTime = timeStr.substring(0, 5); // HH:MM Format
+						departureTime = timeStr.substring(0, 5);
 					}
 				}
 
@@ -1065,8 +1078,17 @@ function applyFlightDataToCell(cellId, flightData, preferredAirport) {
 						arrival.arrival.timings.length > 0
 					) {
 						const timeStr = arrival.arrival.timings[0].value;
-						arrivalTime = timeStr.substring(0, 5); // HH:MM Format
+						arrivalTime = timeStr.substring(0, 5);
 					}
+				}
+
+				// Überprüfen, ob der bevorzugte Flughafen enthalten ist
+				if (preferredAirport) {
+					const hasPreferredAirport =
+						originCode === preferredAirport || destCode === preferredAirport;
+					console.log(
+						`Flug enthält bevorzugten Flughafen ${preferredAirport}: ${hasPreferredAirport}`
+					);
 				}
 			}
 		}

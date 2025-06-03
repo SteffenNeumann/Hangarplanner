@@ -148,26 +148,55 @@ function setupFlightDataEventHandlers() {
 			const searchInput = document.getElementById("searchAircraft");
 			const currentDateInput = document.getElementById("currentDateInput");
 			const nextDateInput = document.getElementById("nextDateInput");
+			const airportCodeInput = document.getElementById("airportCodeInput");
 
 			const aircraftId = searchInput?.value?.trim();
 			const currentDate = currentDateInput?.value;
 			const nextDate = nextDateInput?.value;
+			const airportCode =
+				airportCodeInput?.value?.trim().toUpperCase() || "MUC";
 
 			if (!aircraftId) {
 				alert("Bitte geben Sie eine Flugzeug-ID ein");
 				return;
 			}
 
-			console.log(`API-Fassade wird verwendet für: ${aircraftId}`);
+			console.log(
+				`API-Fassade wird verwendet für: ${aircraftId}, Flughafen: ${airportCode}`
+			);
 
 			if (window.FlightDataAPI) {
 				try {
-					await window.FlightDataAPI.updateAircraftData(
+					// Zusätzliches Debug-Log für die Anfrage
+					console.log("Anfrage-Parameter:", {
+						aircraftId,
+						currentDate,
+						nextDate,
+						airportCode,
+					});
+
+					// API-Fassade aufrufen und Ergebnis speichern
+					const result = await window.FlightDataAPI.updateAircraftData(
 						aircraftId,
 						currentDate,
 						nextDate
 					);
+
 					console.log("API-Fassade Aufruf erfolgreich abgeschlossen");
+					console.log("Empfangene Daten:", result);
+
+					// Optional: Überprüfen, ob die Daten zum gewünschten Flughafen gehören
+					if (
+						result &&
+						(result.originCode === airportCode ||
+							result.destCode === airportCode)
+					) {
+						console.log(`Daten für Flughafen ${airportCode} gefunden.`);
+					} else if (result) {
+						console.warn(
+							`Daten enthalten nicht den gewünschten Flughafen ${airportCode}.`
+						);
+					}
 				} catch (error) {
 					console.error("Fehler beim API-Fassaden-Aufruf:", error);
 				}

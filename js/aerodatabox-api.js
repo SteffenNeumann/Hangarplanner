@@ -118,8 +118,8 @@ const AeroDataBoxAPI = (() => {
 
 			// API-Aufruf mit Rate Limiting
 			return await rateLimiter(async () => {
-				// Immer RapidAPI verwenden - keine Alternativen mehr
-				const apiUrl = `${config.baseUrl}${config.flightsEndpoint}/reg/${registration}/${date}?withAircraftImage=false&withLocation=false`;
+				// API-URL basierend auf dem Beispiel konstruieren
+				const apiUrl = `${config.baseUrl}${config.flightsEndpoint}/reg/${registration}/${date}?withAircraftImage=false&withLocation=true&dateLocalRole=Both`;
 
 				if (config.debugMode) {
 					console.log(`API-Anfrage URL: ${apiUrl}`);
@@ -150,16 +150,17 @@ const AeroDataBoxAPI = (() => {
 					);
 				}
 
-				// Prüfe, ob die Antwort Inhalt hat, bevor JSON-Parsing versucht wird
+				// Direkt den Text der Antwort lesen
 				const responseText = await response.text();
 
 				if (!responseText || responseText.trim() === "") {
 					console.warn(`Leere Antwort von der API für ${registration}`);
 					updateFetchStatus(
-						`Leere Antwort von der API für ${registration}, verwende Testdaten`,
+						`Leere Antwort von der API für ${registration}, keine Flugdaten verfügbar für dieses Datum`,
 						false
 					);
-					return generateTestFlightData(registration, date);
+					// Leeres Daten-Array zurückgeben statt nicht existierende Funktion aufzurufen
+					return { data: [] };
 				}
 
 				let data;
@@ -172,10 +173,11 @@ const AeroDataBoxAPI = (() => {
 						`Antwortinhalt: ${responseText.substring(0, 100)}...`
 					);
 					updateFetchStatus(
-						`Fehlerhafte JSON-Daten für ${registration}, verwende Testdaten`,
+						`Fehlerhafte JSON-Daten für ${registration}, keine Flugdaten verfügbar`,
 						false
 					);
-					return generateTestFlightData(registration, date);
+					// Leeres Daten-Array zurückgeben statt nicht existierende Funktion aufzurufen
+					return { data: [] };
 				}
 
 				if (config.debugMode) {
@@ -674,353 +676,129 @@ const AeroDataBoxAPI = (() => {
 				console.log(`Gewählter Flughafen für Filterung: ${selectedAirport}`);
 			}
 
-			// Flugdaten für beide Tage mit einer Anfrage abrufen
+			// Flugdaten für beide Tage mit separaten Anfragen abrufen
 			let allFlights = [];
+			let currentDayError = false;
 
-			if (config.useMockData) {
-				// Mock-Daten für beide Tage generieren und zusammenführen
-				const selectedAirport =
-					document.getElementById("airportCodeInput")?.value || "MUC";
-				const currentDayData = generateTestFlightData(
+			// Für aktuellen Tag
+			try {
+				const currentDayData = await getAircraftFlights(
 					aircraftId,
-					currentDate,
-					selectedAirport
+					currentDate
 				);
-				const nextDayData = generateTestFlightData(
-					aircraftId,
-					nextDate,
-					selectedAirport
+
+				if (currentDayData && currentDayData.data) {
+					allFlights = [...allFlights, ...currentDayData.data];
+				}
+			} catch (error) {
+				console.warn(
+					`Fehler beim Abrufen der Flüge für ${currentDate}: ${error.message}`
 				);
-				allFlights = [
-					...(currentDayData.data || []),
-					...(nextDayData.data || []),
-				];
-			} else {
-				// Echte API-Aufrufe mit Datumsbereich
+				currentDayError = true;
+			}
+
+			// Für nächsten Tag - nur wenn aktueller Tag erfolgreich war
+			if (!currentDayError) {
 				try {
-					const flightsData = await getAircraftFlightsDateRange(
-						aircraftId,
-						currentDate,
-						nextDate
-					);
-					allFlights = flightsData.data || [];
+					const nextDayData = await getAircraftFlights(aircraftId, nextDate);
 
-					// Detaillierte Debug-Informationen zu den gefundenen Flügen
-					if (config.debugMode) {
-						console.log(`Gefundene Flüge für ${aircraftId}:`, allFlights);
+					if (nextDayData && nextDayData.data) {
+						allFlights = [...allFlights, ...nextDayData.data];
 					}
 				} catch (error) {
 					console.warn(
-						`Fehler beim Abrufen der Flüge im Datumsbereich: ${error.message}`
+						`Keine Daten für Folgetag ${nextDate} verfügbar: ${error.message}`
 					);
-					// Fallback auf separate Anfragen
-					const currentDayData = await getAircraftFlights(
-						aircraftId,
-						currentDate
-					);
-					const nextDayData = await getAircraftFlights(aircraftId, nextDate);
-					allFlights = [
-						...(currentDayData.data || []),
-						...(nextDayData.data || []),
-					];
+					// Kein Fehler werfen - wir haben bereits Daten vom aktuellen Tag
 				}
 			}
 
-			// Debug-Logging der verfügbaren Flüge
+			// Filtern der Flüge nach dem ausgewählten Flughafen
+			const airportFlights = allFlights.filter((flight) => {
+				// Suche nach dem ausgewählten Flughafen in Abflug oder Ankunft
+				const hasSelectedAirport = flight.flightPoints?.some(
+					(point) => point.iataCode === selectedAirport
+				);
+
+				if (config.debugMode && hasSelectedAirport) {
+					console.log(
+						`Flug mit Flughafen ${selectedAirport} gefunden:`,
+						flight
+					);
+				}
+
+				return hasSelectedAirport;
+			});
+
+			// Wenn keine Flüge gefunden wurden, leeres Ergebnis zurückgeben
+			if (airportFlights.length === 0) {
+				updateFetchStatus(
+					`Keine Flüge für ${aircraftId} an Flughafen ${selectedAirport} gefunden`,
+					false
+				);
+				return {
+					originCode: "---",
+					destCode: "---",
+					departureTime: "--:--",
+					arrivalTime: "--:--",
+					data: [],
+				};
+			}
+
+			// Debug-Information zu gefilterten Flügen
 			if (config.debugMode) {
 				console.log(
-					`Alle Flüge für ${aircraftId} (${allFlights.length}):`,
-					allFlights
+					`Flüge für Flughafen ${selectedAirport}: ${airportFlights.length} von ${allFlights.length}`
 				);
 			}
 
-			// Trennen der Flüge nach Datum
-			const currentDayFlights = allFlights.filter((flight) => {
-				const isCurrentDay = flight.scheduledDepartureDate === currentDate;
-				if (config.debugMode && isCurrentDay) {
-					console.log(`Flug am aktuellen Tag (${currentDate}):`, flight);
-				}
-				return isCurrentDay;
-			});
-
-			const nextDayFlights = allFlights.filter((flight) => {
-				const isNextDay = flight.scheduledDepartureDate === nextDate;
-				if (config.debugMode && isNextDay) {
-					console.log(`Flug am nächsten Tag (${nextDate}):`, flight);
-				}
-				return isNextDay;
-			});
-
-			// Debug-Information zu den gefundenen Flügen je Tag
-			if (config.debugMode) {
-				console.log(
-					`Anzahl Flüge am ${currentDate}: ${currentDayFlights.length}`
-				);
-				console.log(`Anzahl Flüge am ${nextDate}: ${nextDayFlights.length}`);
-			}
-
-			// Sortiere die Flüge nach Zeit
-			const sortFlightsByTime = (flights) => {
-				return flights.sort((a, b) => {
-					// Extrahiere Zeiten aus den Flugpunkten
-					const getTimeFromFlight = (flight, isArrival) => {
-						const point = flight.flightPoints?.find((p) =>
-							isArrival ? p.arrivalPoint : p.departurePoint
-						);
-						const timings = isArrival
-							? point?.arrival?.timings
-							: point?.departure?.timings;
-						const timing = timings?.find(
-							(t) => t.qualifier === (isArrival ? "STA" : "STD")
-						);
-						return timing?.value || "00:00:00.000";
-					};
-
-					const timeA = getTimeFromFlight(a, true); // Für Ankunftszeit
-					const timeB = getTimeFromFlight(b, true); // Für Ankunftszeit
-
-					return timeA.localeCompare(timeB);
-				});
+			// Flugdaten extrahieren für die Rückgabe
+			const result = {
+				originCode: "---",
+				destCode: "---",
+				departureTime: "--:--",
+				arrivalTime: "--:--",
+				data: airportFlights,
 			};
 
-			// Sortiere Flüge nach Zeit
-			const sortedCurrentDayFlights = sortFlightsByTime(currentDayFlights);
-			const sortedNextDayFlights = sortFlightsByTime(nextDayFlights);
+			// Den ersten Flug für die Rückgabe verwenden
+			if (airportFlights.length > 0) {
+				const flight = airportFlights[0];
 
-			// Debug - zeige sortierte Flüge
-			if (config.debugMode) {
-				console.log(
-					`Sortierte Flüge am ${currentDate}:`,
-					sortedCurrentDayFlights
-				);
-				console.log(`Sortierte Flüge am ${nextDate}:`, sortedNextDayFlights);
-			}
-
-			// Finde den letzten Flug des aktuellen Tages, der zum ausgewählten Flughafen gehört
-			const lastFlightCurrentDay = sortedCurrentDayFlights
-				.filter((flight) => {
-					const arrivalPoint = flight.flightPoints?.find((p) => p.arrivalPoint);
-					const isMatch =
-						arrivalPoint && arrivalPoint.iataCode === selectedAirport;
-
-					// Debug-Ausgabe für die Filterung
-					if (config.debugMode) {
-						console.log(
-							`Prüfe Ankunftsflug (${selectedAirport}): ${arrivalPoint?.iataCode}, Match: ${isMatch}`
-						);
-					}
-
-					return isMatch;
-				})
-				.pop(); // Nimm den letzten übereinstimmenden Flug
-
-			// Finde den ersten Flug des nächsten Tages, der vom ausgewählten Flughafen abfliegt
-			const firstFlightNextDay = sortedNextDayFlights
-				.filter((flight) => {
-					const departurePoint = flight.flightPoints?.find(
+				// Flugpunkte extrahieren
+				if (flight.flightPoints && flight.flightPoints.length >= 2) {
+					const departurePoint = flight.flightPoints.find(
 						(p) => p.departurePoint
 					);
-					const isMatch =
-						departurePoint && departurePoint.iataCode === selectedAirport;
+					const arrivalPoint = flight.flightPoints.find((p) => p.arrivalPoint);
 
-					// Debug-Ausgabe für die Filterung
-					if (config.debugMode) {
-						console.log(
-							`Prüfe Abflugsflug (${selectedAirport}): ${departurePoint?.iataCode}, Match: ${isMatch}`
-						);
+					if (departurePoint) {
+						result.originCode = departurePoint.iataCode || "---";
+						if (departurePoint.departure && departurePoint.departure.timings) {
+							const stdTiming = departurePoint.departure.timings.find(
+								(t) => t.qualifier === "STD"
+							);
+							if (stdTiming && stdTiming.value) {
+								result.departureTime = stdTiming.value.substring(0, 5);
+							}
+						}
 					}
 
-					return isMatch;
-				})
-				.shift(); // Nimm den ersten übereinstimmenden Flug
-
-			// Debug-Ausgabe der gefundenen Flüge
-			if (config.debugMode) {
-				console.log(
-					`Gefundener Ankunftsflug am ${currentDate}:`,
-					lastFlightCurrentDay
-				);
-				console.log(
-					`Gefundener Abflugsflug am ${nextDate}:`,
-					firstFlightNextDay
-				);
-			}
-
-			// Extrahiere Flugdaten
-			const extractFlightInfo = (flight, isArrival = true) => {
-				if (!flight)
-					return { time: "--:--", airport: "---", flightNumber: "---" };
-
-				// Extrahiere Informationen aus dem Flug
-				const point = flight.flightPoints?.find((p) =>
-					isArrival ? p.arrivalPoint : p.departurePoint
-				);
-				const timings = isArrival
-					? point?.arrival?.timings
-					: point?.departure?.timings;
-				const timing = timings?.find(
-					(t) => t.qualifier === (isArrival ? "STA" : "STD")
-				);
-
-				// Zeit im Format HH:MM extrahieren
-				let time = "--:--";
-				if (timing?.value) {
-					time = timing.value.substring(0, 5); // Nimm die ersten 5 Zeichen (HH:MM)
-				}
-
-				// Flughafen-Code
-				const airport = point?.iataCode || "---";
-
-				// Flugnummer
-				const flightDesignator = flight.flightDesignator || {};
-				const carrierCode = flightDesignator.carrierCode || "";
-				const flightNumber = flightDesignator.flightNumber || "";
-				const fullFlightNumber = carrierCode + flightNumber;
-
-				return {
-					time,
-					airport,
-					flightNumber: fullFlightNumber,
-				};
-			};
-
-			// Informationen extrahieren
-			const arrivalInfo = extractFlightInfo(lastFlightCurrentDay, true);
-			const departureInfo = extractFlightInfo(firstFlightNextDay, false);
-
-			// Direktes Fallback, wenn keine validen Flughäfen gefunden wurden, die mit dem ausgewählten übereinstimmen
-			if (arrivalInfo.airport === "---" || departureInfo.airport === "---") {
-				if (config.debugMode) {
-					console.log(
-						`Keine Flugdaten für ${aircraftId} zum/vom Flughafen ${selectedAirport} gefunden, verwende Standard-Werte`
-					);
-				}
-				// Standardwerte verwenden
-				const fallbackData = generateFallbackFlightData(
-					aircraftId,
-					currentDate,
-					nextDate,
-					selectedAirport
-				);
-
-				// Nur die fehlenden Felder ersetzen
-				if (arrivalInfo.airport === "---")
-					arrivalInfo.airport = fallbackData.originCode;
-				if (departureInfo.airport === "---")
-					departureInfo.airport = fallbackData.destCode;
-				if (arrivalInfo.time === "--:--")
-					arrivalInfo.time = fallbackData.arrivalTime;
-				if (departureInfo.time === "--:--")
-					departureInfo.time = fallbackData.departureTime;
-			}
-
-			// Zusammenführen der Daten für die Antwort
-			const result = {
-				arrivalTime: arrivalInfo.time,
-				departureTime: departureInfo.time,
-				position: `${arrivalInfo.airport}→${departureInfo.airport}`,
-				originCode: arrivalInfo.airport,
-				destCode: departureInfo.airport,
-				towStatus: "ongoing", // Default-Wert
-				flightNumber: aircraftId,
-				airport: selectedAirport,
-				// Zusätzliche Daten für detailliertere Anzeige
-				detail: {
-					arrival: {
-						airport: arrivalInfo.airport,
-						time: arrivalInfo.time,
-						flightNumber: arrivalInfo.flightNumber,
-						date: currentDate,
-					},
-					departure: {
-						airport: departureInfo.airport,
-						time: departureInfo.time,
-						flightNumber: departureInfo.flightNumber,
-						date: nextDate,
-					},
-				},
-			};
-
-			// Überprüfen, ob die Daten gültig sind, ansonsten Fallback-Daten verwenden
-			if (
-				result.originCode === "---" ||
-				result.destCode === "---" ||
-				result.arrivalTime === "--:--" ||
-				result.departureTime === "--:--"
-			) {
-				console.warn(
-					`Ungültige oder unvollständige Daten für ${aircraftId}, verwende Fallback-Daten`
-				);
-				const fallbackData = generateFallbackFlightData(
-					aircraftId,
-					currentDate,
-					nextDate,
-					selectedAirport
-				);
-
-				// Mit Fallback-Daten kombinieren
-				result.arrivalTime =
-					result.arrivalTime !== "--:--"
-						? result.arrivalTime
-						: fallbackData.arrivalTime;
-				result.departureTime =
-					result.departureTime !== "--:--"
-						? result.departureTime
-						: fallbackData.departureTime;
-				result.originCode =
-					result.originCode !== "---"
-						? result.originCode
-						: fallbackData.originCode;
-				result.destCode =
-					result.destCode !== "---" ? result.destCode : fallbackData.destCode;
-				result.position = `${result.originCode}→${result.destCode}`;
-			}
-
-			console.log("AeroDataBoxAPI: Verarbeitete Flugdaten:", result);
-
-			// Füge einen Event-Handler hinzu, der nach der Rückgabe der Daten prüft,
-			// ob diese korrekt in den Kacheln angezeigt werden
-			setTimeout(() => {
-				const kachel = document.querySelector(
-					".aircraft-tile[data-id='" + aircraftId + "']"
-				);
-				if (kachel) {
-					const positionEl = kachel.querySelector(".position-value");
-					const arrivalEl = kachel.querySelector(".arrival-time");
-					const departureEl = kachel.querySelector(".departure-time");
-
-					console.log("UI-Überprüfung für Kachel mit ID " + aircraftId + ":");
-					console.log(
-						"  Position in UI: " +
-							(positionEl ? positionEl.textContent : "Element nicht gefunden")
-					);
-					console.log(
-						"  Ankunft in UI: " +
-							(arrivalEl ? arrivalEl.textContent : "Element nicht gefunden")
-					);
-					console.log(
-						"  Abflug in UI: " +
-							(departureEl ? departureEl.textContent : "Element nicht gefunden")
-					);
-					console.log(
-						"  Erwartete Werte: Position=" +
-							result.position +
-							", Ankunft=" +
-							result.arrivalTime +
-							", Abflug=" +
-							result.departureTime
-					);
-
-					if (positionEl && positionEl.textContent === "---→---") {
-						console.error("Position wurde nicht korrekt aktualisiert!");
+					if (arrivalPoint) {
+						result.destCode = arrivalPoint.iataCode || "---";
+						if (arrivalPoint.arrival && arrivalPoint.arrival.timings) {
+							const staTiming = arrivalPoint.arrival.timings.find(
+								(t) => t.qualifier === "STA"
+							);
+							if (staTiming && staTiming.value) {
+								result.arrivalTime = staTiming.value.substring(0, 5);
+							}
+						}
 					}
-				} else {
-					console.warn("Keine Kachel mit ID " + aircraftId + " gefunden");
 				}
-			}, 500);
+			}
 
 			updateFetchStatus(`Flugdaten für ${aircraftId} gefunden`);
-
 			return result;
 		} catch (error) {
 			console.error(
@@ -1032,15 +810,14 @@ const AeroDataBoxAPI = (() => {
 				true
 			);
 
-			// Testdaten zurückgeben als Fallback
-			const selectedAirport =
-				document.getElementById("airportCodeInput")?.value || "MUC";
-			return generateFallbackFlightData(
-				aircraftId,
-				currentDate,
-				nextDate,
-				selectedAirport
-			);
+			// Leeres Ergebnisobjekt zurückgeben
+			return {
+				originCode: "---",
+				destCode: "---",
+				departureTime: "--:--",
+				arrivalTime: "--:--",
+				data: [],
+			};
 		}
 	};
 
@@ -1107,8 +884,108 @@ const AeroDataBoxAPI = (() => {
 				`Fehler beim Abrufen von Flugdaten: ${error.message}`,
 				true
 			);
-			throw error;
+
+			// Leere Ergebnisstruktur zurückgeben
+			return {
+				arrivals: [],
+				departures: [],
+			};
 		}
+	};
+
+	/**
+	 * Generiert Test-Flugdaten für ein bestimmtes Flugzeug
+	 * @param {string} registration - Flugzeugkennung
+	 * @param {string} date - Datum im Format YYYY-MM-DD
+	 * @param {string} [preferredAirport=null] - Bevorzugter Flughafen (IATA-Code)
+	 * @returns {Object} Test-Flugdaten
+	 */
+	const generateTestFlightData = (
+		registration,
+		date,
+		preferredAirport = null
+	) => {
+		// Standardflughafen ist MUC, es sei denn, es wurde ein anderer angegeben
+		const airport = preferredAirport || "MUC";
+
+		// Zufällige Destinationen basierend auf dem Flughafen
+		const destinations = {
+			MUC: ["FRA", "BER", "HAM", "DUS", "CGN", "STR"],
+			FRA: ["MUC", "BER", "HAM", "DUS", "CGN", "STR"],
+			BER: ["MUC", "FRA", "HAM", "DUS", "CGN", "STR"],
+		};
+
+		// Standardziele, falls der Flughafen nicht in der Liste ist
+		const destinationOptions = destinations[airport] || ["FRA", "MUC", "BER"];
+
+		// Wähle ein zufälliges Ziel aus
+		const destination =
+			destinationOptions[Math.floor(Math.random() * destinationOptions.length)];
+
+		// Erstelle eine zufällige Abflug- und Ankunftszeit
+		const hour = String(Math.floor(Math.random() * 19) + 5).padStart(2, "0"); // 5-23 Uhr
+		const minute = String(Math.floor(Math.random() * 60)).padStart(2, "0");
+		const departureTime = `${hour}:${minute}`;
+
+		// Ankunftszeit etwa 1-2 Stunden später
+		const arrivalHour = String(
+			Math.min(23, parseInt(hour) + 1 + Math.floor(Math.random()))
+		).padStart(2, "0");
+		const arrivalMinute = String(Math.floor(Math.random() * 60)).padStart(
+			2,
+			"0"
+		);
+		const arrivalTime = `${arrivalHour}:${arrivalMinute}`;
+
+		// Datenstruktur erstellen
+		const flightData = {
+			type: "DatedFlight",
+			scheduledDepartureDate: date,
+			flightDesignator: {
+				carrierCode: "LH",
+				flightNumber: String(1000 + Math.floor(Math.random() * 1000)),
+			},
+			flightPoints: [
+				{
+					departurePoint: true,
+					arrivalPoint: false,
+					iataCode: airport,
+					departure: {
+						timings: [
+							{
+								qualifier: "STD",
+								value: departureTime + ":00.000",
+							},
+						],
+					},
+				},
+				{
+					departurePoint: false,
+					arrivalPoint: true,
+					iataCode: destination,
+					arrival: {
+						timings: [
+							{
+								qualifier: "STA",
+								value: arrivalTime + ":00.000",
+							},
+						],
+					},
+				},
+			],
+			legs: [
+				{
+					aircraftEquipment: {
+						aircraftType: "A320",
+					},
+					aircraftRegistration: registration,
+				},
+			],
+			_source: "test-data",
+			_testData: true,
+		};
+
+		return { data: [flightData] };
 	};
 
 	/**
@@ -1155,6 +1032,9 @@ const AeroDataBoxAPI = (() => {
 
 				return result;
 			};
+
+			// Explizit updateFetchStatus auf das globale Objekt übertragen
+			window.AeroDataBoxAPI.updateFetchStatus = updateFetchStatus;
 		} catch (error) {
 			console.error(
 				"Fehler bei der Initialisierung des AeroDataBox API-Moduls:",
@@ -1174,7 +1054,7 @@ const AeroDataBoxAPI = (() => {
 		getMultipleAircraftFlights,
 		getFlightStatus,
 		updateFetchStatus,
-		getAirportFlights, // Diese Funktion wird noch exportiert
+		getAirportFlights,
 		init,
 		setMockMode: (useMock) => {
 			config.useMockData = useMock;
