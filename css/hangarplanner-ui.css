@@ -564,3 +564,51 @@ body.sidebar-collapsed #menuToggle {
 .menu-option-row {
 	margin: 8px 0;
 }
+
+/* Ergänze diese Stile am Ende der Datei */
+
+/* Flugkarten Design */
+#airport-flights-container .card-header {
+	background-color: var(--color-industrial-medium, #5d6b89);
+	padding: 8px 12px;
+	color: white;
+}
+
+#airport-flights-container .header-elements {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+#airport-flights-container .flight-header-info {
+	display: flex;
+	flex-direction: column;
+}
+
+#airport-flights-container .flight-number {
+	font-weight: bold;
+	font-size: 1.1rem;
+}
+
+#airport-flights-container .flight-reg {
+	font-size: 0.8rem;
+	opacity: 0.8;
+}
+
+#airport-flights-container .flight-time-display {
+	font-size: 1.25rem;
+	font-weight: 500;
+}
+
+#airport-flights-container .info-grid {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 0.5rem 1rem;
+	align-items: center;
+}
+
+#airport-flights-container .flights-section h3 {
+	border-bottom: 1px solid rgba(93, 107, 137, 0.2);
+	padding-bottom: 0.5rem;
+	margin-bottom: 1rem;
+}
