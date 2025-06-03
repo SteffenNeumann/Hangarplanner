@@ -713,25 +713,106 @@ const AeroDataBoxAPI = (() => {
 				}
 			}
 
-			// Filtern der Flüge nach dem ausgewählten Flughafen
-			const airportFlights = allFlights.filter((flight) => {
-				// Suche nach dem ausgewählten Flughafen in Abflug oder Ankunft
-				const hasSelectedAirport = flight.flightPoints?.some(
-					(point) => point.iataCode === selectedAirport
-				);
+			// Separate Flüge zum und vom ausgewählten Flughafen
+			let arrivalFlights = [];
+			let departureFlights = [];
 
-				if (config.debugMode && hasSelectedAirport) {
-					console.log(
-						`Flug mit Flughafen ${selectedAirport} gefunden:`,
-						flight
+			allFlights.forEach((flight) => {
+				if (flight.flightPoints && flight.flightPoints.length >= 2) {
+					const departurePoint = flight.flightPoints.find(
+						(p) => p.departurePoint
 					);
-				}
+					const arrivalPoint = flight.flightPoints.find((p) => p.arrivalPoint);
 
-				return hasSelectedAirport;
+					// Prüfen, ob der Flug zum ausgewählten Flughafen geht (Ankunft)
+					if (arrivalPoint && arrivalPoint.iataCode === selectedAirport) {
+						// Flug mit Ankunft am ausgewählten Flughafen
+						// Datum aus scheduledDepartureDate extrahieren, um zu prüfen ob es der aktuelle Tag ist
+						if (flight.scheduledDepartureDate === currentDate) {
+							arrivalFlights.push(flight);
+						}
+					}
+
+					// Prüfen, ob der Flug vom ausgewählten Flughafen kommt (Abflug)
+					if (departurePoint && departurePoint.iataCode === selectedAirport) {
+						// Flug mit Abflug vom ausgewählten Flughafen
+						// Datum aus scheduledDepartureDate extrahieren, um zu prüfen ob es der nächste Tag ist
+						if (flight.scheduledDepartureDate === nextDate) {
+							departureFlights.push(flight);
+						}
+					}
+				}
 			});
 
-			// Wenn keine Flüge gefunden wurden, leeres Ergebnis zurückgeben
-			if (airportFlights.length === 0) {
+			if (config.debugMode) {
+				console.log(`Ankünfte am ${selectedAirport}: ${arrivalFlights.length}`);
+				console.log(
+					`Abflüge von ${selectedAirport}: ${departureFlights.length}`
+				);
+			}
+
+			// Sortieren der Ankunftsflüge nach Zeit (späteste zuerst) und Abflüge (früheste zuerst)
+			arrivalFlights.sort((a, b) => {
+				// Zeit aus dem arrivalPoint extrahieren
+				const timeA = getTimeFromFlightPoint(
+					a.flightPoints.find((p) => p.arrivalPoint)
+				);
+				const timeB = getTimeFromFlightPoint(
+					b.flightPoints.find((p) => p.arrivalPoint)
+				);
+				// Absteigende Sortierung für Ankünfte (späteste zuerst)
+				return timeB - timeA;
+			});
+
+			departureFlights.sort((a, b) => {
+				// Zeit aus dem departurePoint extrahieren
+				const timeA = getTimeFromFlightPoint(
+					a.flightPoints.find((p) => p.departurePoint)
+				);
+				const timeB = getTimeFromFlightPoint(
+					b.flightPoints.find((p) => p.departurePoint)
+				);
+				// Aufsteigende Sortierung für Abflüge (früheste zuerst)
+				return timeA - timeB;
+			});
+
+			// Die relevanten Flüge auswählen (letzter Ankunftsflug, erster Abflugsflug)
+			const lastArrival = arrivalFlights.length > 0 ? arrivalFlights[0] : null;
+			const firstDeparture =
+				departureFlights.length > 0 ? departureFlights[0] : null;
+
+			// Debug-Information zu den ausgewählten Flügen
+			if (config.debugMode) {
+				if (lastArrival) {
+					const arrivalPoint = lastArrival.flightPoints.find(
+						(p) => p.arrivalPoint
+					);
+					console.log(
+						`Letzter Ankunftsflug: Von ${
+							lastArrival.flightPoints.find((p) => p.departurePoint)
+								?.iataCode || "---"
+						} nach ${
+							arrivalPoint?.iataCode || "---"
+						} um ${getTimeStringFromFlightPoint(arrivalPoint)}`
+					);
+				}
+				if (firstDeparture) {
+					const departurePoint = firstDeparture.flightPoints.find(
+						(p) => p.departurePoint
+					);
+					console.log(
+						`Erster Abflugsflug: Von ${
+							departurePoint?.iataCode || "---"
+						} nach ${
+							firstDeparture.flightPoints.find((p) => p.arrivalPoint)
+								?.iataCode || "---"
+						} um ${getTimeStringFromFlightPoint(departurePoint)}`
+					);
+				}
+			}
+
+			// Wenn keine passenden Flüge gefunden wurden
+			if (!lastArrival && !firstDeparture) {
 				updateFetchStatus(
 					`Keine Flüge für ${aircraftId} an Flughafen ${selectedAirport} gefunden`,
 					false
@@ -745,60 +826,79 @@ const AeroDataBoxAPI = (() => {
 				};
 			}
 
-			// Debug-Information zu gefilterten Flügen
-			if (config.debugMode) {
-				console.log(
-					`Flüge für Flughafen ${selectedAirport}: ${airportFlights.length} von ${allFlights.length}`
-				);
-			}
+			// Flugdaten für die Rückgabe vorbereiten
+			const selectedFlights = [];
+			if (lastArrival) selectedFlights.push(lastArrival);
+			if (firstDeparture) selectedFlights.push(firstDeparture);
 
-			// Flugdaten extrahieren für die Rückgabe
+			// Ergebnisse aufbereiten
 			const result = {
 				originCode: "---",
 				destCode: "---",
 				departureTime: "--:--",
 				arrivalTime: "--:--",
-				data: airportFlights,
+				positionText: "---", // Neue Eigenschaft für formatierte Positionsbeschreibung
+				data: selectedFlights,
 			};
 
-			// Den ersten Flug für die Rückgabe verwenden
-			if (airportFlights.length > 0) {
-				const flight = airportFlights[0];
+			// Daten aus den ausgewählten Flügen extrahieren
+			if (lastArrival) {
+				const arrivalPoint = lastArrival.flightPoints.find(
+					(p) => p.arrivalPoint
+				);
+				const departurePoint = lastArrival.flightPoints.find(
+					(p) => p.departurePoint
+				);
 
-				// Flugpunkte extrahieren
-				if (flight.flightPoints && flight.flightPoints.length >= 2) {
-					const departurePoint = flight.flightPoints.find(
-						(p) => p.departurePoint
-					);
-					const arrivalPoint = flight.flightPoints.find((p) => p.arrivalPoint);
+				if (arrivalPoint) {
+					result.destCode = arrivalPoint.iataCode || "---";
+					result.arrivalTime = getTimeStringFromFlightPoint(arrivalPoint);
+				}
 
-					if (departurePoint) {
-						result.originCode = departurePoint.iataCode || "---";
-						if (departurePoint.departure && departurePoint.departure.timings) {
-							const stdTiming = departurePoint.departure.timings.find(
-								(t) => t.qualifier === "STD"
-							);
-							if (stdTiming && stdTiming.value) {
-								result.departureTime = stdTiming.value.substring(0, 5);
-							}
-						}
-					}
-
-					if (arrivalPoint) {
-						result.destCode = arrivalPoint.iataCode || "---";
-						if (arrivalPoint.arrival && arrivalPoint.arrival.timings) {
-							const staTiming = arrivalPoint.arrival.timings.find(
-								(t) => t.qualifier === "STA"
-							);
-							if (staTiming && staTiming.value) {
-								result.arrivalTime = staTiming.value.substring(0, 5);
-							}
-						}
-					}
+				if (departurePoint) {
+					result.originCode = departurePoint.iataCode || "---";
 				}
 			}
 
-			updateFetchStatus(`Flugdaten für ${aircraftId} gefunden`);
+			if (firstDeparture) {
+				const departurePoint = firstDeparture.flightPoints.find(
+					(p) => p.departurePoint
+				);
+				const arrivalPoint = firstDeparture.flightPoints.find(
+					(p) => p.arrivalPoint
+				);
+
+				if (departurePoint) {
+					// Wenn lastArrival nicht vorhanden ist, verwende firstDeparture als Quelle für originCode
+					if (!lastArrival) {
+						result.originCode = departurePoint.iataCode || "---";
+					}
+					result.departureTime = getTimeStringFromFlightPoint(departurePoint);
+				}
+
+				if (arrivalPoint && !lastArrival) {
+					result.destCode = arrivalPoint.iataCode || "---";
+				}
+			}
+
+			// Positionstext formatieren
+			if (result.originCode !== "---" || result.destCode !== "---") {
+				// Wenn mindestens einer der beiden Flughäfen bekannt ist
+				if (result.originCode !== "---" && result.destCode !== "---") {
+					// Wenn beide Flughäfen bekannt sind
+					result.positionText = `Abflug ${result.originCode} → ${result.destCode}`;
+				} else if (result.originCode !== "---") {
+					// Wenn nur der Abflughafen bekannt ist
+					result.positionText = `Abflug ${result.originCode}`;
+				} else {
+					// Wenn nur der Zielflughafen bekannt ist
+					result.positionText = `nach ${result.destCode}`;
+				}
+			}
+
+			updateFetchStatus(
+				`Flugdaten für ${aircraftId} gefunden: ${result.positionText}`
+			);
 			return result;
 		} catch (error) {
 			console.error(
@@ -822,170 +922,70 @@ const AeroDataBoxAPI = (() => {
 	};
 
 	/**
-	 * Ruft Flugdaten für einen bestimmten Flughafen ab
-	 * @param {string} airportCode - IATA-Code des Flughafens (z.B. "MUC")
-	 * @param {string} startDateTime - Startzeit im Format YYYY-MM-DDThh:mm
-	 * @param {string} endDateTime - Endzeit im Format YYYY-MM-DDThh:mm
-	 * @returns {Promise<Object>} - Aufbereitete Flugdaten
+	 * Hilfsfunktion, um die Uhrzeit aus einem Flugpunkt als Date-Objekt zu extrahieren
+	 * @param {Object} flightPoint - Ein Flugpunkt-Objekt
+	 * @returns {Date} Ein Date-Objekt mit der Uhrzeit oder ein ungültiges Datum bei Fehler
 	 */
-	const getAirportFlights = async (airportCode, startDateTime, endDateTime) => {
+	const getTimeFromFlightPoint = (flightPoint) => {
 		try {
-			updateFetchStatus(`Suche Flüge für Flughafen ${airportCode}...`);
+			if (!flightPoint) return new Date(0);
 
-			// API-Aufruf mit Rate Limiting
-			return await rateLimiter(async () => {
-				const apiUrl = `${config.baseUrl}/flights/airports/iata/${airportCode}/${startDateTime}/${endDateTime}?withLeg=true&direction=Both&withCancelled=true&withCodeshared=true&withCargo=true&withPrivate=false&withLocation=false`;
+			let timings;
+			if (flightPoint.departurePoint && flightPoint.departure) {
+				timings = flightPoint.departure.timings;
+			} else if (flightPoint.arrivalPoint && flightPoint.arrival) {
+				timings = flightPoint.arrival.timings;
+			}
 
-				if (config.debugMode) {
-					console.log(`API-Anfrage URL für Flughafen: ${apiUrl}`);
-				}
+			if (!timings || !timings.length) return new Date(0);
 
-				// API-Anfrage durchführen mit RapidAPI-Headers
-				const response = await fetch(apiUrl, {
-					method: "GET",
-					headers: {
-						"x-rapidapi-key": config.rapidApiKey,
-						"x-rapidapi-host": config.rapidApiHost,
-					},
-				});
+			const timing = timings.find(
+				(t) => t.qualifier === "STD" || t.qualifier === "STA"
+			);
+			if (!timing || !timing.value) return new Date(0);
 
-				if (!response.ok) {
-					throw new Error(
-						`API-Anfrage fehlgeschlagen: ${response.status} ${response.statusText}`
-					);
-				}
+			// Format ist typischerweise "HH:MM:SS.000"
+			const timeString = timing.value;
+			const [hours, minutes] = timeString.split(":").map(Number);
 
-				const responseText = await response.text();
-
-				if (!responseText || responseText.trim() === "") {
-					throw new Error("Leere Antwort von der API erhalten");
-				}
-
-				let data;
-				try {
-					data = JSON.parse(responseText);
-				} catch (jsonError) {
-					console.error("JSON-Parsing-Fehler:", jsonError);
-					throw new Error("Fehlerhafte Daten empfangen");
-				}
-
-				if (config.debugMode) {
-					console.log(`Flughafen ${airportCode} API-Antwort:`, data);
-				}
-
-				return data;
-			});
+			const date = new Date();
+			date.setHours(hours, minutes, 0, 0);
+			return date;
 		} catch (error) {
-			console.error(
-				`Fehler bei der Flughafen-API-Anfrage für ${airportCode}:`,
-				error
-			);
-			updateFetchStatus(
-				`Fehler beim Abrufen von Flugdaten: ${error.message}`,
-				true
-			);
-
-			// Leere Ergebnisstruktur zurückgeben
-			return {
-				arrivals: [],
-				departures: [],
-			};
+			console.error("Fehler beim Extrahieren der Zeit aus Flugpunkt:", error);
+			return new Date(0);
 		}
 	};
 
 	/**
-	 * Generiert Test-Flugdaten für ein bestimmtes Flugzeug
-	 * @param {string} registration - Flugzeugkennung
-	 * @param {string} date - Datum im Format YYYY-MM-DD
-	 * @param {string} [preferredAirport=null] - Bevorzugter Flughafen (IATA-Code)
-	 * @returns {Object} Test-Flugdaten
+	 * Hilfsfunktion, um die Uhrzeit aus einem Flugpunkt als formatierten String zu extrahieren
+	 * @param {Object} flightPoint - Ein Flugpunkt-Objekt
+	 * @returns {string} Die formatierte Uhrzeit (HH:MM) oder "--:--" bei Fehler
 	 */
-	const generateTestFlightData = (
-		registration,
-		date,
-		preferredAirport = null
-	) => {
-		// Standardflughafen ist MUC, es sei denn, es wurde ein anderer angegeben
-		const airport = preferredAirport || "MUC";
+	const getTimeStringFromFlightPoint = (flightPoint) => {
+		try {
+			if (!flightPoint) return "--:--";
 
-		// Zufällige Destinationen basierend auf dem Flughafen
-		const destinations = {
-			MUC: ["FRA", "BER", "HAM", "DUS", "CGN", "STR"],
-			FRA: ["MUC", "BER", "HAM", "DUS", "CGN", "STR"],
-			BER: ["MUC", "FRA", "HAM", "DUS", "CGN", "STR"],
-		};
+			let timings;
+			if (flightPoint.departurePoint && flightPoint.departure) {
+				timings = flightPoint.departure.timings;
+			} else if (flightPoint.arrivalPoint && flightPoint.arrival) {
+				timings = flightPoint.arrival.timings;
+			}
 
-		// Standardziele, falls der Flughafen nicht in der Liste ist
-		const destinationOptions = destinations[airport] || ["FRA", "MUC", "BER"];
+			if (!timings || !timings.length) return "--:--";
 
-		// Wähle ein zufälliges Ziel aus
-		const destination =
-			destinationOptions[Math.floor(Math.random() * destinationOptions.length)];
+			const timing = timings.find(
+				(t) => t.qualifier === "STD" || t.qualifier === "STA"
+			);
+			if (!timing || !timing.value) return "--:--";
 
-		// Erstelle eine zufällige Abflug- und Ankunftszeit
-		const hour = String(Math.floor(Math.random() * 19) + 5).padStart(2, "0"); // 5-23 Uhr
-		const minute = String(Math.floor(Math.random() * 60)).padStart(2, "0");
-		const departureTime = `${hour}:${minute}`;
-
-		// Ankunftszeit etwa 1-2 Stunden später
-		const arrivalHour = String(
-			Math.min(23, parseInt(hour) + 1 + Math.floor(Math.random()))
-		).padStart(2, "0");
-		const arrivalMinute = String(Math.floor(Math.random() * 60)).padStart(
-			2,
-			"0"
-		);
-		const arrivalTime = `${arrivalHour}:${arrivalMinute}`;
-
-		// Datenstruktur erstellen
-		const flightData = {
-			type: "DatedFlight",
-			scheduledDepartureDate: date,
-			flightDesignator: {
-				carrierCode: "LH",
-				flightNumber: String(1000 + Math.floor(Math.random() * 1000)),
-			},
-			flightPoints: [
-				{
-					departurePoint: true,
-					arrivalPoint: false,
-					iataCode: airport,
-					departure: {
-						timings: [
-							{
-								qualifier: "STD",
-								value: departureTime + ":00.000",
-							},
-						],
-					},
-				},
-				{
-					departurePoint: false,
-					arrivalPoint: true,
-					iataCode: destination,
-					arrival: {
-						timings: [
-							{
-								qualifier: "STA",
-								value: arrivalTime + ":00.000",
-							},
-						],
-					},
-				},
-			],
-			legs: [
-				{
-					aircraftEquipment: {
-						aircraftType: "A320",
-					},
-					aircraftRegistration: registration,
-				},
-			],
-			_source: "test-data",
-			_testData: true,
-		};
-
-		return { data: [flightData] };
+			// Format ist typischerweise "HH:MM:SS.000", wir wollen nur "HH:MM"
+			return timing.value.substring(0, 5);
+		} catch (error) {
+			console.error("Fehler beim Formatieren der Zeit aus Flugpunkt:", error);
+			return "--:--";
+		}
 	};
 
 	/**

@@ -1017,3 +1017,179 @@ function updateCellStatus(cellId, status) {
 		});
 	}
 }
+
+/**
+ * Aktualisiert alle Kacheln, die eine bestimmte Flugzeug-ID haben
+ * @param {string} aircraftId - Die Flugzeug-ID
+ * @param {object} flightData - Die abgerufenen Flugdaten
+ * @param {string} preferredAirport - Bevorzugter Flughafen (IATA-Code)
+ * @returns {boolean} - true, wenn mindestens eine Kachel aktualisiert wurde
+ */
+function updateAllInstancesOfAircraft(
+	aircraftId,
+	flightData,
+	preferredAirport
+) {
+	try {
+		// Alle Kacheln mit dieser Flugzeug-ID finden
+		const cells = document.querySelectorAll(".hangar-cell");
+		let found = false;
+
+		cells.forEach((cell) => {
+			const aircraftInput = cell.querySelector(".aircraft-id");
+			if (aircraftInput && aircraftInput.value.trim() === aircraftId) {
+				found = true;
+
+				// Zellen-ID bestimmen
+				const cellId = aircraftInput.id.split("-")[1];
+
+				// Flugdaten extrahieren und anwenden
+				applyFlightDataToCell(cellId, flightData, preferredAirport);
+
+				// Logging hinzufügen, um die Anwendung der Daten zu überprüfen
+				console.log(
+					`Flugdaten für ${aircraftId} auf Kachel ${cellId} angewendet`
+				);
+			}
+		});
+
+		if (!found) {
+			console.log(`Keine Kachel mit Aircraft ID ${aircraftId} gefunden.`);
+		}
+
+		return found;
+	} catch (error) {
+		console.error(
+			`Fehler beim Aktualisieren der Kacheln für ${aircraftId}:`,
+			error
+		);
+		return false;
+	}
+}
+
+/**
+ * Wendet Flugdaten auf eine Kachel an
+ * @param {string} cellId - ID der Kachel
+ * @param {object} flightData - Die abgerufenen Flugdaten
+ * @param {string} preferredAirport - Bevorzugter Flughafen (IATA-Code)
+ */
+function applyFlightDataToCell(cellId, flightData, preferredAirport) {
+	try {
+		// Standard-Werte falls keine Daten gefunden werden
+		let departureTime = "--:--";
+		let arrivalTime = "--:--";
+		let originCode = "---";
+		let destCode = "---";
+		let positionText = "---";
+
+		// Extrahieren der Flugdaten wenn vorhanden
+		if (flightData && flightData.data && flightData.data.length > 0) {
+			// Wenn wir mehrere Flüge haben, versuchen wir den passendsten zu finden
+			// Priorisieren von Flügen mit dem bevorzugten Flughafen
+			let flight = null;
+
+			if (preferredAirport) {
+				// Suche nach Flügen mit dem bevorzugten Flughafen
+				flight = flightData.data.find((f) => {
+					return (
+						f.flightPoints &&
+						f.flightPoints.some((point) => point.iataCode === preferredAirport)
+					);
+				});
+
+				console.log(
+					`Flug mit Flughafen ${preferredAirport} ${
+						flight ? "gefunden" : "nicht gefunden"
+					}`
+				);
+			}
+
+			// Wenn kein passender Flug gefunden wurde, nehme den ersten
+			if (!flight && flightData.data.length > 0) {
+				flight = flightData.data[0];
+				console.log(`Verwende ersten verfügbaren Flug`);
+			}
+
+			if (flight && flight.flightPoints && flight.flightPoints.length >= 2) {
+				const departure = flight.flightPoints.find(
+					(point) => point.departurePoint
+				);
+				const arrival = flight.flightPoints.find((point) => point.arrivalPoint);
+
+				if (departure) {
+					// Extrahieren von Abflugzeit und Quellflughafen
+					if (
+						departure.departure &&
+						departure.departure.timings &&
+						departure.departure.timings.length > 0
+					) {
+						const stdTime = departure.departure.timings.find(
+							(timing) => timing.qualifier === "STD"
+						);
+						if (stdTime) {
+							departureTime = stdTime.value.substring(0, 5);
+						}
+					}
+					originCode = departure.iataCode || "---";
+				}
+
+				if (arrival) {
+					// Extrahieren von Ankunftszeit und Zielflughafen
+					if (
+						arrival.arrival &&
+						arrival.arrival.timings &&
+						arrival.arrival.timings.length > 0
+					) {
+						const staTime = arrival.arrival.timings.find(
+							(timing) => timing.qualifier === "STA"
+						);
+						if (staTime) {
+							arrivalTime = staTime.value.substring(0, 5);
+						}
+					}
+					destCode = arrival.iataCode || "---";
+				}
+
+				// Formatierte Position mit von/nach Flughafen erstellen
+				if (originCode !== "---" || destCode !== "---") {
+					if (originCode !== "---" && destCode !== "---") {
+						positionText = `Abflug ${originCode} → ${destCode}`;
+					} else if (originCode !== "---") {
+						positionText = `Abflug ${originCode}`;
+					} else {
+						positionText = `nach ${destCode}`;
+					}
+				}
+
+				// Überprüfen, ob der bevorzugte Flughafen enthalten ist
+				if (preferredAirport) {
+					// Bereits durch die Flugfindung oben abgedeckt
+				}
+			}
+		}
+
+		// UI-Elemente aktualisieren
+		const arrivalTimeEl = document.getElementById(`arrival-time-${cellId}`);
+		const departureTimeEl = document.getElementById(`departure-time-${cellId}`);
+		const positionEl = document.getElementById(`position-${cellId}`);
+
+		if (arrivalTimeEl) arrivalTimeEl.textContent = arrivalTime;
+		if (departureTimeEl) departureTimeEl.textContent = departureTime;
+		if (positionEl) positionEl.textContent = positionText; // Die neue Position verwenden
+
+		// Tow-Status aktualisieren basierend auf Flugdaten
+		updateTowStatus(cellId, departureTime);
+
+		console.log(
+			`Kachel ${cellId} mit Flugdaten aktualisiert: ${positionText}, Abflug: ${departureTime}, Ankunft: ${arrivalTime}`
+		);
+
+		return true;
+	} catch (error) {
+		console.error(
+			`Fehler beim Anwenden der Flugdaten auf Kachel ${cellId}:`,
+			error
+		);
+		return false;
+	}
+}
