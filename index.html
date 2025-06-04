@@ -835,11 +835,6 @@
 				class="sidebar-container bg-industrial-medium flex flex-col">
 				<!-- Hauptinhalt der Sidebar -->
 				<div class="sidebar-content">
-					<!-- Haupttitel des Menüs -->
-					<div class="sidebar-header">
-						<h2 class="text-xl font-semibold">Hangar Menu</h2>
-					</div>
-
 					<!-- Ansichtsverwaltung als eigene Sektion -->
 					<div class="sidebar-accordion-item">
 						<div class="sidebar-accordion-header">
@@ -1302,6 +1297,19 @@
 						"secondaryTilesCreated",
 						updateTextareasAndSelects
 					);
+				});
+			</script>
+
+			<!-- Initialisierung des Toggle-Buttons mit korrekter Richtungsanzeige -->
+			<script>
+				document.addEventListener("DOMContentLoaded", function () {
+					// Initialisierung des Toggle-Buttons mit korrekter Richtungsanzeige
+					const menuToggle = document.getElementById("menuToggle");
+					const isSidebarCollapsed =
+						document.body.classList.contains("sidebar-collapsed");
+					if (menuToggle) {
+						menuToggle.textContent = isSidebarCollapsed ? "»" : "»";
+					}
 				});
 			</script>
 		</div>
