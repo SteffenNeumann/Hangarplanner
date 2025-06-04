@@ -542,12 +542,8 @@ function toggleSidebar() {
 	if (menuToggle) {
 		const toggleSpan = menuToggle.querySelector("span");
 		if (toggleSpan) {
-			// Text-Inhalt des Toggle-Buttons je nach Zustand ändern
-			toggleSpan.textContent = document.body.classList.contains(
-				"sidebar-collapsed"
-			)
-				? "«"
-				: "»";
+			// Immer nach rechts zeigen, unabhängig vom Status
+			toggleSpan.textContent = "»";
 		}
 	}
 
@@ -1463,6 +1459,74 @@ function searchInputKeyHandler(event) {
 	}
 }
 
+/**
+ * Initialisiert das Akkordeon-Verhalten für die Sidebar
+ */
+function initSidebarAccordion() {
+	// Finde alle Akkordeon-Header
+	const accordionHeaders = document.querySelectorAll(
+		".sidebar-accordion-header"
+	);
+
+	console.log(`${accordionHeaders.length} Akkordeon-Header gefunden`);
+
+	// Für jeden Header die Funktionalität initialisieren
+	accordionHeaders.forEach((header, index) => {
+		// Standardmäßig das erste Element öffnen, Rest schließen
+		if (index !== 0) {
+			header.classList.add("collapsed");
+			const content = header.nextElementSibling;
+			if (content && content.classList.contains("sidebar-accordion-content")) {
+				content.classList.remove("open");
+			}
+		} else {
+			header.classList.remove("collapsed");
+			const content = header.nextElementSibling;
+			if (content && content.classList.contains("sidebar-accordion-content")) {
+				content.classList.add("open");
+			}
+		}
+
+		// Alten Event-Handler entfernen, falls vorhanden
+		if (header._clickHandler) {
+			header.removeEventListener("click", header._clickHandler);
+		}
+
+		// Neuen Event-Handler definieren
+		header._clickHandler = function () {
+			// Akkordeon umschalten
+			this.classList.toggle("collapsed");
+
+			// Content-Element finden und Klasse umschalten
+			const content = this.nextElementSibling;
+			if (content && content.classList.contains("sidebar-accordion-content")) {
+				content.classList.toggle("open");
+			}
+		};
+
+		// Event-Listener hinzufügen
+		header.addEventListener("click", header._clickHandler);
+
+		// Sicherstellen, dass die Icon-Ausrichtung korrekt ist
+		const iconContainer = header.querySelector(".sidebar-header-content");
+		if (iconContainer) {
+			iconContainer.style.display = "flex";
+			iconContainer.style.alignItems = "center";
+
+			const icon = iconContainer.querySelector(".sidebar-icon");
+			const title = iconContainer.querySelector(".sidebar-section-title");
+
+			if (icon && title) {
+				icon.style.marginRight = "8px";
+				icon.style.display = "inline-block";
+				title.style.display = "inline-block";
+			}
+		}
+	});
+
+	console.log("Sidebar-Akkordeon erfolgreich initialisiert");
+}
+
 // Exportiere Funktionen als globales Objekt
 window.hangarEvents = {
 	setupUIEventListeners,
@@ -1495,46 +1559,85 @@ document.addEventListener("DOMContentLoaded", function () {
  * Initialisiert das Akkordeon-Verhalten für die Sidebar
  */
 function initSidebarAccordion() {
+	// Finde alle Akkordeon-Header
 	const accordionHeaders = document.querySelectorAll(
 		".sidebar-accordion-header"
 	);
 
 	console.log(`${accordionHeaders.length} Akkordeon-Header gefunden`);
 
-	// Standardmäßig das erste Element öffnen, Rest schließen
+	// Für jeden Header die Funktionalität initialisieren
 	accordionHeaders.forEach((header, index) => {
+		// Standardmäßig das erste Element öffnen, Rest schließen
 		if (index !== 0) {
 			header.classList.add("collapsed");
+			const content = header.nextElementSibling;
+			if (content && content.classList.contains("sidebar-accordion-content")) {
+				content.classList.remove("open");
+			}
 		} else {
 			header.classList.remove("collapsed");
+			const content = header.nextElementSibling;
+			if (content && content.classList.contains("sidebar-accordion-content")) {
+				content.classList.add("open");
+			}
 		}
 
-		// Führe einen Log für jeden Header durch
-		console.log(
-			`Akkordeon-Header #${index + 1}: ${
-				header.classList.contains("collapsed") ? "collapsed" : "expanded"
-			}`
-		);
-	});
-
-	// Click-Event für jede Akkordeon-Header-Zeile
-	accordionHeaders.forEach((header, index) => {
-		// Alte Event-Listener entfernen (falls vorhanden)
-		header.removeEventListener("click", header._toggleHandler);
+		// Alten Event-Handler entfernen, falls vorhanden
+		if (header._clickHandler) {
+			header.removeEventListener("click", header._clickHandler);
+		}
 
 		// Neuen Event-Handler definieren
-		header._toggleHandler = function () {
-			console.log(`Akkordeon-Header #${index + 1} wurde geklickt`);
-			// Toggle des collapsed-Status
+		header._clickHandler = function () {
+			// Akkordeon umschalten
 			this.classList.toggle("collapsed");
+
+			// Content-Element finden und Klasse umschalten
+			const content = this.nextElementSibling;
+			if (content && content.classList.contains("sidebar-accordion-content")) {
+				content.classList.toggle("open");
+			}
 		};
 
 		// Event-Listener hinzufügen
-		header.addEventListener("click", header._toggleHandler);
-		console.log(
-			`Event-Listener für Akkordeon-Header #${index + 1} eingerichtet`
-		);
+		header.addEventListener("click", header._clickHandler);
+
+		// Sicherstellen, dass die Icon-Ausrichtung korrekt ist
+		const iconContainer = header.querySelector(".sidebar-header-content");
+		if (iconContainer) {
+			iconContainer.style.display = "flex";
+			iconContainer.style.alignItems = "center";
+
+			const icon = iconContainer.querySelector(".sidebar-icon");
+			const title = iconContainer.querySelector(".sidebar-section-title");
+
+			if (icon && title) {
+				icon.style.marginRight = "8px";
+				icon.style.display = "inline-block";
+				title.style.display = "inline-block";
+			}
+		}
 	});
+
+	console.log("Sidebar-Akkordeon erfolgreich initialisiert");
 }
 
-// Den Rest der Datei unverändert lassen
+// DOM Content Loaded Event - hier setzen wir das neue Akkordeon-Verhalten
+document.addEventListener("DOMContentLoaded", function () {
+	// Initialisieren der Event-Listener
+	setupUIEventListeners();
+
+	// Initialisiere das verbesserte Akkordeon-Menü
+	initSidebarAccordion();
+
+	// Weitere Initialisierungen
+	if (
+		typeof window.hangarUI !== "undefined" &&
+		typeof window.hangarUI.initSectionLayout === "function"
+	) {
+		window.hangarUI.initSectionLayout();
+	}
+
+	console.log("Verbesserte UI-Initialisierung abgeschlossen");
+});

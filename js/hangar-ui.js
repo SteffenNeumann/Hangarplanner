@@ -16,8 +16,6 @@ const uiSettings = {
 			const savedSettingsJSON = localStorage.getItem("hangarPlannerSettings");
 			if (savedSettingsJSON) {
 				const settings = JSON.parse(savedSettingsJSON);
-				this.tilesCount = settings.tilesCount || 8;
-				this.secondaryTilesCount = settings.secondaryTilesCount || 0;
 				this.layout = settings.layout || 4;
 
 				// UI-Elemente aktualisieren

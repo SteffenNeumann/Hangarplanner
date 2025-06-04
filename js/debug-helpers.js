@@ -59,10 +59,10 @@ window.debugHelpers = {
 		// Umschalten des Zustands
 		if (wasCollapsed) {
 			body.classList.remove("sidebar-collapsed");
-			if (menuToggleBtn) menuToggleBtn.textContent = "«";
+			if (menuToggleBtn) menuToggleBtn.textContent = "»"; // Immer nach rechts
 		} else {
 			body.classList.add("sidebar-collapsed");
-			if (menuToggleBtn) menuToggleBtn.textContent = "»";
+			if (menuToggleBtn) menuToggleBtn.textContent = "»"; // Immer nach rechts
 		}
 
 		// LocalStorage aktualisieren
@@ -104,8 +104,8 @@ window.debugHelpers = {
 			// Toggle-Button Text aktualisieren
 			const menuToggleBtn = document.getElementById("menuToggle");
 			if (menuToggleBtn) {
-				menuToggleBtn.textContent = "«";
-				menuToggleBtn.setAttribute("title", "Menü einklappen");
+				menuToggleBtn.textContent = "»"; // Immer nach rechts
+				menuToggleBtn.setAttribute("title", "Menü ein/ausklappen");
 			}
 
 			// Direkte CSS-Manipulation für den Fall, dass andere Methoden fehlschlagen
@@ -137,9 +137,116 @@ window.debugHelpers = {
 			return "Fehler beim Zurücksetzen der Sidebar: " + error.message;
 		}
 	},
-};
 
-// Automatische Ausführung beim Laden
+	// Hilfsfunktion zum Debuggen der Akkordeon-Funktionalität
+	debugAccordion: function () {
+		const accordionHeaders = document.querySelectorAll('.sidebar-accordion-header');
+		
+		console.group('Akkordeon Status');
+		accordionHeaders.forEach((header, index) => {
+			const isCollapsed = header.classList.contains('collapsed');
+			const title = header.querySelector('.sidebar-section-title')?.textContent || `Header #${index}`;
+			const content = header.nextElementSibling;
+			const isOpen = content ? content.classList.contains('open') : false;
+			const contentDisplay = content ? window.getComputedStyle(content).maxHeight : 'N/A';
+			
+			console.log(`${title}: ${isCollapsed ? 'Eingeklappt' : 'Ausgeklappt'}, Content: ${isOpen ? 'Offen' : 'Geschlossen'}, Höhe: ${contentDisplay}`);
+		});
+		console.groupEnd();
+		
+		return "Akkordeon-Status in der Konsole ausgegeben";
+	},
+	
+	// Repariert alle Akkordeons, indem es die Event-Handler neu einrichtet
+	fixAccordions: function() {
+		// Alte Event-Handler entfernen und neue einrichten
+		const accordionHeaders = document.querySelectorAll('.sidebar-accordion-header');
+		
+		accordionHeaders.forEach((header) => {
+			// Alte Handler entfernen, falls vorhanden
+			if (header._clickHandler) {
+				header.removeEventListener('click', header._clickHandler);
+			}
+			
+			// Neuen Handler definieren und hinzufügen
+			header._clickHandler = function() {
+				this.classList.toggle('collapsed');
+				const content = this.nextElementSibling;
+				if (content) {
+					content.classList.toggle('open');
+				}
+			};
+			
+			header.addEventListener('click', header._clickHandler);
+			
+			// Initialen Zustand korrekt setzen
+			const isCollapsed = header.classList.contains('collapsed');
+			const content = header.nextElementSibling;
+			if (content) {
+				if (isCollapsed) {
+					content.classList.remove('open');
+				} else {
+					content.classList.add('open');
+				}
+			}
+		});
+		
+		console.log('Akkordeon-Handler neu initialisiert');
+		return "Akkordeons wurden repariert - Klicken Sie jetzt auf die Menüpunkte, um die Funktionalität zu testen";
+	},
+	
+	// Manuelle Konvertierung des Menüs zum 2-Spalten-Design
+	applyTwoColumnLayout: function() {
+		// Identifiziere Bereiche, die für ein 2-Spalten-Layout geeignet sind
+		const infoSections = document.querySelectorAll('.sidebar-accordion-content');
+		
+		infoSections.forEach((section) => {
+			// Erstelle Container für Info-Blöcke wenn nicht vorhanden
+			const infoBlocks = section.querySelectorAll('.sidebar-form-group');
+			
+			// Wenn mehr als 2 Info-Blöcke vorhanden sind, gruppieren wir sie
+			if (infoBlocks.length >= 2) {
+				// Erstelle einen Container mit 2-Spalten-Layout
+				const twoColumnContainer = document.createElement('div');
+				twoColumnContainer.className = 'info-block-grid';
+				
+				// Vermeiden von doppelter Konvertierung
+				if (!section.querySelector('.info-block-grid')) {
+					// Nimm jede zweite Formulargruppe und füge sie in das 2-Spalten-Layout ein
+					for (let i = 0; i < Math.min(6, infoBlocks.length); i += 2) {
+						const leftBlock = infoBlocks[i];
+						const rightBlock = infoBlocks[i+1];
+						
+						if (leftBlock && !leftBlock.parentElement.classList.contains('info-block-grid')) {
+							const leftContainer = document.createElement('div');
+							leftContainer.className = 'info-block';
+							section.insertBefore(leftContainer, leftBlock);
+							leftContainer.appendChild(leftBlock);
+							twoColumnContainer.appendChild(leftContainer);
+						}
+						
+						if (rightBlock && !rightBlock.parentElement.classList.contains('info-block-grid')) {
+							const rightContainer = document.createElement('div');
+							rightContainer.className = 'info-block';
+							section.insertBefore(rightContainer, rightBlock);
+							rightContainer.appendChild(rightBlock);
+							twoColumnContainer.appendChild(rightContainer);
+						}
+					}
+					
+					// Füge das 2-Spalten-Layout am Anfang des Abschnitts ein
+					if (twoColumnContainer.children.length > 0) {
+						section.prepend(twoColumnContainer);
+					}
+				}
+			}
+		});
+		
+		console.log('2-Spalten-Layout wurde angewendet');
+		return "2-Spalten-Layout wurde auf geeignete Abschnitte angewendet";
+	}
+
+	// Automatische Ausführung beim Laden
 document.addEventListener("DOMContentLoaded", function () {
 	// Status beim Laden überprüfen
 	setTimeout(() => {
