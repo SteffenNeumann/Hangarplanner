@@ -1018,6 +1018,19 @@
 								</p>
 							</div>
 
+							<!-- API-Provider Auswahl -->
+							<div class="sidebar-form-group">
+								<label for="apiProviderSelect">API-Provider:</label>
+								<select id="apiProviderSelect" class="sidebar-form-select">
+									<option value="aerodatabox">AeroDataBox API</option>
+									<option value="amadeus">Amadeus API</option>
+									<option value="opensky">OpenSky Network API</option>
+								</select>
+								<p class="mt-1 text-xs text-gray-400">
+									Bei Ratenbegrenzung anderer APIs nutzen Sie OpenSky Network.
+								</p>
+							</div>
+
 							<button
 								id="fetchFlightData"
 								class="sidebar-btn sidebar-btn-primary w-full">
@@ -1150,6 +1163,7 @@
 			<!-- API-Implementierungen -->
 			<script src="js/aerodatabox-api.js"></script>
 			<script src="js/amadeus-api.js"></script>
+			<script src="js/opensky-api.js"></script>
 			<!-- Neue Airport Flights Funktionalität -->
 			<script src="js/airport-flights.js"></script>
 			<!-- API-Fassade -->

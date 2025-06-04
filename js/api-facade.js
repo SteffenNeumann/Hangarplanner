@@ -8,6 +8,7 @@ const FlightDataAPI = (() => {
 	const PROVIDERS = {
 		AMADEUS: "amadeus",
 		AERODATABOX: "aerodatabox",
+		OPENSKY: "opensky", // Provider wird bereits definiert
 	};
 
 	// Standard-Provider
@@ -25,6 +26,21 @@ const FlightDataAPI = (() => {
 				console.log(
 					`API-Provider aus lokaler Speicherung geladen: ${activeProvider}`
 				);
+			}
+
+			// Prüfen ob der aktuelle Provider verfügbar ist, sonst zurück zum Default
+			if (
+				(activeProvider === PROVIDERS.OPENSKY &&
+					typeof window.OpenskyAPI === "undefined") ||
+				(activeProvider === PROVIDERS.AMADEUS &&
+					typeof window.AmadeusAPI === "undefined") ||
+				(activeProvider === PROVIDERS.AERODATABOX &&
+					typeof window.AeroDataBoxAPI === "undefined")
+			) {
+				console.warn(
+					`Gewählter Provider ${activeProvider} nicht verfügbar, verwende Standard-Provider`
+				);
+				activeProvider = PROVIDERS.AERODATABOX;
 			}
 
 			console.log(
@@ -64,6 +80,8 @@ const FlightDataAPI = (() => {
 				return "Amadeus API";
 			case PROVIDERS.AERODATABOX:
 				return "AeroDataBox API";
+			case PROVIDERS.OPENSKY:
+				return "OpenSky Network API";
 			default:
 				return provider;
 		}
@@ -81,6 +99,8 @@ const FlightDataAPI = (() => {
 			window.AeroDataBoxAPI
 		) {
 			window.AeroDataBoxAPI.updateFetchStatus(message, isError);
+		} else if (activeProvider === PROVIDERS.OPENSKY && window.OpenskyAPI) {
+			window.OpenskyAPI.updateFetchStatus(message, isError);
 		} else {
 			const fetchStatus = document.getElementById("fetchStatus");
 			if (fetchStatus) {
@@ -119,7 +139,12 @@ const FlightDataAPI = (() => {
 		try {
 			// API-Aufrufe an den aktiven Provider delegieren
 			let result;
-			if (activeProvider === PROVIDERS.AMADEUS && window.AmadeusAPI) {
+
+			// Prüfen ob der Provider überhaupt existiert
+			if (
+				activeProvider === PROVIDERS.AMADEUS &&
+				typeof window.AmadeusAPI !== "undefined"
+			) {
 				console.log("API-FASSADE: Rufe AmadeusAPI auf mit Parametern:", {
 					aircraftId,
 					currentDate,
@@ -133,7 +158,7 @@ const FlightDataAPI = (() => {
 				console.log("API-FASSADE: Ergebnis von AmadeusAPI erhalten:", result);
 			} else if (
 				activeProvider === PROVIDERS.AERODATABOX &&
-				window.AeroDataBoxAPI
+				typeof window.AeroDataBoxAPI !== "undefined"
 			) {
 				console.log("API-FASSADE: Rufe AeroDataBoxAPI auf mit Parametern:", {
 					aircraftId,
@@ -149,6 +174,21 @@ const FlightDataAPI = (() => {
 					"API-FASSADE: Ergebnis von AeroDataBoxAPI erhalten:",
 					result
 				);
+			} else if (
+				activeProvider === PROVIDERS.OPENSKY &&
+				typeof window.OpenskyAPI !== "undefined"
+			) {
+				console.log("API-FASSADE: Rufe OpenskyAPI auf mit Parametern:", {
+					aircraftId,
+					currentDate,
+					nextDate,
+				});
+				result = await window.OpenskyAPI.updateAircraftData(
+					aircraftId,
+					currentDate,
+					nextDate
+				);
+				console.log("API-FASSADE: Ergebnis von OpenskyAPI erhalten:", result);
 			} else {
 				const errorMsg = `API-Provider ${activeProvider} nicht verfügbar`;
 				console.error(`API-FASSADE: ${errorMsg}`);
@@ -175,8 +215,35 @@ const FlightDataAPI = (() => {
 				true
 			);
 
-			// Bei Fehler mit AeroDataBox auf Amadeus zurückfallen
-			if (activeProvider === PROVIDERS.AERODATABOX && window.AmadeusAPI) {
+			// Bei Fehler auf andere APIs zurückfallen
+			if (activeProvider !== PROVIDERS.OPENSKY && window.OpenskyAPI) {
+				console.log("API-FASSADE: Fallback auf OpenSky Network API...");
+				updateStatus("Versuche Fallback auf OpenSky Network API...");
+
+				try {
+					const fallbackResult = await window.OpenskyAPI.updateAircraftData(
+						aircraftId,
+						currentDate,
+						nextDate
+					);
+
+					if (fallbackResult) {
+						updateStatus(
+							`Flugdaten mit Fallback-API für ${aircraftId} erfolgreich abgerufen.`
+						);
+						console.log("API-FASSADE: Fallback erfolgreich:", fallbackResult);
+						return fallbackResult;
+					}
+				} catch (fallbackError) {
+					console.error(
+						"API-FASSADE: Auch Fallback-API fehlgeschlagen:",
+						fallbackError
+					);
+				}
+			}
+
+			// Wenn OpenSky nicht verfügbar oder fehlschlägt, versuche Amadeus
+			if (activeProvider !== PROVIDERS.AMADEUS && window.AmadeusAPI) {
 				console.log("API-FASSADE: Fallback auf Amadeus API...");
 				updateStatus("Versuche Fallback auf Amadeus API...");
 
@@ -193,26 +260,12 @@ const FlightDataAPI = (() => {
 						);
 						console.log("API-FASSADE: Fallback erfolgreich:", fallbackResult);
 						return fallbackResult;
-					} else {
-						updateStatus(
-							`Keine Flugdaten mit Fallback-API für ${aircraftId} gefunden.`,
-							true
-						);
-						console.warn("API-FASSADE: Auch Fallback-API lieferte keine Daten");
-						return null;
 					}
 				} catch (fallbackError) {
 					console.error(
 						"API-FASSADE: Auch Fallback-API fehlgeschlagen:",
 						fallbackError
 					);
-					updateStatus(
-						`Auch Fallback-API fehlgeschlagen: ${
-							fallbackError.message || "Unbekannter Fehler"
-						}`,
-						true
-					);
-					throw fallbackError;
 				}
 			}
 
@@ -260,6 +313,15 @@ const FlightDataAPI = (() => {
 				typeof window.AeroDataBoxAPI.getMultipleAircraftFlights === "function"
 			) {
 				return await window.AeroDataBoxAPI.getMultipleAircraftFlights(
+					aircraftIds,
+					currentDate
+				);
+			} else if (
+				activeProvider === PROVIDERS.OPENSKY &&
+				window.OpenskyAPI &&
+				typeof window.OpenskyAPI.getMultipleAircraftFlights === "function"
+			) {
+				return await window.OpenskyAPI.getMultipleAircraftFlights(
 					aircraftIds,
 					currentDate
 				);

@@ -64,6 +64,9 @@ function initializeApp() {
 				console.log("Daten-Modul initialisiert");
 			}
 
+			// Initialisieren des API-Provider-Selectors
+			initializeApiProviderSelector();
+
 			// 6. Initialisierung abgeschlossen
 			console.log("HangarPlanner-Anwendung erfolgreich initialisiert!");
 
@@ -83,6 +86,31 @@ function initializeApp() {
 			analyzeError(error);
 		}
 	}, 300);
+}
+
+/**
+ * Initialisiert den API-Provider-Selektor
+ */
+function initializeApiProviderSelector() {
+	const apiProviderSelect = document.getElementById("apiProviderSelect");
+	if (!apiProviderSelect) return;
+
+	// Aktuellen Provider aus der API-Fassade laden
+	if (window.FlightDataAPI) {
+		const currentProvider = window.FlightDataAPI.getActiveProvider();
+		apiProviderSelect.value = currentProvider;
+	}
+
+	// Event-Listener für Änderungen
+	apiProviderSelect.addEventListener("change", function () {
+		if (window.FlightDataAPI) {
+			const newProvider = this.value;
+			window.FlightDataAPI.setProvider(newProvider);
+			console.log(`API-Provider geändert auf: ${newProvider}`);
+		}
+	});
+
+	console.log("API-Provider-Selektor initialisiert");
 }
 
 // Initialisiert die gesamte Anwendung

@@ -922,131 +922,294 @@ const AeroDataBoxAPI = (() => {
 	};
 
 	/**
-	 * Hilfsfunktion, um die Uhrzeit aus einem Flugpunkt als Date-Objekt zu extrahieren
-	 * @param {Object} flightPoint - Ein Flugpunkt-Objekt
-	 * @returns {Date} Ein Date-Objekt mit der Uhrzeit oder ein ungültiges Datum bei Fehler
+	 * Holt Flugdaten für einen Flughafen
+	 * @param {string} airportCode - IATA-Code des Flughafens (z.B. "MUC")
+	 * @param {string} startDateTime - Startzeit für die Abfrage (ISO-Format oder YYYY-MM-DDThh:mm)
+	 * @param {string} endDateTime - Endzeit für die Abfrage (ISO-Format oder YYYY-MM-DDThh:mm)
+	 * @returns {Promise<Object>} Flughafenflüge
 	 */
-	const getTimeFromFlightPoint = (flightPoint) => {
-		try {
-			if (!flightPoint) return new Date(0);
-
-			let timings;
-			if (flightPoint.departurePoint && flightPoint.departure) {
-				timings = flightPoint.departure.timings;
-			} else if (flightPoint.arrivalPoint && flightPoint.arrival) {
-				timings = flightPoint.arrival.timings;
-			}
-
-			if (!timings || !timings.length) return new Date(0);
-
-			const timing = timings.find(
-				(t) => t.qualifier === "STD" || t.qualifier === "STA"
-			);
-			if (!timing || !timing.value) return new Date(0);
-
-			// Format ist typischerweise "HH:MM:SS.000"
-			const timeString = timing.value;
-			const [hours, minutes] = timeString.split(":").map(Number);
-
-			const date = new Date();
-			date.setHours(hours, minutes, 0, 0);
-			return date;
-		} catch (error) {
-			console.error("Fehler beim Extrahieren der Zeit aus Flugpunkt:", error);
-			return new Date(0);
+	const getAirportFlights = async (
+		airportCode,
+		startDateTime = null,
+		endDateTime = null
+	) => {
+		// Standardwerte für Zeiten
+		if (!startDateTime) {
+			const now = new Date();
+			startDateTime = now.toISOString();
 		}
-	};
-
-	/**
-	 * Hilfsfunktion, um die Uhrzeit aus einem Flugpunkt als formatierten String zu extrahieren
-	 * @param {Object} flightPoint - Ein Flugpunkt-Objekt
-	 * @returns {string} Die formatierte Uhrzeit (HH:MM) oder "--:--" bei Fehler
-	 */
-	const getTimeStringFromFlightPoint = (flightPoint) => {
-		try {
-			if (!flightPoint) return "--:--";
-
-			let timings;
-			if (flightPoint.departurePoint && flightPoint.departure) {
-				timings = flightPoint.departure.timings;
-			} else if (flightPoint.arrivalPoint && flightPoint.arrival) {
-				timings = flightPoint.arrival.timings;
-			}
-
-			if (!timings || !timings.length) return "--:--";
-
-			const timing = timings.find(
-				(t) => t.qualifier === "STD" || t.qualifier === "STA"
-			);
-			if (!timing || !timing.value) return "--:--";
-
-			// Format ist typischerweise "HH:MM:SS.000", wir wollen nur "HH:MM"
-			return timing.value.substring(0, 5);
-		} catch (error) {
-			console.error("Fehler beim Formatieren der Zeit aus Flugpunkt:", error);
-			return "--:--";
+		if (!endDateTime) {
+			const end = new Date();
+			end.setHours(end.getHours() + 12); // 12 Stunden voraus
+			endDateTime = end.toISOString();
 		}
-	};
 
-	/**
-	 * Initialisiert das AeroDataBox API-Modul
-	 */
-	const init = () => {
+		if (config.useMockData) {
+			return generateTestAirportFlightData(
+				airportCode,
+				startDateTime,
+				endDateTime
+			);
+		}
+
 		try {
-			console.log(
-				"AeroDataBox API-Modul initialisiert (RapidAPI wird verwendet)"
+			const normalizedAirport = airportCode.trim().toUpperCase();
+			updateFetchStatus(
+				`Flüge für Flughafen ${normalizedAirport} werden abgefragt...`
 			);
 
-			// Testaufruf, um die API zu prüfen (nur im Debug-Modus)
-			if (config.debugMode) {
-				console.log("API-Konfiguration:", {
-					baseUrl: config.baseUrl,
-					flightsEndpoint: config.flightsEndpoint,
-					statusEndpoint: config.statusEndpoint,
-					rapidApiHost: config.rapidApiHost,
-				});
-			}
+			return await rateLimiter(async () => {
+				// Erstelle URLs für Abflüge und Ankünfte
+				const departuresUrl = `${config.baseUrl}/airports/iata/${normalizedAirport}/flights/departure?withLeg=true&withCancelled=false&withCodeshared=true&withCargo=false&withPrivate=false&withLocation=false`;
+				const arrivalsUrl = `${config.baseUrl}/airports/iata/${normalizedAirport}/flights/arrival?withLeg=true&withCancelled=false&withCodeshared=true&withCargo=false&withPrivate=false&withLocation=false`;
 
-			// Patch für die UI-Überprüfungsfunktion im updateAircraftData
-			// Ersetze die Verwendung von Assignment to const variable
-			const originalUpdateAircraftData = updateAircraftData;
-			window.originalAeroDataBoxUpdateAircraftData = originalUpdateAircraftData; // Speichern Sie die originale Funktion woanders
+				const headers = {
+					"x-rapidapi-key": config.rapidApiKey,
+					"x-rapidapi-host": config.rapidApiHost,
+				};
 
-			// Definiere eine neue Funktion mit demselben Namen
-			window.AeroDataBoxAPI = window.AeroDataBoxAPI || {};
-			window.AeroDataBoxAPI.updateAircraftData = async function (
-				aircraftId,
-				currentDate,
-				nextDate
-			) {
-				const result = await originalUpdateAircraftData(
-					aircraftId,
-					currentDate,
-					nextDate
-				);
+				if (config.debugMode) {
+					console.log(`API-Anfrage URLs: 
+						Abflüge: ${departuresUrl}
+						Ankünfte: ${arrivalsUrl}`);
+				}
 
-				// Ersetze die bestehende UI-Überprüfungslogik
-				setTimeout(() => {
-					// Logik zur UI-Überprüfung hier...
-				}, 500);
+				// Parallele Anfragen für bessere Performance
+				const [departuresResponse, arrivalsResponse] = await Promise.all([
+					fetch(departuresUrl, { headers }),
+					fetch(arrivalsUrl, { headers }),
+				]);
 
-				return result;
-			};
+				// Fehlerbehandlung
+				if (!departuresResponse.ok || !arrivalsResponse.ok) {
+					throw new Error(
+						`API-Anfrage fehlgeschlagen: ${
+							!departuresResponse.ok
+								? departuresResponse.status
+								: arrivalsResponse.status
+						}`
+					);
+				}
 
-			// Explizit updateFetchStatus auf das globale Objekt übertragen
-			window.AeroDataBoxAPI.updateFetchStatus = updateFetchStatus;
+				// JSON-Daten extrahieren
+				const departuresData = await departuresResponse.json();
+				const arrivalsData = await arrivalsResponse.json();
+
+				if (config.debugMode) {
+					console.log(`AeroDataBox API-Antwort für ${normalizedAirport}:`, {
+						departures: departuresData,
+						arrivals: arrivalsData,
+					});
+				}
+
+				return {
+					departures: departuresData.departures || [],
+					arrivals: arrivalsData.arrivals || [],
+				};
+			});
 		} catch (error) {
 			console.error(
-				"Fehler bei der Initialisierung des AeroDataBox API-Moduls:",
+				`Fehler bei AeroDataBox API-Anfrage für Flughafen ${airportCode}:`,
 				error
+			);
+			updateFetchStatus(
+				`Fehler bei der Flughafenabfrage: ${error.message}`,
+				true
+			);
+
+			// Bei Fehlern Testdaten zurückgeben
+			return generateTestAirportFlightData(
+				airportCode,
+				startDateTime,
+				endDateTime
 			);
 		}
 	};
 
-	// Beim Laden der Seite initialisieren
-	document.addEventListener("DOMContentLoaded", init);
+	/**
+	 * Generiert Testdaten für Flughafenflüge
+	 * @param {string} airportCode - IATA-Code des Flughafens
+	 * @param {string} startDateTime - Startzeit
+	 * @param {string} endDateTime - Endzeit
+	 * @returns {Object} Simulierte Flughafendaten
+	 */
+	const generateTestAirportFlightData = (
+		airportCode,
+		startDateTime,
+		endDateTime
+	) => {
+		const airport = airportCode.trim().toUpperCase();
+		const startTime = new Date(startDateTime);
+		const endTime = new Date(endDateTime);
 
-	// Public API
+		// Fluggesellschaften nach Flughafen
+		const airlinesByAirport = {
+			MUC: ["LH", "EW", "4U", "BA", "AF"],
+			FRA: ["LH", "CL", "4U", "BA", "UA"],
+			LHR: ["BA", "VS", "LH", "AA"],
+			CDG: ["AF", "EZY", "LH", "DL"],
+		};
+
+		const airlines = airlinesByAirport[airport] || ["LH", "BA", "EW", "AF"];
+
+		// Zielflughäfen nach Startflughafen
+		const destinationsByOrigin = {
+			MUC: ["FRA", "LHR", "CDG", "FCO", "MAD", "VIE"],
+			FRA: ["MUC", "LHR", "CDG", "JFK", "SIN", "DXB"],
+			LHR: ["MUC", "FRA", "JFK", "SYD", "DXB", "HKG"],
+			CDG: ["MUC", "FRA", "LHR", "JFK", "NRT", "DXB"],
+		};
+
+		const destinations = destinationsByOrigin[airport] || [
+			"MUC",
+			"FRA",
+			"LHR",
+			"CDG",
+		];
+
+		// Generiere Abflüge und Ankünfte
+		const departures = [];
+		const arrivals = [];
+
+		// Anzahl der Flüge basierend auf der Zeitspanne
+		const hoursDiff = Math.max(
+			1,
+			Math.round((endTime - startTime) / (1000 * 60 * 60))
+		);
+		const flightCount = Math.min(20, hoursDiff * 4); // Max 4 Flüge pro Stunde, aber nicht mehr als 20
+
+		for (let i = 0; i < flightCount; i++) {
+			const airline = airlines[Math.floor(Math.random() * airlines.length)];
+			const flightNumber = Math.floor(Math.random() * 1000) + 100;
+			const destination =
+				destinations[Math.floor(Math.random() * destinations.length)];
+
+			// Zufällige Zeit innerhalb der Zeitspanne
+			const depTime = new Date(
+				startTime.getTime() + Math.random() * (endTime - startTime)
+			);
+			const arrTime = new Date(
+				depTime.getTime() + (Math.random() * 2 + 1) * 60 * 60 * 1000
+			); // 1-3 Stunden später
+
+			// Registrierungen für verschiedene Fluggesellschaften
+			let registration;
+			if (airline === "LH")
+				registration = `D-AI${String.fromCharCode(
+					65 + Math.floor(Math.random() * 26)
+				)}${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`;
+			else if (airline === "BA")
+				registration = `G-${String.fromCharCode(
+					65 + Math.floor(Math.random() * 26)
+				)}${String.fromCharCode(
+					65 + Math.floor(Math.random() * 26)
+				)}${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`;
+			else if (airline === "AF")
+				registration = `F-G${String.fromCharCode(
+					65 + Math.floor(Math.random() * 26)
+				)}${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`;
+			else
+				registration = `D-${String.fromCharCode(
+					65 + Math.floor(Math.random() * 26)
+				)}${String.fromCharCode(
+					65 + Math.floor(Math.random() * 26)
+				)}${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`;
+
+			// Generiere Abflugdaten
+			const departure = {
+				movement: {
+					airport: {
+						iata: airport,
+					},
+					scheduledTime: {
+						local: depTime.toISOString(),
+					},
+				},
+				aircraft: {
+					reg: registration,
+				},
+				number: `${airline}${flightNumber}`,
+				airline: {
+					name: getAirlineName(airline),
+					iata: airline,
+				},
+				arrival: {
+					airport: {
+						iata: destination,
+					},
+					scheduledTime: {
+						local: arrTime.toISOString(),
+					},
+				},
+				_testData: true,
+			};
+
+			// Generiere Ankunftdaten (rückwärts, andere Zeitspanne)
+			const origin =
+				destinations[Math.floor(Math.random() * destinations.length)];
+			const arrivalTime = new Date(
+				startTime.getTime() + Math.random() * (endTime - startTime)
+			);
+			const departureTime = new Date(
+				arrivalTime.getTime() - (Math.random() * 2 + 1) * 60 * 60 * 1000
+			); // 1-3 Stunden früher
+
+			const arrival = {
+				movement: {
+					airport: {
+						iata: airport,
+					},
+					scheduledTime: {
+						local: arrivalTime.toISOString(),
+					},
+				},
+				aircraft: {
+					reg: registration,
+				},
+				number: `${airline}${flightNumber + 1000}`, // Andere Flugnummer
+				airline: {
+					name: getAirlineName(airline),
+					iata: airline,
+				},
+				departure: {
+					airport: {
+						iata: origin,
+					},
+					scheduledTime: {
+						local: departureTime.toISOString(),
+					},
+				},
+				_testData: true,
+			};
+
+			departures.push(departure);
+			arrivals.push(arrival);
+		}
+
+		return { departures, arrivals };
+	};
+
+	/**
+	 * Hilfsfunktion: Gibt den vollen Namen einer Fluggesellschaft basierend auf dem IATA-Code zurück
+	 */
+	const getAirlineName = (iataCode) => {
+		const airlines = {
+			LH: "Lufthansa",
+			BA: "British Airways",
+			AF: "Air France",
+			EW: "Eurowings",
+			"4U": "Germanwings",
+			CL: "Lufthansa CityLine",
+			VS: "Virgin Atlantic",
+			UA: "United Airlines",
+			AA: "American Airlines",
+			DL: "Delta Air Lines",
+			EZY: "easyJet",
+		};
+		return airlines[iataCode] || `Airline ${iataCode}`;
+	};
+
+	// Update der public API um die neue Funktion zu exportieren
 	return {
 		updateAircraftData,
 		getAircraftFlights,
@@ -1054,7 +1217,7 @@ const AeroDataBoxAPI = (() => {
 		getMultipleAircraftFlights,
 		getFlightStatus,
 		updateFetchStatus,
-		getAirportFlights,
+		getAirportFlights, // Neue Funktion exportieren
 		init,
 		setMockMode: (useMock) => {
 			config.useMockData = useMock;
