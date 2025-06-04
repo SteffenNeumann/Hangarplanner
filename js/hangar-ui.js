@@ -1002,13 +1002,13 @@ function initializeSidebarToggle() {
 				if (shouldCollapse) {
 					// Sidebar einklappen
 					body.classList.add("sidebar-collapsed");
-					menuToggleBtn.textContent = "»";
+					menuToggleBtn.textContent = "«";
 					menuToggleBtn.setAttribute("title", "Menü aufklappen");
 					console.log("Sidebar eingeklappt");
 				} else {
 					// Sidebar ausklappen
 					body.classList.remove("sidebar-collapsed");
-					menuToggleBtn.textContent = "«";
+					menuToggleBtn.textContent = "»";
 					menuToggleBtn.setAttribute("title", "Menü einklappen");
 					console.log("Sidebar ausgeklappt");
 				}
@@ -1055,10 +1055,10 @@ function initializeSidebarToggle() {
 
 	// Sicherstellen, dass der Toggle-Button das richtige Symbol zeigt
 	if (initialState) {
-		menuToggleBtn.textContent = "»";
+		menuToggleBtn.textContent = "«";
 		menuToggleBtn.setAttribute("title", "Menü aufklappen");
 	} else {
-		menuToggleBtn.textContent = "«";
+		menuToggleBtn.textContent = "»";
 		menuToggleBtn.setAttribute("title", "Menü einklappen");
 	}
 }
