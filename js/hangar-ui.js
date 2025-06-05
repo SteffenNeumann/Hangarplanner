@@ -73,12 +73,29 @@ const uiSettings = {
 				lastSaved: new Date().toISOString(),
 			};
 
-			// Im LocalStorage speichern
-			localStorage.setItem(
-				"hangarPlannerSettings",
-				JSON.stringify(settingsData)
-			);
-			console.log("Einstellungen im LocalStorage gespeichert");
+			// Im LocalStorage speichern - mit Fallback-Methode
+			try {
+				// Zuerst versuchen, den vorgesehenen helpers.storageHelper zu verwenden
+				if (
+					window.helpers &&
+					window.helpers.storageHelper &&
+					typeof window.helpers.storageHelper.set === "function"
+				) {
+					window.helpers.storageHelper.set(
+						"hangarPlannerSettings",
+						settingsData
+					);
+				} else {
+					// Fallback: Direkt localStorage verwenden
+					localStorage.setItem(
+						"hangarPlannerSettings",
+						JSON.stringify(settingsData)
+					);
+				}
+				console.log("Einstellungen im LocalStorage gespeichert");
+			} catch (storageError) {
+				console.error("Fehler beim Speichern im localStorage:", storageError);
+			}
 
 			// Optional als Datei exportieren wenn gewünscht
 			if (exportToFile && window.fileManager) {
@@ -342,14 +359,34 @@ function updateSecondaryTiles(count, layout) {
 
 	// Verzögertes Anwenden der gespeicherten Werte auf sekundäre Kacheln
 	setTimeout(() => {
-		loadSecondaryTileValues();
-
-		// Trigger ein CustomEvent, um andere Komponenten zu informieren, dass sekundäre Kacheln erstellt wurden
+		// CustomEvent auslösen, um andere Komponenten zu informieren
 		const event = new CustomEvent("secondaryTilesCreated", {
 			detail: { count: count },
 		});
 		document.dispatchEvent(event);
+
+		// Sicherstellen, dass die aktualisierten sekundären Kacheleinstellungen gespeichert werden
+		// Dies ist besonders wichtig, wenn man den Wert über die UI ändert
+		if (window.hangarUI && window.hangarUI.uiSettings) {
+			window.hangarUI.uiSettings.secondaryTilesCount = count;
+
+			// Speichern im localStorage verzögern, um alle DOM-Änderungen abzuwarten
+			setTimeout(() => {
+				window.hangarUI.uiSettings.save();
+			}, 300);
+		}
 	}, 200);
+
+	// Event-Listener für das Anwenden der Positionswerte nach dem Erstellen der Kacheln
+	if (!window._secondaryTilesCreatedListenerAdded) {
+		window._secondaryTilesCreatedListenerAdded = true;
+		document.addEventListener("secondaryTilesCreated", function () {
+			// Lade und setze die Positionswerte für sekundäre Kacheln
+			if (typeof loadSecondaryTileValues === "function") {
+				loadSecondaryTileValues();
+			}
+		});
+	}
 }
 
 /**
@@ -505,10 +542,7 @@ function updateCellAttributes(cell, cellId) {
 							}
 
 							// Aktualisierte Einstellungen im localStorage speichern
-							localStorage.setItem(
-								"hangarPlannerSettings",
-								JSON.stringify(settings)
-							);
+							helpers.storageHelper.set("hangarPlannerSettings", settings);
 							console.log(
 								`Position für Kachel ${cellId} direkt im localStorage aktualisiert`
 							);

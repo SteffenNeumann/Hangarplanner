@@ -46,6 +46,40 @@ function setupUIEventListeners() {
 				window.hangarUI.uiSettings.secondaryTilesCount =
 					parseInt(secondaryTilesCount);
 				window.hangarUI.uiSettings.apply();
+
+				// Nach dem Anwenden auch die Einstellungen im localStorage speichern
+				try {
+					if (
+						window.hangarUI &&
+						window.hangarUI.uiSettings &&
+						typeof window.hangarUI.uiSettings.save === "function"
+					) {
+						window.hangarUI.uiSettings.save();
+					} else {
+						// Fallback: Direkt in localStorage speichern
+						const settingsData = {
+							tilesCount: window.hangarUI.uiSettings.tilesCount || 8,
+							secondaryTilesCount: parseInt(secondaryTilesCount) || 0,
+							layout: window.hangarUI.uiSettings.layout || 4,
+							lastSaved: new Date().toISOString(),
+						};
+						localStorage.setItem(
+							"hangarPlannerSettings",
+							JSON.stringify(settingsData)
+						);
+					}
+					console.log(
+						"Sekundäre Kacheln aktualisiert und gespeichert:",
+						secondaryTilesCount
+					);
+				} catch (error) {
+					console.error("Fehler beim Speichern der Einstellungen:", error);
+					// Trotz Fehler eine Erfolgsmeldung anzeigen, damit der Benutzer nicht verunsichert wird
+					console.log(
+						"Sekundäre Kacheln aktualisiert (ohne Speicherung):",
+						secondaryTilesCount
+					);
+				}
 			});
 		}
 
@@ -1539,7 +1573,7 @@ window.hangarEvents = {
 	importSettingsFromJson,
 	searchAircraft,
 	fetchAndUpdateFlightData,
-	initSidebarAccordion, // Exportiere auch die Akkordeon-Funktion
+	initSidebarAccordion, // Exportiere auch die akkordeon-Funktion
 };
 
 // Funktion zum globalen Namensraum hinzufügen
