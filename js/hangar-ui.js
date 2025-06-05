@@ -1331,3 +1331,80 @@ function initializeUI() {
 if (typeof window.initializeUI === "undefined") {
 	window.initializeUI = initializeUI;
 }
+
+/**
+ * Erstellt die sekundären Kacheln und fügt sie dem Grid hinzu
+ * @param {number} count - Anzahl der zu erstellenden sekundären Kacheln
+ */
+function createSecondaryTiles(count) {
+	// ...existing code...
+
+	// Nach Erstellung aller Kacheln, Grid-Layout basierend auf der Kachelanzahl anpassen
+	adjustSecondaryGridLayout(count);
+
+	// Dispatch Event, dass sekundäre Kacheln erstellt wurden
+	document.dispatchEvent(
+		new CustomEvent("secondaryTilesCreated", { detail: { count } })
+	);
+}
+
+/**
+ * Passt das Grid-Layout der sekundären Kacheln basierend auf der Anzahl an
+ * @param {number} count - Anzahl der sekundären Kacheln
+ */
+function adjustSecondaryGridLayout(count) {
+	const secondaryGrid = document.getElementById("secondaryHangarGrid");
+	if (!secondaryGrid) return;
+
+	// Entferne alle vorhandenen grid-cols Klassen
+	secondaryGrid.classList.remove(
+		"grid-cols-1",
+		"grid-cols-2",
+		"grid-cols-3",
+		"grid-cols-4"
+	);
+
+	// Bestimme optimale Spaltenzahl basierend auf Kachelanzahl
+	let colCount;
+	if (count === 1) {
+		colCount = 1;
+	} else if (count === 2) {
+		colCount = 2;
+	} else if (count === 3) {
+		colCount = 3;
+	} else {
+		colCount = 4; // Standard für 4 oder mehr
+	}
+
+	// Füge die entsprechende grid-cols Klasse hinzu
+	secondaryGrid.classList.add(`grid-cols-${colCount}`);
+
+	// Wenn weniger als 4 Kacheln, zentriere sie
+	if (count < 4) {
+		secondaryGrid.classList.add("justify-items-center");
+
+		// Bei 2 Kacheln extra Styling für korrekte Ausrichtung
+		if (count === 2) {
+			// Spezielle Behandlung für 2 Kacheln - stelle sicher, dass sie zentriert sind
+			const gridItems = secondaryGrid.querySelectorAll(".hangar-cell");
+			gridItems.forEach((item) => {
+				item.style.gridColumnStart = "auto";
+				item.style.justifySelf = "center";
+			});
+		}
+	} else {
+		secondaryGrid.classList.remove("justify-items-center");
+	}
+
+	console.log(
+		`Sekundäres Grid auf ${colCount} Spalten angepasst für ${count} Kacheln`
+	);
+}
+
+// Füge diese Funktion zum window.hangarUI Objekt hinzu
+if (typeof window.hangarUI === "undefined") {
+	window.hangarUI = {};
+}
+
+// Exportiere die neuen Funktionen
+window.hangarUI.adjustSecondaryGridLayout = adjustSecondaryGridLayout;

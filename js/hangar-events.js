@@ -31,6 +31,41 @@ function setupUIEventListeners() {
 				const tilesCount = document.getElementById("tilesCount").value;
 				window.hangarUI.uiSettings.tilesCount = parseInt(tilesCount);
 				window.hangarUI.uiSettings.apply();
+
+				// Nach dem Anwenden auch die Einstellungen im localStorage speichern
+				try {
+					if (
+						window.hangarUI &&
+						window.hangarUI.uiSettings &&
+						typeof window.hangarUI.uiSettings.save === "function"
+					) {
+						window.hangarUI.uiSettings.save();
+					} else {
+						// Fallback: Direkt in localStorage speichern
+						const settingsData = {
+							tilesCount: parseInt(tilesCount) || 8,
+							secondaryTilesCount:
+								window.hangarUI.uiSettings.secondaryTilesCount || 0,
+							layout: window.hangarUI.uiSettings.layout || 4,
+							lastSaved: new Date().toISOString(),
+						};
+						localStorage.setItem(
+							"hangarPlannerSettings",
+							JSON.stringify(settingsData)
+						);
+					}
+					console.log(
+						"Primäre Kacheln aktualisiert und gespeichert:",
+						tilesCount
+					);
+				} catch (error) {
+					console.error("Fehler beim Speichern der Einstellungen:", error);
+					// Trotz Fehler eine Erfolgsmeldung anzeigen, damit der Benutzer nicht verunsichert wird
+					console.log(
+						"Primäre Kacheln aktualisiert (ohne Speicherung):",
+						tilesCount
+					);
+				}
 			});
 		}
 
@@ -307,6 +342,10 @@ function initializeUI() {
 	try {
 		console.log("Initialisiere UI...");
 
+		// WICHTIG: Zuerst die gespeicherten Einstellungen aus dem localStorage laden
+		// und in die UI-Elemente einfügen, bevor irgendetwas anderes gemacht wird
+		loadUISettingsFromLocalStorage();
+
 		// Sicherstellen, dass die Section Layout-Initialisierung aufgerufen wird
 		if (
 			window.hangarUI &&
@@ -451,7 +490,67 @@ function initializeUI() {
 }
 
 /**
- * Richtet Event-Handler für die Position-Eingabefelder der primären Kacheln ein
+ * Lädt die UI-Einstellungen aus dem LocalStorage und setzt sie in die entsprechenden UI-Elemente
+ * Diese Funktion wird am Anfang der UI-Initialisierung aufgerufen, um sicherzustellen,
+ * dass die gespeicherten Werte geladen werden, bevor irgendetwas anderes passiert.
+ */
+function loadUISettingsFromLocalStorage() {
+	try {
+		const savedSettingsJSON = localStorage.getItem("hangarPlannerSettings");
+		if (!savedSettingsJSON) {
+			console.log(
+				"Keine gespeicherten Einstellungen gefunden, verwende Standardwerte"
+			);
+			return false;
+		}
+
+		const settings = JSON.parse(savedSettingsJSON);
+
+		// Finde die UI-Eingabefelder
+		const tilesCountInput = document.getElementById("tilesCount");
+		const secondaryTilesCountInput = document.getElementById(
+			"secondaryTilesCount"
+		);
+		const layoutTypeSelect = document.getElementById("layoutType");
+
+		// Setze die Werte aus dem localStorage in die UI-Elemente
+		if (tilesCountInput && settings.tilesCount !== undefined) {
+			tilesCountInput.value = settings.tilesCount;
+			console.log(
+				"Primäre Kachelanzahl aus localStorage geladen:",
+				settings.tilesCount
+			);
+		}
+
+		if (
+			secondaryTilesCountInput &&
+			settings.secondaryTilesCount !== undefined
+		) {
+			secondaryTilesCountInput.value = settings.secondaryTilesCount;
+			console.log(
+				"Sekundäre Kachelanzahl aus localStorage geladen:",
+				settings.secondaryTilesCount
+			);
+		}
+
+		if (layoutTypeSelect && settings.layout !== undefined) {
+			layoutTypeSelect.value = settings.layout;
+			console.log("Layout-Typ aus localStorage geladen:", settings.layout);
+		}
+
+		console.log("UI-Einstellungen erfolgreich aus localStorage geladen");
+		return true;
+	} catch (error) {
+		console.error(
+			"Fehler beim Laden der UI-Einstellungen aus localStorage:",
+			error
+		);
+		return false;
+	}
+}
+
+/**
+ * Initialisiert die Event-Handler für die Position-Eingabefelder der primären Kacheln
  * Diese Funktion stellt sicher, dass die Positionswerte korrekt im localStorage gespeichert werden
  */
 function setupPrimaryTileEventListeners() {

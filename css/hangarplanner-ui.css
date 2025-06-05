@@ -797,3 +797,21 @@ input:checked + .toggle-slider:before {
 .tow-status-selector.tow-on-position {
 	border-left: 2px solid #10b981;
 }
+
+/* Optimierte Grid-Layouts für verschiedene Kachelanzahlen */
+#secondaryHangarGrid.secondary-count-1 {
+	grid-template-columns: 1fr;
+	justify-items: center;
+}
+
+#secondaryHangarGrid.secondary-count-2 {
+	grid-template-columns: 1fr 1fr;
+	justify-items: center;
+	column-gap: 2rem; /* Größerer Abstand zwischen den beiden Kacheln */
+}
+
+#secondaryHangarGrid.secondary-count-3 {
+	grid-template-columns: 1fr 1fr 1fr;
+}
+
+/* Standardwert für 4+ Kacheln bleibt unverändert */
