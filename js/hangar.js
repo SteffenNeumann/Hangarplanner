@@ -31,7 +31,13 @@ function initializeApp() {
 			// 2. UI initialisieren
 			if (window.hangarUI) {
 				window.hangarUI.initSectionLayout();
-				window.hangarUI.initializeSidebarToggle(); // Neue Methode zum Initialisieren des Sidebar-Toggle
+				// Statt der UI-Funktion die neue Events-Funktion verwenden
+				if (
+					window.hangarEvents &&
+					window.hangarEvents.initializeSidebarToggle
+				) {
+					window.hangarEvents.initializeSidebarToggle();
+				}
 				window.hangarUI.initializeSidebarAccordion(); // Neue Methode zum Initialisieren des Akkordeons
 				window.moduleStatus.ui = true;
 				console.log("UI-Modul initialisiert");

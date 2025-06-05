@@ -568,21 +568,29 @@ function toggleSidebar() {
 	// Toggle der Sidebar-Collapsed-Klasse am Body-Element
 	document.body.classList.toggle("sidebar-collapsed");
 
-	// Referenz zum Sidebar-Menu
+	// Referenz zum Sidebar-Menu und Toggle-Button
 	const sidebarMenu = document.getElementById("sidebarMenu");
-
-	// Visuelles Feedback zum Toggle-Button
 	const menuToggle = document.getElementById("menuToggle");
+
+	// Anpassen des Toggle-Button-Textes je nach Sidebar-Status
 	if (menuToggle) {
-		const toggleSpan = menuToggle.querySelector("span");
-		if (toggleSpan) {
-			// Immer nach rechts zeigen, unabhängig vom Status
-			toggleSpan.textContent = "»";
-		}
+		// Wenn die Sidebar eingeklappt ist, zeigt der Button nach rechts (»)
+		// Wenn die Sidebar ausgeklappt ist, zeigt der Button nach links («)
+		const isCollapsed = document.body.classList.contains("sidebar-collapsed");
+		menuToggle.textContent = isCollapsed ? "«" : "»";
+
+		// Für bessere Barrierefreiheit
+		menuToggle.setAttribute(
+			"aria-label",
+			isCollapsed ? "Öffne Seitenleiste" : "Schließe Seitenleiste"
+		);
+		menuToggle.setAttribute("aria-expanded", !isCollapsed);
 	}
 
 	// Skalierung neu berechnen nach Menü-Toggle mit ausreichender Verzögerung
-	setTimeout(window.hangarUI.adjustScaling, 300);
+	if (window.hangarUI && window.hangarUI.adjustScaling) {
+		setTimeout(window.hangarUI.adjustScaling, 300);
+	}
 
 	// Speichern des aktuellen Sidebar-Zustands im localStorage
 	localStorage.setItem(
@@ -595,6 +603,44 @@ function toggleSidebar() {
 			(document.body.classList.contains("sidebar-collapsed")
 				? "collapsed"
 				: "expanded")
+	);
+}
+
+/**
+ * Initialisiert den Sidebar-Toggle-Button mit dem korrekten Anfangszustand
+ */
+function initializeSidebarToggle() {
+	const menuToggle = document.getElementById("menuToggle");
+	if (!menuToggle) {
+		console.warn("Menu Toggle Button nicht gefunden");
+		return;
+	}
+
+	// Laden des gespeicherten Sidebar-Zustands aus localStorage
+	const savedState = localStorage.getItem("sidebarCollapsed");
+	const isCollapsed = savedState === "true";
+
+	// Initialen Zustand auf der Webseite setzen
+	if (isCollapsed) {
+		document.body.classList.add("sidebar-collapsed");
+	} else {
+		document.body.classList.remove("sidebar-collapsed");
+	}
+
+	// Korrekte Button-Beschriftung setzen
+	menuToggle.textContent = isCollapsed ? "«" : "»";
+	menuToggle.setAttribute(
+		"aria-label",
+		isCollapsed ? "Öffne Seitenleiste" : "Schließe Seitenleiste"
+	);
+	menuToggle.setAttribute("aria-expanded", !isCollapsed);
+
+	// Click-Event-Handler hinzufügen
+	menuToggle.addEventListener("click", toggleSidebar);
+
+	console.log(
+		"Sidebar-Toggle initialisiert, Status:",
+		isCollapsed ? "eingeklappt" : "ausgeklappt"
 	);
 }
 
@@ -1573,7 +1619,8 @@ window.hangarEvents = {
 	importSettingsFromJson,
 	searchAircraft,
 	fetchAndUpdateFlightData,
-	initSidebarAccordion, // Exportiere auch die akkordeon-Funktion
+	initSidebarAccordion,
+	initializeSidebarToggle, // Neue Funktion exportieren
 };
 
 // Funktion zum globalen Namensraum hinzufügen
@@ -1661,6 +1708,9 @@ function initSidebarAccordion() {
 document.addEventListener("DOMContentLoaded", function () {
 	// Initialisieren der Event-Listener
 	setupUIEventListeners();
+
+	// Initialisiere die Seitenleiste und den Toggle-Button
+	initializeSidebarToggle();
 
 	// Initialisiere das verbesserte Akkordeon-Menü
 	initSidebarAccordion();

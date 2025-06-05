@@ -995,108 +995,6 @@ function adjustManualInputWidths() {
 	}
 }
 
-// Komplett überarbeitete Funktion zum Initialisieren des Sidebar-Toggle-Mechanismus
-function initializeSidebarToggle() {
-	const menuToggleBtn = document.getElementById("menuToggle");
-	const body = document.body;
-	const sidebar = document.getElementById("sidebarMenu");
-
-	if (!menuToggleBtn) {
-		console.error("Menu Toggle Button nicht gefunden!");
-		return;
-	}
-
-	// Funktion zum Umschalten der Sidebar mit robuster Zustandsverwaltung
-	function toggleSidebar(forceState) {
-		try {
-			// Bestimme den aktuellen Zustand
-			const currentlyCollapsed = body.classList.contains("sidebar-collapsed");
-
-			// Bestimme den gewünschten Zustand
-			let shouldCollapse;
-
-			// Wenn forceState ein Boolean ist, nehmen wir diesen Wert
-			if (typeof forceState === "boolean") {
-				shouldCollapse = forceState;
-			}
-			// Sonst umschalten basierend auf aktuellem Zustand
-			else {
-				shouldCollapse = !currentlyCollapsed;
-			}
-
-			console.log(
-				"Toggle Sidebar: Aktuell eingeklappt =",
-				currentlyCollapsed,
-				"Soll eingeklappt werden =",
-				shouldCollapse
-			);
-
-			// Nur ändern, wenn sich der Zustand wirklich ändert
-			if (currentlyCollapsed !== shouldCollapse) {
-				if (shouldCollapse) {
-					// Sidebar einklappen
-					body.classList.add("sidebar-collapsed");
-					menuToggleBtn.textContent = "«";
-					menuToggleBtn.setAttribute("title", "Menü aufklappen");
-					console.log("Sidebar eingeklappt");
-				} else {
-					// Sidebar ausklappen
-					body.classList.remove("sidebar-collapsed");
-					menuToggleBtn.textContent = "»";
-					menuToggleBtn.setAttribute("title", "Menü einklappen");
-					console.log("Sidebar ausgeklappt");
-				}
-
-				// Speichern im localStorage als String "true" oder "false"
-				localStorage.setItem("sidebarCollapsed", String(shouldCollapse));
-
-				// Layout neu berechnen
-				setTimeout(adjustScaling, 100);
-			} else {
-				console.log("Keine Änderung an Sidebar-Status nötig");
-			}
-		} catch (err) {
-			console.error("Fehler beim Umschalten der Sidebar:", err);
-		}
-
-		return false; // Event-Bubbling verhindern
-	}
-
-	// Click-Ereignis für den Toggle-Button
-	menuToggleBtn.addEventListener("click", function (e) {
-		e.preventDefault();
-		toggleSidebar(); // Ohne Parameter = umschalten
-	});
-
-	// Direkte Zugriffmöglichkeit auf die Toggle-Funktion
-	window.toggleSidebar = toggleSidebar;
-
-	// Initialen Zustand aus localStorage laden (Standard: ausgeklappt)
-	const savedState = localStorage.getItem("sidebarCollapsed");
-
-	// Beim ersten Laden soll die Sidebar ausgeklappt sein (false = ausgeklappt)
-	// Nur wenn explizit "true" gespeichert ist, wird sie eingeklappt
-	const initialState = savedState === "true";
-
-	console.log("Gespeicherter Sidebar-Status:", savedState);
-	console.log(
-		"Sidebar soll beim Start sein:",
-		initialState ? "Eingeklappt" : "Ausgeklappt"
-	);
-
-	// Initialen Zustand setzen
-	toggleSidebar(initialState);
-
-	// Sicherstellen, dass der Toggle-Button das richtige Symbol zeigt
-	if (initialState) {
-		menuToggleBtn.textContent = "«";
-		menuToggleBtn.setAttribute("title", "Menü aufklappen");
-	} else {
-		menuToggleBtn.textContent = "»";
-		menuToggleBtn.setAttribute("title", "Menü einklappen");
-	}
-}
-
 // Initialisiere die Akkordeon-Funktionalität für die Sidebar - Fehlerbehandlung verbessert
 function initializeSidebarAccordion() {
 	const accordionHeaders = document.querySelectorAll(
@@ -1178,11 +1076,16 @@ window.hangarUI = {
 		}, 100);
 
 		// Sidebar-Toggle und Accordion initialisieren
-		initializeSidebarToggle();
+		// Diese Zeile anpassen:
+		// initializeSidebarToggle(); <- ENTFERNEN
+		// Stattdessen verwenden wir die Funktion aus hangarEvents:
+		if (window.hangarEvents && window.hangarEvents.initializeSidebarToggle) {
+			window.hangarEvents.initializeSidebarToggle();
+		}
 		initializeSidebarAccordion();
 	},
-	// Füge diese Funktionen zum Exportobjekt hinzu
-	initializeSidebarToggle,
+	// Entferne diese Funktion aus dem Exportobjekt
+	// initializeSidebarToggle, <- ENTFERNEN
 	initializeSidebarAccordion,
 };
 
