@@ -124,19 +124,23 @@ function setupUIEventListeners() {
 			menuToggle.addEventListener("click", toggleSidebar);
 		}
 
-		// Speichern-Button
+		// Speichern-Button - GEÄNDERT: Verbesserte Speicherfunktion
 		const saveBtn = document.getElementById("saveBtn");
 		if (saveBtn) {
 			saveBtn.addEventListener("click", function () {
-				window.hangarData.saveProjectToFile();
+				// Den aktuellen Projektnamen aus dem Eingabefeld verwenden
+				const projectName =
+					document.getElementById("projectName").value ||
+					generateDefaultProjectName();
+				window.hangarData.saveProjectToFile(projectName);
 			});
 		}
 
-		// Laden-Button
+		// Laden-Button - GEÄNDERT: Verbesserte Ladefunktion
 		const loadBtn = document.getElementById("loadBtn");
 		if (loadBtn) {
 			loadBtn.addEventListener("click", function () {
-				showLoadDialog();
+				window.hangarData.loadProjectFromFile();
 			});
 		}
 
@@ -264,6 +268,18 @@ function setupUIEventListeners() {
 }
 
 /**
+ * Generiert einen Standarddateinamen im Format yyyy_mm_dd Hangarplanner
+ * @returns {string} Formatierter Dateiname
+ */
+function generateDefaultProjectName() {
+	const now = new Date();
+	const year = now.getFullYear();
+	const month = String(now.getMonth() + 1).padStart(2, "0");
+	const day = String(now.getDate()).padStart(2, "0");
+	return `${year}_${month}_${day} Hangarplanner`;
+}
+
+/**
  * Initialisiert die Event-Listener für alle Status-Selektoren
  * und setzt den initialen Status
  */
@@ -341,6 +357,17 @@ function updateStatusLights(cellId) {
 function initializeUI() {
 	try {
 		console.log("Initialisiere UI...");
+
+		// NEUER CODE: Standarddateinamen im Projektnamen-Eingabefeld setzen
+		const projectNameInput = document.getElementById("projectName");
+		if (
+			projectNameInput &&
+			(!projectNameInput.value || projectNameInput.value === "")
+		) {
+			const defaultName = generateDefaultProjectName();
+			projectNameInput.value = defaultName;
+			console.log(`Standarddateiname gesetzt: ${defaultName}`);
+		}
 
 		// WICHTIG: Zuerst die gespeicherten Einstellungen aus dem localStorage laden
 		// und in die UI-Elemente einfügen, bevor irgendetwas anderes gemacht wird

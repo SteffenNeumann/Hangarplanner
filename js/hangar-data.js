@@ -566,630 +566,401 @@ function resetAllFields() {
 }
 
 /**
- * Speichert das aktuelle Projekt mit dem FileManager
- * @returns {Promise<boolean>} Erfolg des Speichervorgangs
+ * Speichert das aktuelle Projekt in eine Datei
+ * @param {string} [suggestedName] - Vorgeschlagener Dateiname (optional)
  */
-async function saveProjectToFile() {
+function saveProjectToFile(suggestedName = null) {
 	try {
-		console.log("Beginne Speichervorgang...");
+		// Verwende den übergebenen Namen oder hol ihn aus dem Eingabefeld oder generiere einen Standardnamen
+		const projectName =
+			suggestedName ||
+			document.getElementById("projectName").value ||
+			generateDefaultProjectName();
 
-		// Sammle alle Daten
-		const projectData = collectAllHangarData();
-		if (!projectData) {
-			throw new Error("Konnte keine Daten sammeln");
+		console.log(`Speichere Projekt unter: ${projectName}`);
+
+		// Projektstatus sammeln
+		const projectData = {
+			projectName: projectName,
+			lastSaved: new Date().toISOString(),
+			tilesData: collectTilesData(),
+			settings: collectSettingsData(),
+		};
+
+		// Daten in JSON umwandeln
+		const jsonData = JSON.stringify(projectData, null, 2);
+
+		// Prüfen, ob die moderne File System Access API verfügbar ist
+		if ("showSaveFilePicker" in window) {
+			// Moderne File System Access API verwenden
+			const options = {
+				suggestedName: `${projectName}.json`,
+				types: [
+					{
+						description: "JSON Files",
+						accept: { "application/json": [".json"] },
+					},
+				],
+				// Versuche, den letzten verwendeten Pfad wiederzuverwenden
+				startIn: "downloads",
+			};
+
+			// Datei-Dialog öffnen
+			window
+				.showSaveFilePicker(options)
+				.then((fileHandle) => {
+					return fileHandle.createWritable();
+				})
+				.then((writable) => {
+					return writable.write(jsonData).then(() => writable.close());
+				})
+				.then(() => {
+					console.log("Projekt erfolgreich gespeichert");
+					showNotification("Projekt erfolgreich gespeichert", "success");
+
+					// Letzten Pfad für zukünftige Verwendung speichern
+					try {
+						localStorage.setItem("lastSavePath", fileHandle.name);
+					} catch (e) {
+						console.warn("Konnte letzten Speicherpfad nicht speichern:", e);
+					}
+				})
+				.catch((error) => {
+					if (error.name !== "AbortError") {
+						console.error("Fehler beim Speichern:", error);
+						showNotification(
+							"Fehler beim Speichern: " + error.message,
+							"error"
+						);
+					}
+				});
+		} else {
+			// Fallback für ältere Browser: Datei zum Download anbieten
+			const blob = new Blob([jsonData], { type: "application/json" });
+			const url = URL.createObjectURL(blob);
+
+			const a = document.createElement("a");
+			a.href = url;
+			a.download = `${projectName}.json`;
+			document.body.appendChild(a);
+			a.click();
+
+			// Cleanup
+			setTimeout(() => {
+				document.body.removeChild(a);
+				URL.revokeObjectURL(url);
+			}, 0);
+
+			console.log("Projekt wurde zum Download angeboten (Fallback-Methode)");
+			showNotification("Projekt wurde zum Download angeboten", "success");
 		}
-
-		console.log("Daten gesammelt:", projectData.id);
-
-		// FileManager verwenden
-		const fileManager = window.fileManager;
-		if (!fileManager) {
-			throw new Error("FileManager nicht verfügbar");
-		}
-
-		// Projekt speichern
-		const success = await fileManager.saveProject(projectData);
-		if (success) {
-			console.log("Projekt erfolgreich gespeichert");
-		}
-
-		return success;
 	} catch (error) {
-		console.error("Fehler beim Speichern:", error);
-		showNotification(`Speichern fehlgeschlagen: ${error.message}`, "error");
-		return false;
+		console.error("Fehler beim Speichern des Projekts:", error);
+		showNotification("Fehler beim Speichern: " + error.message, "error");
 	}
 }
 
 /**
  * Lädt ein Projekt aus einer Datei
- * @returns {Promise<boolean>} Erfolg des Ladevorgangs
+ * @returns {Promise} Promise, das aufgelöst wird, wenn das Laden abgeschlossen ist
  */
-async function loadProjectFromFile() {
-	try {
-		// FileManager verwenden
-		const fileManager = window.fileManager;
-		if (!fileManager) {
-			throw new Error("FileManager nicht verfügbar");
-		}
-
-		// Projekt laden
-		const projectData = await fileManager.loadProject();
-		if (!projectData) {
-			return false;
-		}
-
-		// Projekt anwenden
-		return await applyProjectData(projectData);
-	} catch (error) {
-		console.error("Fehler beim Laden:", error);
-		showNotification(`Laden fehlgeschlagen: ${error.message}`, "error");
-		return false;
-	}
-}
-
-/**
- * Wendet Projektdaten auf die Benutzeroberfläche an
- * @param {Object} projectData - Die anzuwendenden Projektdaten
- * @returns {Promise<boolean>} Erfolg des Anwendens
- */
-async function applyProjectData(projectData) {
-	try {
-		// Projektname setzen
-		if (projectData.metadata && projectData.metadata.projectName) {
-			document.getElementById("projectName").value =
-				projectData.metadata.projectName;
-		}
-
-		// Einstellungen übernehmen
-		if (projectData.settings) {
-			if (window.hangarUI.checkElement("tilesCount")) {
-				document.getElementById("tilesCount").value =
-					projectData.settings.tilesCount || 8;
-			}
-			if (window.hangarUI.checkElement("secondaryTilesCount")) {
-				document.getElementById("secondaryTilesCount").value =
-					projectData.settings.secondaryTilesCount || 0;
-			}
-			if (window.hangarUI.checkElement("layoutType")) {
-				document.getElementById("layoutType").value =
-					projectData.settings.layout || 4;
-			}
-
-			// Einstellungen anwenden
-			window.hangarUI.uiSettings.tilesCount =
-				projectData.settings.tilesCount || 8;
-			window.hangarUI.uiSettings.secondaryTilesCount =
-				projectData.settings.secondaryTilesCount || 0;
-			window.hangarUI.uiSettings.layout = projectData.settings.layout || 4;
-			window.hangarUI.uiSettings.apply();
-		}
-
-		// Kacheldaten anwenden
-		applyLoadedTileData(projectData);
-
-		showNotification("Projekt erfolgreich geladen", "success");
-		return true;
-	} catch (error) {
-		console.error("Fehler beim Anwenden des Projekts:", error);
-		showNotification(`Fehler beim Anwenden: ${error.message}`, "error");
-		return false;
-	}
-}
-
-// Exportiere aktualisierte Funktionen
-window.hangarData = {
-	hangarData,
-	collectAllHangarData,
-	importHangarPlanFromJson,
-	collectTileData,
-	applyLoadedTileData,
-	applyTileData,
-	resetAllFields,
-	saveProjectToFile,
-	loadProjectFromFile,
-	applyProjectData,
-	/**
-	 * Speichert das aktuelle Projekt im LocalStorage als Zwischenstand
-	 * @returns {boolean} Erfolg des Speichervorgangs
-	 */
-	saveCurrentStateToLocalStorage() {
+function loadProjectFromFile() {
+	return new Promise((resolve, reject) => {
 		try {
-			// Projektdaten sammeln
-			const projectData = collectAllHangarData();
-			if (!projectData) {
-				return false;
-			}
+			// Prüfen, ob die moderne File System Access API verfügbar ist
+			if ("showOpenFilePicker" in window) {
+				// Moderne File System Access API verwenden
+				const options = {
+					types: [
+						{
+							description: "JSON Files",
+							accept: { "application/json": [".json"] },
+						},
+					],
+					// Versuche, den letzten verwendeten Pfad wiederzuverwenden
+					startIn: "downloads",
+				};
 
-			// Als temporären Zwischenstand speichern
-			localStorage.setItem(
-				"hangarPlannerCurrentState",
-				JSON.stringify(projectData)
-			);
-			console.log("Aktueller Zustand im LocalStorage gespeichert");
-			return true;
+				window
+					.showOpenFilePicker(options)
+					.then((fileHandles) => fileHandles[0].getFile())
+					.then((file) => file.text())
+					.then((content) => {
+						const projectData = JSON.parse(content);
+						applyProjectData(projectData);
+
+						console.log("Projekt erfolgreich geladen");
+						showNotification("Projekt erfolgreich geladen", "success");
+
+						// Projektnamen im Eingabefeld setzen
+						const projectNameInput = document.getElementById("projectName");
+						if (projectNameInput && projectData.projectName) {
+							projectNameInput.value = projectData.projectName;
+						}
+
+						resolve(projectData);
+					})
+					.catch((error) => {
+						if (error.name !== "AbortError") {
+							console.error("Fehler beim Laden:", error);
+							showNotification("Fehler beim Laden: " + error.message, "error");
+							reject(error);
+						} else {
+							// User hat abgebrochen
+							resolve(null);
+						}
+					});
+			} else {
+				// Fallback für ältere Browser
+				const input = document.createElement("input");
+				input.type = "file";
+				input.accept = ".json";
+
+				input.onchange = (event) => {
+					const file = event.target.files[0];
+					if (!file) {
+						resolve(null);
+						return;
+					}
+
+					const reader = new FileReader();
+					reader.onload = (e) => {
+						try {
+							const projectData = JSON.parse(e.target.result);
+							applyProjectData(projectData);
+
+							console.log("Projekt erfolgreich geladen (Fallback-Methode)");
+							showNotification("Projekt erfolgreich geladen", "success");
+
+							// Projektnamen im Eingabefeld setzen
+							const projectNameInput = document.getElementById("projectName");
+							if (projectNameInput && projectData.projectName) {
+								projectNameInput.value = projectData.projectName;
+							}
+
+							resolve(projectData);
+						} catch (error) {
+							console.error("Fehler beim Parsen der Datei:", error);
+							showNotification(
+								"Fehler beim Parsen der Datei: " + error.message,
+								"error"
+							);
+							reject(error);
+						}
+					};
+
+					reader.onerror = (error) => {
+						console.error("Fehler beim Lesen der Datei:", error);
+						showNotification("Fehler beim Lesen der Datei", "error");
+						reject(error);
+					};
+
+					reader.readAsText(file);
+				};
+
+				input.click();
+			}
 		} catch (error) {
-			console.error(
-				"Fehler beim Speichern des Zustands im LocalStorage:",
-				error
+			console.error("Fehler beim Öffnen des Dateidialogs:", error);
+			showNotification(
+				"Fehler beim Öffnen des Dateidialogs: " + error.message,
+				"error"
 			);
-			return false;
-		}
-	},
-
-	/**
-	 * Lädt den zuletzt gespeicherten Zustand aus dem LocalStorage
-	 * @returns {boolean} Erfolg des Ladevorgangs
-	 */
-	loadStateFromLocalStorage() {
-		try {
-			const savedState = localStorage.getItem("hangarPlannerCurrentState");
-			if (!savedState) {
-				return false;
-			}
-
-			const projectData = JSON.parse(savedState);
-			applyProjectData(projectData);
-			console.log("Zustand aus LocalStorage wiederhergestellt");
-			return true;
-		} catch (error) {
-			console.error("Fehler beim Laden des Zustands aus LocalStorage:", error);
-			return false;
-		}
-	},
-
-	// Funktion zum automatischen Speichern bei Eingabe in Kacheln
-	setupAutoSaveFields() {
-		// Für alle Eingabefelder in Kacheln
-		document
-			.querySelectorAll(
-				".hangar-cell input, .hangar-cell textarea, .hangar-cell select"
-			)
-			.forEach((input) => {
-				input.addEventListener("change", function () {
-					console.log("Eingabeänderung erkannt, speichere im LocalStorage");
-					setTimeout(saveCurrentStateToLocalStorage, 300);
-				});
-			});
-	},
-};
-
-/**
- * Globale Funktionen für Datenbankinteraktion
- */
-window.loadProjectFromDatabase = function (projectData) {
-	try {
-		// Projektname setzen
-		if (projectData.metadata && projectData.metadata.projectName) {
-			document.getElementById("projectName").value =
-				projectData.metadata.projectName;
-		}
-
-		// Einstellungen übernehmen
-		if (projectData.settings) {
-			if (window.hangarUI.checkElement("tilesCount")) {
-				document.getElementById("tilesCount").value =
-					projectData.settings.tilesCount || 8;
-			}
-			if (window.hangarUI.checkElement("secondaryTilesCount")) {
-				document.getElementById("secondaryTilesCount").value =
-					projectData.settings.secondaryTilesCount || 0;
-			}
-			if (window.hangarUI.checkElement("layoutType")) {
-				document.getElementById("layoutType").value =
-					projectData.settings.layout || 4;
-			}
-
-			// Einstellungen anwenden
-			window.hangarUI.uiSettings.tilesCount =
-				projectData.settings.tilesCount || 8;
-			window.hangarUI.uiSettings.secondaryTilesCount =
-				projectData.settings.secondaryTilesCount || 0;
-			window.hangarUI.uiSettings.layout = projectData.settings.layout || 4;
-			window.hangarUI.uiSettings.apply();
-		}
-
-		// Kachelndaten anwenden
-		applyLoadedTileData(projectData);
-
-		showNotification("Projekt erfolgreich geladen", "success");
-		return true;
-	} catch (error) {
-		console.error("Fehler beim Laden des Projekts aus der Datenbank:", error);
-		showNotification(`Fehler beim Laden: ${error.message}`, "error");
-		return false;
-	}
-};
-
-window.createNewProjectInDatabase = function (projectName) {
-	try {
-		// Aktuellen Zustand zurücksetzen
-		resetAllFields();
-
-		// Projektname setzen
-		document.getElementById("projectName").value =
-			projectName || generateTimestamp();
-
-		// Standardeinstellungen anwenden
-		window.hangarUI.uiSettings.tilesCount = 8;
-		window.hangarUI.uiSettings.secondaryTilesCount = 0;
-		window.hangarUI.uiSettings.layout = 4;
-		window.hangarUI.uiSettings.apply();
-
-		showNotification("Neues Projekt erstellt", "success");
-		// Automatisches Speichern des neuen Projekts
-		saveProjectToDatabase();
-
-		return true;
-	} catch (error) {
-		console.error("Fehler beim Erstellen eines neuen Projekts:", error);
-		showNotification(`Fehler beim Erstellen: ${error.message}`, "error");
-		return false;
-	}
-};
-
-// Wichtig: HangarData (großgeschrieben) als globales Objekt definieren
-window.HangarData = window.HangarData || {};
-
-/**
- * Aktualisiert Flugzeugdaten in der UI basierend auf Flugdaten
- * @param {string} aircraftId - Die Flugzeugkennung
- * @param {Array} flightData - Array mit Flugdaten aus der Amadeus API
- */
-window.HangarData.updateAircraftFromFlightData = function (
-	aircraftId,
-	flightData
-) {
-	if (!aircraftId || !flightData || !Array.isArray(flightData)) {
-		console.error("Ungültige Daten für Flugzeugaktualisierung", {
-			aircraftId,
-			flightData,
-		});
-		return;
-	}
-
-	console.log(
-		`Aktualisiere Flugzeug ${aircraftId} mit ${flightData.length} Flügen`
-	);
-
-	// Suche die Kachel, die dieses Flugzeug enthält
-	let targetCell = null;
-	const allCells = document.querySelectorAll(".hangar-cell");
-
-	allCells.forEach((cell) => {
-		const aircraftInput = cell.querySelector(`input[id^="aircraft-"]`);
-		if (aircraftInput && aircraftInput.value === aircraftId) {
-			targetCell = cell;
-			const cellId = aircraftInput.id.replace("aircraft-", "");
-			console.log(`Flugzeug ${aircraftId} in Kachel ${cellId} gefunden`);
+			reject(error);
 		}
 	});
+}
 
-	// Wenn keine Kachel gefunden wurde, suche eine leere
-	if (!targetCell) {
-		allCells.forEach((cell) => {
-			const aircraftInput = cell.querySelector(`input[id^="aircraft-"]`);
-			if (
-				aircraftInput &&
-				(!aircraftInput.value || aircraftInput.value.trim() === "")
-			) {
-				if (!targetCell) {
-					targetCell = cell;
-					const cellId = aircraftInput.id.replace("aircraft-", "");
-					console.log(
-						`Leere Kachel ${cellId} für Flugzeug ${aircraftId} gefunden`
-					);
-					aircraftInput.value = aircraftId;
-				}
+// Hilfsfunktionen
+
+/**
+ * Sammelt alle Daten aus den Kacheln
+ * @returns {Array} Array mit Kacheldaten
+ */
+function collectTilesData() {
+	const tiles = [];
+
+	// Alle primären Kacheln sammeln
+	document
+		.querySelectorAll("#hangarGrid .hangar-cell")
+		.forEach((cell, index) => {
+			const cellId = index + 1;
+			const tileData = {
+				id: cellId,
+				position:
+					document.getElementById(`hangar-position-${cellId}`)?.value || "",
+				aircraftId: document.getElementById(`aircraft-${cellId}`)?.value || "",
+				status: document.getElementById(`status-${cellId}`)?.value || "ready",
+				towStatus:
+					document.getElementById(`tow-status-${cellId}`)?.value || "initiated",
+				notes: document.getElementById(`notes-${cellId}`)?.value || "",
+			};
+
+			tiles.push(tileData);
+		});
+
+	// Alle sekundären Kacheln sammeln (ID >= 101)
+	document
+		.querySelectorAll("#secondaryHangarGrid .hangar-cell")
+		.forEach((cell) => {
+			const cellId = parseInt(
+				cell.getAttribute("data-cell-id") || cell.id.split("-").pop()
+			);
+			if (cellId >= 101) {
+				const tileData = {
+					id: cellId,
+					position:
+						document.getElementById(`hangar-position-${cellId}`)?.value || "",
+					aircraftId:
+						document.getElementById(`aircraft-${cellId}`)?.value || "",
+					status: document.getElementById(`status-${cellId}`)?.value || "ready",
+					towStatus:
+						document.getElementById(`tow-status-${cellId}`)?.value ||
+						"initiated",
+					notes: document.getElementById(`notes-${cellId}`)?.value || "",
+				};
+
+				tiles.push(tileData);
 			}
 		});
+
+	return tiles;
+}
+
+/**
+ * Sammelt alle Einstellungsdaten
+ * @returns {Object} Einstellungsobjekt
+ */
+function collectSettingsData() {
+	return {
+		tilesCount: parseInt(document.getElementById("tilesCount")?.value) || 8,
+		secondaryTilesCount:
+			parseInt(document.getElementById("secondaryTilesCount")?.value) || 0,
+		layout: parseInt(document.getElementById("layoutType")?.value) || 4,
+		includeNotes: document.getElementById("includeNotes")?.checked || true,
+		landscapeMode: document.getElementById("landscapeMode")?.checked || true,
+	};
+}
+
+/**
+ * Wendet geladene Projektdaten auf die UI an
+ * @param {Object} projectData - Die geladenen Projektdaten
+ */
+function applyProjectData(projectData) {
+	if (!projectData) return;
+
+	// Einstellungen anwenden
+	if (projectData.settings) {
+		const { tilesCount, secondaryTilesCount, layout } = projectData.settings;
+
+		// UI-Felder aktualisieren
+		if (document.getElementById("tilesCount")) {
+			document.getElementById("tilesCount").value = tilesCount || 8;
+		}
+
+		if (document.getElementById("secondaryTilesCount")) {
+			document.getElementById("secondaryTilesCount").value =
+				secondaryTilesCount || 0;
+		}
+
+		if (document.getElementById("layoutType")) {
+			document.getElementById("layoutType").value = layout || 4;
+		}
+
+		// UI-Einstellungen anwenden
+		if (window.hangarUI && window.hangarUI.uiSettings) {
+			window.hangarUI.uiSettings.tilesCount = tilesCount || 8;
+			window.hangarUI.uiSettings.secondaryTilesCount = secondaryTilesCount || 0;
+			window.hangarUI.uiSettings.layout = layout || 4;
+			window.hangarUI.uiSettings.apply();
+		}
 	}
 
-	// Wenn immer noch keine Kachel gefunden wurde, kein Update möglich
-	if (!targetCell) {
-		console.error(`Keine Kachel für Flugzeug ${aircraftId} gefunden`);
-		return;
-	}
+	// Kacheldaten anwenden (mit Verzögerung, um sicherzustellen, dass die Kacheln erstellt wurden)
+	setTimeout(() => {
+		if (projectData.tilesData && Array.isArray(projectData.tilesData)) {
+			projectData.tilesData.forEach((tileData) => {
+				const { id, position, aircraftId, status, towStatus, notes } = tileData;
 
-	// Flugdaten verarbeiten und UI aktualisieren
-	if (flightData.length > 0) {
-		const firstFlight = flightData[0];
-		let departureTime = "--:--";
-		let arrivalTime = "--:--";
-		let origin = "";
-		let destination = "";
+				// Positionswert setzen
+				const posInput = document.getElementById(`hangar-position-${id}`);
+				if (posInput) posInput.value = position || "";
 
-		// Departure-Zeit extrahieren
-		if (firstFlight.flightPoints && firstFlight.flightPoints.length > 0) {
-			const departurePoint = firstFlight.flightPoints.find(
-				(p) => p.departurePoint === true
-			);
-			const arrivalPoint = firstFlight.flightPoints.find(
-				(p) => p.arrivalPoint === true
-			);
+				// Aircraft ID setzen
+				const aircraftInput = document.getElementById(`aircraft-${id}`);
+				if (aircraftInput) aircraftInput.value = aircraftId || "";
 
-			if (
-				departurePoint &&
-				departurePoint.departure &&
-				departurePoint.departure.timings
-			) {
-				const stdTiming = departurePoint.departure.timings.find(
-					(t) => t.qualifier === "STD"
-				);
-				if (stdTiming && stdTiming.value) {
-					// Format: HH:MM:SS.000 -> HH:MM
-					departureTime = stdTiming.value.substring(0, 5);
+				// Status setzen
+				const statusSelect = document.getElementById(`status-${id}`);
+				if (statusSelect) {
+					statusSelect.value = status || "ready";
+					// Status-Event auslösen, um das Statuslicht zu aktualisieren
+					const event = new Event("change");
+					statusSelect.dispatchEvent(event);
 				}
-				origin = departurePoint.iataCode || "";
-			}
 
-			if (
-				arrivalPoint &&
-				arrivalPoint.arrival &&
-				arrivalPoint.arrival.timings
-			) {
-				const staTiming = arrivalPoint.arrival.timings.find(
-					(t) => t.qualifier === "STA"
-				);
-				if (staTiming && staTiming.value) {
-					// Format: HH:MM:SS.000 -> HH:MM
-					arrivalTime = staTiming.value.substring(0, 5);
+				// Tow-Status setzen
+				const towStatusSelect = document.getElementById(`tow-status-${id}`);
+				if (towStatusSelect) {
+					towStatusSelect.value = towStatus || "initiated";
+					// Event auslösen, um Styling zu aktualisieren
+					const event = new Event("change");
+					towStatusSelect.dispatchEvent(event);
 				}
-				destination = arrivalPoint.iataCode || "";
-			}
+
+				// Notizen setzen
+				const notesTextarea = document.getElementById(`notes-${id}`);
+				if (notesTextarea) notesTextarea.value = notes || "";
+			});
 		}
+	}, 300);
+}
 
-		// Kachel-ID extrahieren
-		const cellId = targetCell
-			.querySelector('input[id^="aircraft-"]')
-			.id.replace("aircraft-", "");
+/**
+ * Generiert einen Standarddateinamen im Format yyyy_mm_dd Hangarplanner
+ * @returns {string} Formatierter Dateiname
+ */
+function generateDefaultProjectName() {
+	const now = new Date();
+	const year = now.getFullYear();
+	const month = String(now.getMonth() + 1).padStart(2, "0");
+	const day = String(now.getDate()).padStart(2, "0");
+	return `${year}_${month}_${day} Hangarplanner`;
+}
 
-		// UI-Elemente aktualisieren
-		const arrivalTimeElement = targetCell.querySelector(
-			`#arrival-time-${cellId}`
-		);
-		const departureTimeElement = targetCell.querySelector(
-			`#departure-time-${cellId}`
-		);
-		const positionElement = targetCell.querySelector(`#position-${cellId}`);
-		const notesElement = targetCell.querySelector(`#notes-${cellId}`);
+// Exportieren für die globale Verwendung
+window.hangarData = window.hangarData || {};
+window.hangarData.saveProjectToFile = saveProjectToFile;
+window.hangarData.loadProjectFromFile = loadProjectFromFile;
+window.hangarData.saveCurrentStateToLocalStorage = function () {
+	// Aktuelle Daten im localStorage speichern
+	const projectData = {
+		projectName:
+			document.getElementById("projectName")?.value ||
+			generateDefaultProjectName(),
+		lastSaved: new Date().toISOString(),
+		tilesData: collectTilesData(),
+		settings: collectSettingsData(),
+	};
 
-		if (arrivalTimeElement) arrivalTimeElement.textContent = arrivalTime;
-		if (departureTimeElement) departureTimeElement.textContent = departureTime;
-
-		// Position mit Fluginfo aktualisieren
-		if (positionElement) {
-			const positionText = destination ? destination : origin;
-			positionElement.textContent = positionText;
-
-			// Auch das versteckte Eingabefeld aktualisieren
-			const positionInput = document.getElementById(
-				`hangar-position-${cellId}`
-			);
-			if (positionInput) positionInput.value = positionText;
-		}
-
-		// Flugdetails in Notes eintragen
-		if (notesElement) {
-			const flightNumber = firstFlight.flightDesignator
-				? `${firstFlight.flightDesignator.carrierCode}${firstFlight.flightDesignator.flightNumber}`
-				: "Unbekannt";
-
-			const aircraftType =
-				firstFlight.legs &&
-				firstFlight.legs[0] &&
-				firstFlight.legs[0].aircraftEquipment
-					? firstFlight.legs[0].aircraftEquipment.aircraftType
-					: "Unbekannt";
-
-			notesElement.value = `Flug ${flightNumber} (${origin}-${destination})\nTyp: ${aircraftType}\nAb: ${departureTime} An: ${arrivalTime}`;
-		}
-
-		// Status anpassen
-		updateCellStatus(cellId, "ready");
-
-		console.log(`Kachel ${cellId} mit Flugdaten aktualisiert:`, {
-			arrival: arrivalTime,
-			departure: departureTime,
-			position: destination || origin,
-		});
-	}
+	localStorage.setItem(
+		"hangarPlannerCurrentState",
+		JSON.stringify(projectData)
+	);
+	console.log("Aktueller Zustand im LocalStorage gespeichert");
 };
 
-/**
- * Hilfsfunktion zum Aktualisieren des Status einer Kachel
- * @param {string} cellId - ID der Kachel
- * @param {string} status - Neuer Status (ready, maintenance, aog)
- */
-function updateCellStatus(cellId, status) {
-	const statusSelector = document.getElementById(`status-${cellId}`);
-	if (statusSelector) {
-		statusSelector.value = status;
-
-		// Status-Lichter aktualisieren
-		const statusLights = document.querySelectorAll(`[data-cell="${cellId}"]`);
-		statusLights.forEach((light) => {
-			if (light.dataset.status === status) {
-				light.classList.add("active");
-			} else {
-				light.classList.remove("active");
-			}
-		});
-	}
-}
-
-/**
- * Aktualisiert alle Kacheln, die eine bestimmte Flugzeug-ID haben
- * @param {string} aircraftId - Die Flugzeug-ID
- * @param {object} flightData - Die abgerufenen Flugdaten
- * @param {string} preferredAirport - Bevorzugter Flughafen (IATA-Code)
- * @returns {boolean} - true, wenn mindestens eine Kachel aktualisiert wurde
- */
-function updateAllInstancesOfAircraft(
-	aircraftId,
-	flightData,
-	preferredAirport
-) {
+// Automatisches Laden des letzten Zustands beim Start
+document.addEventListener("DOMContentLoaded", function () {
+	// Versuchen, den letzten Zustand aus dem LocalStorage zu laden
 	try {
-		// Alle Kacheln mit dieser Flugzeug-ID finden
-		const cells = document.querySelectorAll(".hangar-cell");
-		let found = false;
-
-		cells.forEach((cell) => {
-			const aircraftInput = cell.querySelector(".aircraft-id");
-			if (aircraftInput && aircraftInput.value.trim() === aircraftId) {
-				found = true;
-
-				// Zellen-ID bestimmen
-				const cellId = aircraftInput.id.split("-")[1];
-
-				// Flugdaten extrahieren und anwenden
-				applyFlightDataToCell(cellId, flightData, preferredAirport);
-
-				// Logging hinzufügen, um die Anwendung der Daten zu überprüfen
-				console.log(
-					`Flugdaten für ${aircraftId} auf Kachel ${cellId} angewendet`
-				);
-			}
-		});
-
-		if (!found) {
-			console.log(`Keine Kachel mit Aircraft ID ${aircraftId} gefunden.`);
+		const savedState = localStorage.getItem("hangarPlannerCurrentState");
+		if (savedState) {
+			const projectData = JSON.parse(savedState);
+			applyProjectData(projectData);
+			console.log("Letzter Zustand aus LocalStorage geladen");
 		}
-
-		return found;
 	} catch (error) {
-		console.error(
-			`Fehler beim Aktualisieren der Kacheln für ${aircraftId}:`,
-			error
-		);
-		return false;
+		console.warn("Konnte letzten Zustand nicht laden:", error);
 	}
-}
-
-/**
- * Wendet Flugdaten auf eine Kachel an
- * @param {string} cellId - ID der Kachel
- * @param {object} flightData - Die abgerufenen Flugdaten
- * @param {string} preferredAirport - Bevorzugter Flughafen (IATA-Code)
- */
-function applyFlightDataToCell(cellId, flightData, preferredAirport) {
-	try {
-		// Standard-Werte falls keine Daten gefunden werden
-		let departureTime = "--:--";
-		let arrivalTime = "--:--";
-		let originCode = "---";
-		let destCode = "---";
-		let positionText = "---";
-
-		// Extrahieren der Flugdaten wenn vorhanden
-		if (flightData && flightData.data && flightData.data.length > 0) {
-			// Wenn wir mehrere Flüge haben, versuchen wir den passendsten zu finden
-			// Priorisieren von Flügen mit dem bevorzugten Flughafen
-			let flight = null;
-
-			if (preferredAirport) {
-				// Suche nach Flügen mit dem bevorzugten Flughafen
-				flight = flightData.data.find((f) => {
-					return (
-						f.flightPoints &&
-						f.flightPoints.some((point) => point.iataCode === preferredAirport)
-					);
-				});
-
-				console.log(
-					`Flug mit Flughafen ${preferredAirport} ${
-						flight ? "gefunden" : "nicht gefunden"
-					}`
-				);
-			}
-
-			// Wenn kein passender Flug gefunden wurde, nehme den ersten
-			if (!flight && flightData.data.length > 0) {
-				flight = flightData.data[0];
-				console.log(`Verwende ersten verfügbaren Flug`);
-			}
-
-			if (flight && flight.flightPoints && flight.flightPoints.length >= 2) {
-				const departure = flight.flightPoints.find(
-					(point) => point.departurePoint
-				);
-				const arrival = flight.flightPoints.find((point) => point.arrivalPoint);
-
-				if (departure) {
-					// Extrahieren von Abflugzeit und Quellflughafen
-					if (
-						departure.departure &&
-						departure.departure.timings &&
-						departure.departure.timings.length > 0
-					) {
-						const stdTime = departure.departure.timings.find(
-							(timing) => timing.qualifier === "STD"
-						);
-						if (stdTime) {
-							departureTime = stdTime.value.substring(0, 5);
-						}
-					}
-					originCode = departure.iataCode || "---";
-				}
-
-				if (arrival) {
-					// Extrahieren von Ankunftszeit und Zielflughafen
-					if (
-						arrival.arrival &&
-						arrival.arrival.timings &&
-						arrival.arrival.timings.length > 0
-					) {
-						const staTime = arrival.arrival.timings.find(
-							(timing) => timing.qualifier === "STA"
-						);
-						if (staTime) {
-							arrivalTime = staTime.value.substring(0, 5);
-						}
-					}
-					destCode = arrival.iataCode || "---";
-				}
-
-				// Formatierte Position mit von/nach Flughafen erstellen
-				if (originCode !== "---" || destCode !== "---") {
-					if (originCode !== "---" && destCode !== "---") {
-						positionText = `Abflug ${originCode} → ${destCode}`;
-					} else if (originCode !== "---") {
-						positionText = `Abflug ${originCode}`;
-					} else {
-						positionText = `nach ${destCode}`;
-					}
-				}
-
-				// Überprüfen, ob der bevorzugte Flughafen enthalten ist
-				if (preferredAirport) {
-					// Bereits durch die Flugfindung oben abgedeckt
-				}
-			}
-		}
-
-		// UI-Elemente aktualisieren
-		const arrivalTimeEl = document.getElementById(`arrival-time-${cellId}`);
-		const departureTimeEl = document.getElementById(`departure-time-${cellId}`);
-		const positionEl = document.getElementById(`position-${cellId}`);
-
-		if (arrivalTimeEl) arrivalTimeEl.textContent = arrivalTime;
-		if (departureTimeEl) departureTimeEl.textContent = departureTime;
-		if (positionEl) positionEl.textContent = positionText; // Die neue Position verwenden
-
-		// Tow-Status aktualisieren basierend auf Flugdaten
-		updateTowStatus(cellId, departureTime);
-
-		console.log(
-			`Kachel ${cellId} mit Flugdaten aktualisiert: ${positionText}, Abflug: ${departureTime}, Ankunft: ${arrivalTime}`
-		);
-
-		return true;
-	} catch (error) {
-		console.error(
-			`Fehler beim Anwenden der Flugdaten auf Kachel ${cellId}:`,
-			error
-		);
-		return false;
-	}
-}
+});
