@@ -339,6 +339,9 @@ function initializeUI() {
 			window.hangarUI.initSectionLayout();
 		}
 
+		// WICHTIG: Event-Handler für primäre Kacheln sofort einrichten
+		setupPrimaryTileEventListeners();
+
 		// Sofortige Überprüfung und Anwendung der Displayoptionen
 		setTimeout(() => {
 			// Kachelanzahl aus dem UI lesen und anwenden
@@ -363,88 +366,15 @@ function initializeUI() {
 
 			// Verzögerte Nachprüfung der Positionswerte für alle Kacheln
 			setTimeout(() => {
-				// Lade nochmal die Einstellungen aus dem LocalStorage
-				const savedSettingsJSON = localStorage.getItem("hangarPlannerSettings");
-				if (savedSettingsJSON) {
-					try {
-						const settings = JSON.parse(savedSettingsJSON);
-						if (settings.tileValues && Array.isArray(settings.tileValues)) {
-							// Nur Positionswerte explizit setzen und prüfen
-							console.log(
-								"Positionswerte werden erneut auf alle Kacheln angewendet"
-							);
-							settings.tileValues.forEach((tileValue) => {
-								// Aktuelle Wert im DOM prüfen
-								const posInput = document.getElementById(
-									`hangar-position-${tileValue.cellId}`
-								);
-								if (posInput && tileValue.position) {
-									// Nur wenn Wert im DOM leer oder anders ist als gespeichert
-									if (
-										!posInput.value ||
-										posInput.value !== tileValue.position
-									) {
-										console.log(
-											`Korrigiere Position für Kachel ${tileValue.cellId}: '${posInput.value}' -> '${tileValue.position}'`
-										);
-										posInput.value = tileValue.position;
-									}
-								}
-							});
+				// Lade nochmal die Einstellungen aus dem LocalStorage mit hoher Priorität
+				applyPositionValuesFromLocalStorage();
 
-							// Event-Handler für sofortige Speicherung auf allen Position-Inputs
-							document
-								.querySelectorAll('input[id^="hangar-position-"]')
-								.forEach((input) => {
-									const cellId = parseInt(input.id.split("-")[2]);
+				// Event-Handler erneut einrichten, um sicherzustellen, dass sie aktiv sind
+				setupPrimaryTileEventListeners();
 
-									// Alte Event-Handler entfernen
-									input.removeEventListener("blur", input._directSaveHandler);
-
-									// Neuen Handler hinzufügen
-									input._directSaveHandler = function () {
-										console.log(
-											`Direktes Speichern der Position für Kachel ${cellId}: ${this.value}`
-										);
-										// Positionswert im localStorage aktualisieren
-										const savedSettings = JSON.parse(
-											localStorage.getItem("hangarPlannerSettings") || "{}"
-										);
-										if (!savedSettings.tileValues)
-											savedSettings.tileValues = [];
-
-										const existingTileIndex =
-											savedSettings.tileValues.findIndex(
-												(t) => t.cellId === cellId
-											);
-										if (existingTileIndex >= 0) {
-											savedSettings.tileValues[existingTileIndex].position =
-												this.value;
-										} else {
-											savedSettings.tileValues.push({
-												cellId: cellId,
-												position: this.value,
-												manualInput: "",
-											});
-										}
-
-										localStorage.setItem(
-											"hangarPlannerSettings",
-											JSON.stringify(savedSettings)
-										);
-									};
-
-									input.addEventListener("blur", input._directSaveHandler);
-								});
-						}
-					} catch (e) {
-						console.error(
-							"Fehler beim erneuten Anwenden der Positionswerte:",
-							e
-						);
-					}
-				}
-			}, 1000);
+				// Nochmals mit Verzögerung prüfen, ob alle Werte korrekt gesetzt sind
+				setTimeout(applyPositionValuesFromLocalStorage, 500);
+			}, 300);
 
 			console.log("Displayoptionen wurden initialisiert");
 		}, 300);
@@ -541,6 +471,166 @@ function initializeUI() {
 	} catch (error) {
 		console.error("Fehler bei der UI-Initialisierung:", error);
 		return false;
+	}
+}
+
+/**
+ * Richtet Event-Handler für die Position-Eingabefelder der primären Kacheln ein
+ * Diese Funktion stellt sicher, dass die Positionswerte korrekt im localStorage gespeichert werden
+ */
+function setupPrimaryTileEventListeners() {
+	// Event-Listener für Position-Eingabefelder in primären Kacheln
+	document
+		.querySelectorAll('#hangarGrid input[id^="hangar-position-"]')
+		.forEach((input) => {
+			const cellId = parseInt(input.id.split("-")[2]);
+			console.log(
+				`Event-Handler für Position in primärer Kachel ${cellId} eingerichtet`
+			);
+
+			// Speichern des aktuellen Werts als Originalwert, um ungewollte Überschreibungen zu verhindern
+			const currentValue = input.value;
+			if (currentValue && currentValue.trim() !== "") {
+				input.setAttribute("data-original-value", currentValue);
+				console.log(
+					`Originalwert für Kachel ${cellId} gesichert: ${currentValue}`
+				);
+			}
+
+			// Alte Event-Handler entfernen, um doppelte Aufrufe zu vermeiden
+			input.removeEventListener("blur", input._primarySaveHandler);
+			input.removeEventListener("change", input._primarySaveHandler);
+
+			// Neuen Handler für sofortiges Speichern bei Änderung hinzufügen
+			input._primarySaveHandler = function () {
+				const newValue = this.value;
+				console.log(
+					`Speichere Position für primäre Kachel ${cellId}: ${newValue}`
+				);
+
+				// Wert als Originalwert setzen, um zukünftige Überschreibungen zu verhindern
+				if (newValue && newValue.trim() !== "") {
+					this.setAttribute("data-original-value", newValue);
+				}
+
+				// Sofortiges Speichern im localStorage
+				savePositionValueToLocalStorage(cellId, newValue);
+			};
+
+			// Event-Handler für Änderungen und Blur-Events hinzufügen
+			input.addEventListener("blur", input._primarySaveHandler);
+			input.addEventListener("change", input._primarySaveHandler);
+
+			// Auslösen des Handlers, wenn der Wert bereits gesetzt ist
+			if (currentValue && currentValue.trim() !== "") {
+				savePositionValueToLocalStorage(cellId, currentValue);
+			}
+		});
+}
+
+/**
+ * Speichert einen einzelnen Positionswert direkt im localStorage
+ */
+function savePositionValueToLocalStorage(cellId, value) {
+	try {
+		// Aktuelle Einstellungen aus localStorage holen
+		const savedSettings = JSON.parse(
+			localStorage.getItem("hangarPlannerSettings") || "{}"
+		);
+
+		if (!savedSettings.tileValues) savedSettings.tileValues = [];
+
+		// Prüfen, ob bereits ein Eintrag für diese Kachel existiert
+		const tileIndex = savedSettings.tileValues.findIndex(
+			(t) => t.cellId === cellId
+		);
+
+		if (tileIndex >= 0) {
+			// Nur aktualisieren, wenn der Wert sich geändert hat
+			if (savedSettings.tileValues[tileIndex].position !== value) {
+				console.log(`Position für Kachel ${cellId} aktualisiert: ${value}`);
+				savedSettings.tileValues[tileIndex].position = value;
+			}
+		} else {
+			// Neuen Eintrag erstellen
+			console.log(
+				`Neuen Positionseintrag für Kachel ${cellId} erstellt: ${value}`
+			);
+			savedSettings.tileValues.push({
+				cellId: cellId,
+				position: value,
+				manualInput: "",
+			});
+		}
+
+		// Aktualisierte Einstellungen zurück in localStorage schreiben
+		localStorage.setItem(
+			"hangarPlannerSettings",
+			JSON.stringify(savedSettings)
+		);
+
+		return true;
+	} catch (error) {
+		console.error(
+			`Fehler beim Speichern der Position für Kachel ${cellId}:`,
+			error
+		);
+		return false;
+	}
+}
+
+/**
+ * Wendet die gespeicherten Positionswerte aus dem localStorage mit höherer Priorität an
+ */
+function applyPositionValuesFromLocalStorage() {
+	try {
+		const savedSettingsJSON = localStorage.getItem("hangarPlannerSettings");
+		if (!savedSettingsJSON) return;
+
+		const settings = JSON.parse(savedSettingsJSON);
+		if (!settings.tileValues || !Array.isArray(settings.tileValues)) return;
+
+		// Anwenden der gespeicherten Positionswerte auf primäre Kacheln
+		settings.tileValues.forEach((tileValue) => {
+			// Nur primäre Kacheln (ID < 101) verarbeiten
+			if (tileValue.cellId < 101 && tileValue.position) {
+				const posInput = document.getElementById(
+					`hangar-position-${tileValue.cellId}`
+				);
+
+				if (posInput) {
+					// Originalwert aus dem Attribut holen
+					const originalValue = posInput.getAttribute("data-original-value");
+
+					// Nur setzen wenn:
+					// - kein Originalwert gesetzt ist ODER
+					// - der aktuelle Wert leer ist ODER
+					// - der gespeicherte Wert dem Originalwert entspricht
+					if (
+						!originalValue ||
+						!posInput.value.trim() ||
+						tileValue.position === originalValue
+					) {
+						console.log(
+							`Setze Position für primäre Kachel ${tileValue.cellId} aus localStorage: ${tileValue.position}`
+						);
+						posInput.value = tileValue.position;
+
+						// Aktuellen Wert als Original merken
+						posInput.setAttribute("data-original-value", tileValue.position);
+					} else {
+						console.log(
+							`Position für primäre Kachel ${tileValue.cellId} beibehalten: ${posInput.value} (gespeichert war: ${tileValue.position})`
+						);
+					}
+				}
+			}
+		});
+	} catch (error) {
+		console.error(
+			"Fehler beim Anwenden der Positionswerte aus localStorage:",
+			error
+		);
 	}
 }
 
