@@ -132,16 +132,16 @@ function setupUIEventListeners() {
 		const btnSearch = document.getElementById("btnSearch");
 		if (btnSearch) {
 			btnSearch.addEventListener("click", function () {
-				searchAircraft();
+				searchAircraft(); // Diese Funktion wird jetzt korrekt aufgerufen
 			});
 		}
 
-		// Enter-Taste in Suchfeld
-		const searchAircraft = document.getElementById("searchAircraft");
-		if (searchAircraft) {
-			searchAircraft.addEventListener("keyup", function (event) {
+		// Enter-Taste in Suchfeld - NAMENSKONFLIKT BEHOBEN durch Umbenennung der Variable
+		const searchInputField = document.getElementById("searchAircraft");
+		if (searchInputField) {
+			searchInputField.addEventListener("keyup", function (event) {
 				if (event.key === "Enter") {
-					searchAircraft();
+					searchAircraft(); // Diese Funktion wird jetzt korrekt aufgerufen
 				}
 			});
 		}
@@ -206,34 +206,10 @@ function setupUIEventListeners() {
 		// Status-Selektoren für primäre Kacheln initialisieren
 		initializeStatusSelectors();
 
-		// Event Listener für die Flugzeugsuche
-		const searchBtn = document.getElementById("btnSearch");
-		const searchInput = document.getElementById("searchAircraft");
-
-		if (searchBtn && searchInput) {
-			// Such-Button Klick-Event
-			searchBtn.addEventListener("click", function () {
-				if (window.hangarUI && window.hangarUI.searchAircraft) {
-					window.hangarUI.searchAircraft();
-				} else {
-					console.error("Suchfunktion nicht verfügbar");
-				}
-			});
-
-			// Enter-Taste im Suchfeld auslösen
-			searchInput.addEventListener("keypress", function (event) {
-				if (event.key === "Enter") {
-					event.preventDefault();
-					if (window.hangarUI && window.hangarUI.searchAircraft) {
-						window.hangarUI.searchAircraft();
-					}
-				}
-			});
-
-			console.log("Event Listener für Flugzeugsuche eingerichtet");
-		} else {
-			console.warn("Such-Elemente nicht gefunden");
-		}
+		// Event Listener für die Flugzeugsuche - DIESER TEIL WIRD ENTFERNT, DA REDUNDANT
+		// Dieser Code versucht window.hangarUI.searchAircraft zu benutzen, was nicht existiert
+		// und so zu den Fehlern führt. Wir verwenden stattdessen nur den obigen Code,
+		// der unsere lokale searchAircraft()-Funktion direkt aufruft.
 
 		// Event-Handler für den Flugdaten-Abruf Button
 		const fetchButton = document.getElementById("fetchFlightData");
@@ -855,25 +831,39 @@ function importSettingsFromJson(event) {
 
 /**
  * Sucht nach einem Flugzeug in allen Kacheln
+ * Mit verbessertem Teilstring-Matching und Groß-/Kleinschreibung wird ignoriert
  */
 function searchAircraft() {
-	const searchTerm = document
-		.getElementById("searchAircraft")
-		.value.trim()
-		.toLowerCase();
+	console.log("Suchfunktion wird ausgeführt...");
 
-	if (!searchTerm) {
-		showNotification("Bitte geben Sie eine Suchbegriff ein", "warning");
+	// Suchbegriff aus dem Eingabefeld holen
+	const searchInputField = document.getElementById("searchAircraft");
+	if (!searchInputField) {
+		console.error("Suchfeld konnte nicht gefunden werden!");
 		return;
 	}
 
-	let found = false;
+	const searchTerm = searchInputField.value.trim().toLowerCase();
+	console.log(`Suche nach: "${searchTerm}"`);
 
-	// Alle Kacheln durchsuchen
+	if (!searchTerm) {
+		console.warn("Kein Suchbegriff eingegeben");
+		showNotification("Bitte geben Sie einen Suchbegriff ein", "warning");
+		return;
+	}
+
+	// Alle bestehenden Hervorhebungen zurücksetzen
 	document.querySelectorAll(".hangar-cell").forEach((cell) => {
-		// Standardmäßig keine Hervorhebung
 		cell.style.boxShadow = "";
+	});
 
+	let foundCount = 0;
+	let firstFoundCell = null;
+	let matchDetails = [];
+
+	// Alle Kacheln durchsuchen mit detaillierter Protokollierung
+	console.log("Durchsuche Kacheln...");
+	document.querySelectorAll(".hangar-cell").forEach((cell, index) => {
 		// Finde alle relevanten Felder in der Kachel
 		const aircraftInput = cell.querySelector('input[id^="aircraft-"]');
 		const manualInput = cell.querySelector('input[placeholder="Manual Input"]');
@@ -884,27 +874,115 @@ function searchAircraft() {
 		const manualText = manualInput ? manualInput.value.toLowerCase() : "";
 		const positionText = positionInput ? positionInput.value.toLowerCase() : "";
 
-		// Prüfen, ob der Suchbegriff in einem der Felder vorkommt
-		if (
-			aircraftText.includes(searchTerm) ||
-			manualText.includes(searchTerm) ||
-			positionText.includes(searchTerm)
-		) {
-			// Treffer hervorheben
-			cell.style.boxShadow =
-				"0 0 0 4px #EF8354, 0 0 16px rgba(239, 131, 84, 0.6)";
-			found = true;
+		// Debugging: Zeige Inhalte der Felder
+		console.log(`Kachel ${index + 1}:`, {
+			aircraftText,
+			manualText,
+			positionText,
+		});
 
-			// Scroll zur gefundenen Kachel
-			cell.scrollIntoView({ behavior: "smooth", block: "center" });
+		// Prüfen, ob der Suchbegriff in einem der Felder vorkommt
+		let matched = false;
+		let matchSource = "";
+
+		if (aircraftText && aircraftText.includes(searchTerm)) {
+			matched = true;
+			matchSource = "Flugzeug-ID";
+			console.log(
+				`Treffer in Kachel ${index + 1} (Aircraft ID): ${aircraftText}`
+			);
+		}
+
+		if (manualText && manualText.includes(searchTerm)) {
+			matched = true;
+			matchSource = matchSource
+				? `${matchSource}, Manual Input`
+				: "Manual Input";
+			console.log(
+				`Treffer in Kachel ${index + 1} (Manual Input): ${manualText}`
+			);
+		}
+
+		if (positionText && positionText.includes(searchTerm)) {
+			matched = true;
+			matchSource = matchSource ? `${matchSource}, Position` : "Position";
+			console.log(`Treffer in Kachel ${index + 1} (Position): ${positionText}`);
+		}
+
+		// Wenn Treffer gefunden, Kachel hervorheben
+		if (matched) {
+			// Einfache Hervorhebung nur mit Rahmen
+			cell.classList.add("search-match-highlight");
+
+			foundCount++;
+
+			// Erste gefundene Kachel für Scrolling merken
+			if (!firstFoundCell) {
+				firstFoundCell = cell;
+			}
+
+			// Details zum Treffer für die Meldung sammeln
+			matchDetails.push(matchSource);
 		}
 	});
 
+	// CSS-Styles für die Hervorhebung hinzufügen, falls noch nicht vorhanden
+	addSearchHighlightStyles();
+
+	// Zum ersten Treffer scrollen, wenn vorhanden
+	if (firstFoundCell) {
+		console.log("Scrolle zur ersten Trefferkachel");
+		firstFoundCell.scrollIntoView({ behavior: "smooth", block: "center" });
+	}
+
+	// Eindeutiges Set von Match-Quellen erstellen
+	const uniqueMatchSources = [...new Set(matchDetails)].join(", ");
+
 	// Rückmeldung über Suchergebnis
-	if (found) {
-		showNotification(`Flugzeug "${searchTerm}" gefunden!`, "success");
+	if (foundCount > 0) {
+		const message = `${foundCount} Treffer für "${searchTerm}" in ${uniqueMatchSources}`;
+		console.log(message);
+
+		// Nach 2 Sekunden automatisch zurücksetzen
+		setTimeout(() => {
+			// Alle Hervorhebungen zurücksetzen
+			document.querySelectorAll(".search-match-highlight").forEach((cell) => {
+				cell.classList.remove("search-match-highlight", "search-pulse");
+			});
+		}, 2000);
+
+		// Zusätzlich Benachrichtigung zeigen wenn verfügbar
+		if (typeof window.showNotification === "function") {
+			window.showNotification(message, "success");
+		} else if (typeof showNotification === "function") {
+			showNotification(message, "success");
+		}
 	} else {
-		showNotification(`Keine Ergebnisse für "${searchTerm}"`, "warning");
+		const message = `Keine Ergebnisse für "${searchTerm}"`;
+		console.log(message);
+
+		// Bei keinen Ergebnissen trotzdem Benachrichtigung zeigen wenn verfügbar
+		if (typeof window.showNotification === "function") {
+			window.showNotification(message, "warning");
+		} else if (typeof showNotification === "function") {
+			showNotification(message, "warning");
+		}
+	}
+}
+
+/**
+ * Fügt Styles für die Suchhervorhebung hinzu, falls noch nicht vorhanden
+ */
+function addSearchHighlightStyles() {
+	if (!document.getElementById("search-highlight-styles")) {
+		const styleEl = document.createElement("style");
+		styleEl.id = "search-highlight-styles";
+		styleEl.textContent = `
+			.search-match-highlight {
+				box-shadow: 0 0 0 2px #EF8354 !important;
+			}
+		`;
+		document.head.appendChild(styleEl);
 	}
 }
 
