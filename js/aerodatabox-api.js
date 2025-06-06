@@ -24,7 +24,12 @@ const AeroDataBoxAPI = (() => {
 		airLabsBaseUrl: "https://airlabs.co/api/v9",
 		airLabsKey: "", // Hier deinen API-Key eintragen nach Registrierung
 
-		// API-Provider Auswahl: "aerodatabox", "aviationstack" oder "airlabs"
+		// API Market AeroDataBox Konfiguration
+		useApiMarket: false, // Schalter für API Market
+		apiMarketBaseUrl: "https://api.market/aedbx/aerodatabox",
+		apiMarketKey: "cmbkazz9w000akv0420b6iz2x", // API Market Key
+
+		// API-Provider Auswahl: "aerodatabox", "aviationstack", "airlabs" oder "apimarket"
 		activeProvider: "aerodatabox",
 
 		debugMode: true, // Debug-Modus für zusätzliche Konsolenausgaben
@@ -46,6 +51,7 @@ const AeroDataBoxAPI = (() => {
 			// Kompatibilität mit altem Code
 			config.useAviationstack = options.activeProvider === "aviationstack";
 			config.useAirLabs = options.activeProvider === "airlabs";
+			config.useApiMarket = options.activeProvider === "apimarket";
 		} else if (options.useAviationstack !== undefined) {
 			config.useAviationstack = Boolean(options.useAviationstack);
 			config.activeProvider = options.useAviationstack
@@ -54,6 +60,11 @@ const AeroDataBoxAPI = (() => {
 		} else if (options.useAirLabs !== undefined) {
 			config.useAirLabs = Boolean(options.useAirLabs);
 			config.activeProvider = options.useAirLabs ? "airlabs" : "aerodatabox";
+		} else if (options.useApiMarket !== undefined) {
+			config.useApiMarket = Boolean(options.useApiMarket);
+			config.activeProvider = options.useApiMarket
+				? "apimarket"
+				: "aerodatabox";
 		}
 
 		if (options.useMockData !== undefined)
@@ -66,6 +77,7 @@ const AeroDataBoxAPI = (() => {
 			config.aviationstackKey = options.aviationstackKey;
 		if (options.rapidApiKey) config.rapidApiKey = options.rapidApiKey;
 		if (options.airLabsKey) config.airLabsKey = options.airLabsKey;
+		if (options.apiMarketKey) config.apiMarketKey = options.apiMarketKey;
 
 		if (config.debugMode) {
 			console.log(
@@ -221,6 +233,68 @@ const AeroDataBoxAPI = (() => {
 			return data;
 		} catch (error) {
 			console.error("Fehler bei AirLabs API-Anfrage:", error);
+			throw error;
+		}
+	};
+
+	/**
+	 * Ruft Daten von der API Market ab
+	 * @param {string} endpoint - API-Endpunkt (z.B. "flights/reg")
+	 * @param {Object} params - Abfrageparameter
+	 * @returns {Promise<Object>} API-Antwortdaten
+	 */
+	const getApiMarketData = async (endpoint, params = {}) => {
+		try {
+			// URL aufbauen mit API-Key
+			let url = `${config.apiMarketBaseUrl}${endpoint}`;
+
+			// Parameter als Query-String erstellen
+			const queryParams = new URLSearchParams();
+			Object.keys(params).forEach((key) => {
+				queryParams.append(key, params[key]);
+			});
+
+			const queryString = queryParams.toString();
+			if (queryString) {
+				url += `?${queryString}`;
+			}
+
+			if (config.debugMode) {
+				console.log(`API Market Anfrage: ${url}`);
+			}
+
+			// API-Anfrage durchführen
+			const response = await fetch(url, {
+				headers: {
+					"X-API-KEY": config.apiMarketKey,
+					Accept: "application/json",
+				},
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				throw new Error(
+					`API Market Fehler: ${response.status} ${response.statusText}. Details: ${errorText}`
+				);
+			}
+
+			const data = await response.json();
+
+			if (data.error) {
+				throw new Error(
+					`API Market Fehler: ${data.error.code || ""} - ${
+						data.error.message || "Unbekannter Fehler"
+					}`
+				);
+			}
+
+			if (config.debugMode) {
+				console.log("API Market Antwort:", data);
+			}
+
+			return data;
+		} catch (error) {
+			console.error("Fehler bei API Market Anfrage:", error);
 			throw error;
 		}
 	};
@@ -437,6 +511,129 @@ const AeroDataBoxAPI = (() => {
 	};
 
 	/**
+	 * Konvertiert API Market Daten in das einheitliche Format
+	 * @param {Object} apiMarketData - Daten von der API Market
+	 * @param {string} aircraftRegistration - Flugzeugregistrierung
+	 * @param {string} date - Abfragedatum
+	 * @returns {Object} Vereinheitlichte Flugdaten
+	 */
+	const convertApiMarketToUnifiedFormat = (
+		apiMarketData,
+		aircraftRegistration,
+		date
+	) => {
+		if (!apiMarketData || !Array.isArray(apiMarketData)) {
+			return { data: [] };
+		}
+
+		const formattedData = apiMarketData
+			.map((flight) => {
+				try {
+					// Extrahiere Flugdaten aus der API Market Antwort
+					// Die Struktur kann je nach Endpunkt variieren
+					const departureFlightPoint =
+						flight.flightPoints?.find((p) => p.departurePoint) || {};
+					const arrivalFlightPoint =
+						flight.flightPoints?.find((p) => p.arrivalPoint) || {};
+
+					// IATA-Codes extrahieren
+					const departureIata = departureFlightPoint.iataCode || "???";
+					const arrivalIata = arrivalFlightPoint.iataCode || "???";
+
+					// Zeiten extrahieren
+					let departureTime = "--:--";
+					let arrivalTime = "--:--";
+
+					if (departureFlightPoint.departure?.timings?.length) {
+						const timing = departureFlightPoint.departure.timings[0];
+						if (timing.value) {
+							departureTime = timing.value.substring(0, 5); // Format HH:MM
+						}
+					}
+
+					if (arrivalFlightPoint.arrival?.timings?.length) {
+						const timing = arrivalFlightPoint.arrival.timings[0];
+						if (timing.value) {
+							arrivalTime = timing.value.substring(0, 5); // Format HH:MM
+						}
+					}
+
+					// Fluggesellschaft und Flugnummer
+					const airline = flight.flightDesignator?.carrierCode || "";
+					const flightNumber = flight.flightDesignator?.flightNumber || "";
+
+					// Flugzeugtyp und Registrierung
+					const aircraftType =
+						flight.legs?.[0]?.aircraftEquipment?.aircraftType || "Unknown";
+					const registration =
+						flight.legs?.[0]?.aircraftRegistration ||
+						aircraftRegistration ||
+						"";
+
+					// Geplantes Abflugdatum
+					const scheduledDepartureDate = flight.scheduledDepartureDate || date;
+
+					return {
+						type: "DatedFlight",
+						scheduledDepartureDate: scheduledDepartureDate,
+						flightDesignator: {
+							carrierCode: airline,
+							flightNumber: flightNumber,
+						},
+						flightPoints: [
+							{
+								departurePoint: true,
+								arrivalPoint: false,
+								iataCode: departureIata,
+								departure: {
+									timings: [
+										{
+											qualifier: "STD",
+											value: departureTime + ":00.000",
+										},
+									],
+								},
+							},
+							{
+								departurePoint: false,
+								arrivalPoint: true,
+								iataCode: arrivalIata,
+								arrival: {
+									timings: [
+										{
+											qualifier: "STA",
+											value: arrivalTime + ":00.000",
+										},
+									],
+								},
+							},
+						],
+						legs: [
+							{
+								aircraftEquipment: {
+									aircraftType: aircraftType,
+								},
+								aircraftRegistration: registration,
+							},
+						],
+						_source: "apimarket",
+						_rawFlightData: flight,
+					};
+				} catch (error) {
+					console.error(
+						`Fehler bei der Konvertierung eines API Market Fluges:`,
+						error,
+						flight
+					);
+					return null;
+				}
+			})
+			.filter(Boolean);
+
+		return { data: formattedData };
+	};
+
+	/**
 	 * Macht die API-Anfrage für ein bestimmtes Flugzeug
 	 * @param {string} aircraftRegistration - Flugzeugregistrierung (z.B. "D-AIBL")
 	 * @param {string} date - Datum im Format YYYY-MM-DD
@@ -479,7 +676,61 @@ const AeroDataBoxAPI = (() => {
 			);
 
 			// Entscheide, welche API verwendet werden soll
-			if (config.activeProvider === "airlabs") {
+			if (config.activeProvider === "apimarket") {
+				try {
+					// Verwende API Market
+					const endpoint = `/flights/reg/${aircraftRegistration}/${date}`;
+					const params = {
+						withAircraftImage: false,
+						withLocation: true,
+					};
+
+					const apiMarketData = await rateLimiter(() =>
+						getApiMarketData(endpoint, params)
+					);
+
+					if (config.debugMode) {
+						console.log(
+							`API Market Antwort für ${aircraftRegistration}:`,
+							apiMarketData
+						);
+					}
+
+					if (
+						!apiMarketData ||
+						(Array.isArray(apiMarketData) && apiMarketData.length === 0)
+					) {
+						updateFetchStatus(
+							`Keine API Market Daten für ${aircraftRegistration} gefunden, generiere Testdaten`,
+							false
+						);
+						return generateTestFlightData(aircraftRegistration, date);
+					}
+
+					return convertApiMarketToUnifiedFormat(
+						apiMarketData,
+						aircraftRegistration,
+						date
+					);
+				} catch (apiMarketError) {
+					console.error(
+						`Fehler bei API Market Anfrage für ${aircraftRegistration}:`,
+						apiMarketError
+					);
+					updateFetchStatus(
+						`Fehler bei API Market Anfrage, versuche Fallback...`,
+						true
+					);
+
+					// Fallback zu AeroDataBox, wenn API Market fehlschlägt
+					if (!config.useMockData) {
+						config.activeProvider = "aerodatabox"; // Temporärer Fallback
+						console.log("Fallback zu AeroDataBox API aktiviert");
+					} else {
+						return generateTestFlightData(aircraftRegistration, date);
+					}
+				}
+			} else if (config.activeProvider === "airlabs") {
 				try {
 					// Verwende AirLabs API
 					const params = {
@@ -521,7 +772,7 @@ const AeroDataBoxAPI = (() => {
 						config.activeProvider = "aerodatabox"; // Temporärer Fallback
 						console.log("Fallback zu AeroDataBox API aktiviert");
 					} else {
-						return generateTestFlightData(registration, date);
+						return generateTestFlightData(aircraftRegistration, date);
 					}
 				}
 			} else if (
@@ -1406,7 +1657,47 @@ const AeroDataBoxAPI = (() => {
 	return {
 		updateAircraftData,
 		getAircraftFlights,
-		getAircraftFlightsDateRange,
+		getAircraftFlightsDateRange: async (aircraftId, startDate, endDate) => {
+			try {
+				// Diese Funktion ist ein Wrapper um getAircraftFlights, der Daten
+				// für einen Zeitraum abruft und zusammenführt
+				const formattedStartDate = formatDate(startDate);
+				const formattedEndDate = formatDate(endDate);
+
+				// Statusmeldung anzeigen
+				updateFetchStatus(
+					`Suche Flüge für ${aircraftId} im Zeitraum ${formattedStartDate} bis ${formattedEndDate}...`
+				);
+
+				// Daten für Start- und Enddatum abrufen
+				const startDateData = await getAircraftFlights(
+					aircraftId,
+					formattedStartDate
+				);
+				const endDateData = await getAircraftFlights(
+					aircraftId,
+					formattedEndDate
+				);
+
+				// Daten zusammenführen
+				const combinedData = {
+					data: [...(startDateData.data || []), ...(endDateData.data || [])],
+				};
+
+				if (config.debugMode) {
+					console.log(
+						`Kombinierte Daten für ${aircraftId} im Zeitraum:`,
+						combinedData
+					);
+				}
+
+				return combinedData;
+			} catch (error) {
+				console.error(`Fehler beim Abrufen der Flugdaten für Zeitraum:`, error);
+				updateFetchStatus(`Fehler bei Zeitraumabfrage: ${error.message}`, true);
+				return { data: [] };
+			}
+		},
 		getMultipleAircraftFlights,
 		getFlightStatus,
 		updateFetchStatus,
@@ -1419,11 +1710,16 @@ const AeroDataBoxAPI = (() => {
 		setApiProvider: (provider) => {
 			if (typeof provider === "string") {
 				// String-basierte Anbieter-Einstellung
-				if (["aerodatabox", "aviationstack", "airlabs"].includes(provider)) {
+				if (
+					["aerodatabox", "aviationstack", "airlabs", "apimarket"].includes(
+						provider
+					)
+				) {
 					config.activeProvider = provider;
 					// Für Rückwärtskompatibilität
 					config.useAviationstack = provider === "aviationstack";
 					config.useAirLabs = provider === "airlabs";
+					config.useApiMarket = provider === "apimarket";
 					console.log(`API-Provider gewechselt zu ${provider}`);
 				} else {
 					console.error(`Ungültiger Provider: ${provider}`);
@@ -1442,6 +1738,8 @@ const AeroDataBoxAPI = (() => {
 				);
 			}
 		},
+		// Füge Eigenschaft für Konfigurationsexport hinzu
+		config,
 	};
 })();
 

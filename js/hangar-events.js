@@ -259,6 +259,32 @@ function setupUIEventListeners() {
 			console.warn("Fetch-Button für Flugdaten nicht gefunden!");
 		}
 
+		// API-Provider Dropdown
+		const apiProviderSelect = document.getElementById("apiProviderSelect");
+		if (apiProviderSelect) {
+			apiProviderSelect.addEventListener("change", function () {
+				const selectedProvider = this.value;
+				console.log(`API-Provider geändert zu: ${selectedProvider}`);
+
+				// FlightDataAPI über API-Fassade ändern
+				if (window.FlightDataAPI) {
+					window.FlightDataAPI.setProvider(selectedProvider);
+				} else if (window.AeroDataBoxAPI) {
+					// Direkter Fallback auf AeroDataBoxAPI, falls API-Fassade nicht verfügbar
+					window.AeroDataBoxAPI.setApiProvider(selectedProvider);
+				}
+			});
+
+			// Initialen Wert setzen basierend auf aktuellem Provider
+			if (window.FlightDataAPI) {
+				const currentProvider = window.FlightDataAPI.getActiveProvider();
+				apiProviderSelect.value = currentProvider;
+				console.log(`API-Provider Dropdown auf ${currentProvider} gesetzt`);
+			}
+
+			console.log("API-Provider-Dropdown Event-Handler eingerichtet");
+		}
+
 		console.log("Alle Event-Listener erfolgreich eingerichtet");
 		return true;
 	} catch (error) {
@@ -508,6 +534,9 @@ function initializeUI() {
 				}
 			}, 100); // Kurze Verzögerung, um sicherzustellen, dass alle DOM-Elemente bereit sind
 		});
+
+		// API Provider Dropdown initialisieren
+		initializeApiProviderSelect();
 
 		return true;
 	} catch (error) {
@@ -1113,8 +1142,102 @@ function addSearchHighlightStyles() {
 }
 
 /**
+ * Initialisiert die API-Provider-Dropdown-Auswahl
+ */
+function initializeApiProviderSelect() {
+	const apiProviderSelect = document.getElementById("apiProviderSelect");
+	if (!apiProviderSelect) {
+		console.warn("API Provider Select nicht gefunden");
+		return;
+	}
+
+	// Aktuellen Provider laden
+	let currentProvider = "aerodatabox"; // Standard-Provider
+
+	// Provider aus FlightDataAPI holen, wenn verfügbar
+	if (
+		window.FlightDataAPI &&
+		typeof window.FlightDataAPI.getActiveProvider === "function"
+	) {
+		currentProvider = window.FlightDataAPI.getActiveProvider();
+	}
+	// Alternativ aus AeroDataBoxAPI, falls abrufbar
+	else if (
+		window.AeroDataBoxAPI &&
+		window.AeroDataBoxAPI.config &&
+		window.AeroDataBoxAPI.config.activeProvider
+	) {
+		currentProvider = window.AeroDataBoxAPI.config.activeProvider;
+	}
+
+	// Dropdown auf aktuellen Provider setzen
+	apiProviderSelect.value = currentProvider;
+
+	console.log(
+		`API-Provider-Dropdown initialisiert mit Wert: ${currentProvider}`
+	);
+
+	// Event-Handler für Änderungen
+	apiProviderSelect.addEventListener("change", function () {
+		const selectedProvider = this.value;
+		console.log(`API-Provider wird geändert zu: ${selectedProvider}`);
+
+		// FlightDataAPI über API-Fassade ändern
+		if (window.FlightDataAPI) {
+			window.FlightDataAPI.setProvider(selectedProvider);
+		} else if (window.AeroDataBoxAPI) {
+			// Direkter Fallback auf AeroDataBoxAPI
+			window.AeroDataBoxAPI.setApiProvider(selectedProvider);
+		}
+
+		// Status aktualisieren
+		const fetchStatus = document.getElementById("fetchStatus");
+		if (fetchStatus) {
+			fetchStatus.textContent = `API-Provider geändert zu: ${selectedProvider}`;
+		}
+	});
+}
+
+/**
+ * Globale Hilfsfunktion für Benachrichtigungen
+ * @param {string} message - Nachrichtentext
+ * @param {string} type - Art der Nachricht (success, warning, error, info)
+ */
+function showNotification(message, type = "info") {
+	// Prüfen ob die Funktion bereits im globalen Namespace existiert
+	if (typeof window.showNotification === "function") {
+		window.showNotification(message, type);
+		return;
+	}
+
+	// Fallback: Einfache Benachrichtigung in der Konsole und als Alert
+	console.log(`Benachrichtigung (${type}): ${message}`);
+
+	// Bei Fehlern als Alert anzeigen, ansonsten nur in der Konsole
+	if (type === "error") {
+		alert(`Fehler: ${message}`);
+	} else if (type === "warning") {
+		console.warn(`Warnung: ${message}`);
+	}
+
+	// Optional: Falls ein Statuselement vorhanden ist, dort anzeigen
+	const fetchStatus = document.getElementById("fetchStatus");
+	if (fetchStatus) {
+		fetchStatus.textContent = message;
+		fetchStatus.className =
+			type === "error"
+				? "text-sm text-center text-status-red"
+				: type === "warning"
+				? "text-sm text-center text-status-yellow"
+				: "text-sm text-center";
+	}
+}
+
+// Zur globalen Verfügbarkeit im window-Objekt registrieren
+window.showNotification = showNotification;
+
+/**
  * Ruft Flugdaten ab und aktualisiert die UI
- * (Platzhalter für eine echte API-Integration)
  */
 function fetchAndUpdateFlightData() {
 	const fetchStatus = document.getElementById("fetchStatus");
@@ -1130,6 +1253,7 @@ function fetchAndUpdateFlightData() {
 		}
 
 		// In einer echten Anwendung würden hier die Daten angewendet werden
+		// Verwende die global verfügbare showNotification-Funktion
 		showNotification("Flugdaten wurden aktualisiert", "success");
 
 		// Status nach einer Weile zurücksetzen
@@ -1163,14 +1287,75 @@ function handleFlightDataFetch() {
 		searchAircraftInput.classList.remove("bg-red-50");
 	}, 3000);
 
-	// Direkt über AeroDataBoxAPI, da dieser laut Log der aktuelle Provider ist
-	window.AeroDataBoxAPI.updateFetchStatus(
-		"⚠️ Bitte Flugzeugkennung eingeben (z.B. D-AIZZ oder N12345)",
-		true
-	);
+	// Flugdaten abrufen mit der aktuell ausgewählten API
+	fetchFlightButtonHandler();
+}
 
-	// Fokus auf das Suchfeld setzen
-	searchAircraftInput.focus();
+/**
+ * Event-Handler für den 'Flugdaten abrufen'-Button
+ */
+async function fetchFlightButtonHandler() {
+	// Eingabewerte sammeln
+	const currentDateInput = document.getElementById("currentDateInput");
+	const nextDateInput = document.getElementById("nextDateInput");
+
+	// Zuerst im dedizierten Suchfeld suchen
+	let searchInput = document.getElementById("searchAircraft");
+	let aircraftId = searchInput?.value?.trim();
+
+	// Wenn keine ID im Suchfeld gefunden wurde, suche nach einer aktiv ausgewählten Kachel
+	if (!aircraftId) {
+		const selectedCell = document.querySelector(".hangar-cell.selected");
+		if (selectedCell) {
+			const cellId = selectedCell.getAttribute("data-cell-id");
+			if (cellId) {
+				const aircraftInput = document.getElementById(`aircraft-${cellId}`);
+				if (aircraftInput && aircraftInput.value.trim()) {
+					aircraftId = aircraftInput.value.trim();
+					console.log(
+						`Verwende Flugzeug-ID aus ausgewählter Kachel: ${aircraftId}`
+					);
+				}
+			}
+		}
+	}
+
+	const currentDate = currentDateInput?.value;
+	const nextDate = nextDateInput?.value;
+
+	console.log(`Rufe Flugdaten mit API-Fassade ab für: ${aircraftId}`);
+
+	try {
+		// API-Fassade für alle API-Aufrufe verwenden
+		if (window.FlightDataAPI) {
+			await window.FlightDataAPI.updateAircraftData(
+				aircraftId,
+				currentDate,
+				nextDate
+			);
+		} else {
+			console.error("API-Fassade nicht verfügbar");
+			// Fallback auf direkte API-Aufrufe nur wenn nötig
+			if (window.AeroDataBoxAPI) {
+				await window.AeroDataBoxAPI.updateAircraftData(
+					aircraftId,
+					currentDate,
+					nextDate
+				);
+			} else if (window.AmadeusAPI) {
+				await window.AmadeusAPI.updateAircraftData(
+					aircraftId,
+					currentDate,
+					nextDate
+				);
+			} else {
+				showNotification("Keine Flight Data API verfügbar", "error");
+			}
+		}
+	} catch (error) {
+		console.error("Fehler beim Abrufen der Flugdaten:", error);
+		showNotification(`Datenabruf fehlgeschlagen: ${error.message}`, "error");
+	}
 }
 
 /**
@@ -1271,20 +1456,27 @@ async function fetchAndApplyAllAircraftData(
 
 				// API-Fassade verwenden, falls verfügbar
 				let flightData;
-				if (window.FlightDataAPI) {
-					flightData = await window.FlightDataAPI.getAircraftFlights(
-						aircraftId,
-						currentDate
-					);
-				} else if (window.AeroDataBoxAPI) {
-					flightData = await window.AeroDataBoxAPI.getAircraftFlights(
-						aircraftId,
-						currentDate
-					);
-				} else {
-					if (fetchStatus) {
-						fetchStatus.innerHTML = "❌ Keine API für Flugdaten verfügbar";
+				try {
+					if (window.FlightDataAPI) {
+						flightData = await window.FlightDataAPI.getAircraftFlights(
+							aircraftId,
+							currentDate
+						);
+					} else if (window.AeroDataBoxAPI) {
+						flightData = await window.AeroDataBoxAPI.getAircraftFlights(
+							aircraftId,
+							currentDate
+						);
+					} else {
+						if (fetchStatus) {
+							fetchStatus.innerHTML = "❌ Keine API für Flugdaten verfügbar";
+						}
+						continue;
 					}
+				} catch (apiError) {
+					console.error(`API-Fehler bei ${aircraftId}:`, apiError);
+					// Bei Fehler trotzdem fortfahren, aber als fehlgeschlagen markieren
+					results.failed++;
 					continue;
 				}
 
@@ -1780,31 +1972,36 @@ async function fetchFlightButtonHandler() {
 
 	console.log(`Rufe Flugdaten mit API-Fassade ab für: ${aircraftId}`);
 
-	// API-Fassade für alle API-Aufrufe verwenden
-	if (window.FlightDataAPI) {
-		await window.FlightDataAPI.updateAircraftData(
-			aircraftId,
-			currentDate,
-			nextDate
-		);
-	} else {
-		console.error("API-Fassade nicht verfügbar");
-		// Fallback auf direkte API-Aufrufe nur wenn nötig
-		if (window.AeroDataBoxAPI) {
-			await window.AeroDataBoxAPI.updateAircraftData(
-				aircraftId,
-				currentDate,
-				nextDate
-			);
-		} else if (window.AmadeusAPI) {
-			await window.AmadeusAPI.updateAircraftData(
+	try {
+		// API-Fassade für alle API-Aufrufe verwenden
+		if (window.FlightDataAPI) {
+			await window.FlightDataAPI.updateAircraftData(
 				aircraftId,
 				currentDate,
 				nextDate
 			);
 		} else {
-			alert("Keine Flight Data API verfügbar");
+			console.error("API-Fassade nicht verfügbar");
+			// Fallback auf direkte API-Aufrufe nur wenn nötig
+			if (window.AeroDataBoxAPI) {
+				await window.AeroDataBoxAPI.updateAircraftData(
+					aircraftId,
+					currentDate,
+					nextDate
+				);
+			} else if (window.AmadeusAPI) {
+				await window.AmadeusAPI.updateAircraftData(
+					aircraftId,
+					currentDate,
+					nextDate
+				);
+			} else {
+				showNotification("Keine Flight Data API verfügbar", "error");
+			}
 		}
+	} catch (error) {
+		console.error("Fehler beim Abrufen der Flugdaten:", error);
+		showNotification(`Datenabruf fehlgeschlagen: ${error.message}`, "error");
 	}
 }
 

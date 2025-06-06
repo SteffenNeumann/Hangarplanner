@@ -8,7 +8,8 @@ const FlightDataAPI = (() => {
 	const PROVIDERS = {
 		AMADEUS: "amadeus",
 		AERODATABOX: "aerodatabox",
-		OPENSKY: "opensky", // Provider wird bereits definiert
+		OPENSKY: "opensky",
+		API_MARKET: "apimarket", // Neuer API Market Provider
 	};
 
 	// Standard-Provider
@@ -35,6 +36,9 @@ const FlightDataAPI = (() => {
 				(activeProvider === PROVIDERS.AMADEUS &&
 					typeof window.AmadeusAPI === "undefined") ||
 				(activeProvider === PROVIDERS.AERODATABOX &&
+					typeof window.AeroDataBoxAPI === "undefined") ||
+				// Korrigierte Prüfung für API Market - nur prüfen ob AeroDataBoxAPI existiert
+				(activeProvider === PROVIDERS.API_MARKET &&
 					typeof window.AeroDataBoxAPI === "undefined")
 			) {
 				console.warn(
@@ -65,6 +69,15 @@ const FlightDataAPI = (() => {
 		localStorage.setItem("flightDataApiProvider", provider);
 		console.log(`API-Provider geändert auf: ${provider}`);
 
+		// Bei API Market über AeroDataBox den internen Provider umstellen
+		if (provider === PROVIDERS.API_MARKET && window.AeroDataBoxAPI) {
+			window.AeroDataBoxAPI.setApiProvider("apimarket");
+			console.log("AeroDataBoxAPI auf API Market umgestellt");
+		} else if (provider === PROVIDERS.AERODATABOX && window.AeroDataBoxAPI) {
+			window.AeroDataBoxAPI.setApiProvider("aerodatabox");
+			console.log("AeroDataBoxAPI auf Standard-Provider umgestellt");
+		}
+
 		// Status-Anzeige aktualisieren
 		updateStatus(
 			`API-Provider geändert auf ${getProviderDisplayName(provider)}`
@@ -82,6 +95,8 @@ const FlightDataAPI = (() => {
 				return "AeroDataBox API";
 			case PROVIDERS.OPENSKY:
 				return "OpenSky Network API";
+			case PROVIDERS.API_MARKET:
+				return "API Market";
 			default:
 				return provider;
 		}
@@ -165,6 +180,8 @@ const FlightDataAPI = (() => {
 					currentDate,
 					nextDate,
 				});
+				// Stelle sicher, dass AeroDataBox im Standard-Modus arbeitet
+				window.AeroDataBoxAPI.setApiProvider("aerodatabox");
 				result = await window.AeroDataBoxAPI.updateAircraftData(
 					aircraftId,
 					currentDate,
@@ -174,6 +191,26 @@ const FlightDataAPI = (() => {
 					"API-FASSADE: Ergebnis von AeroDataBoxAPI erhalten:",
 					result
 				);
+			} else if (
+				activeProvider === PROVIDERS.API_MARKET &&
+				typeof window.AeroDataBoxAPI !== "undefined"
+			) {
+				console.log(
+					"API-FASSADE: Rufe API Market über AeroDataBoxAPI auf mit Parametern:",
+					{
+						aircraftId,
+						currentDate,
+						nextDate,
+					}
+				);
+				// Stelle AeroDataBox auf API Market um
+				window.AeroDataBoxAPI.setApiProvider("apimarket");
+				result = await window.AeroDataBoxAPI.updateAircraftData(
+					aircraftId,
+					currentDate,
+					nextDate
+				);
+				console.log("API-FASSADE: Ergebnis von API Market erhalten:", result);
 			} else if (
 				activeProvider === PROVIDERS.OPENSKY &&
 				typeof window.OpenskyAPI !== "undefined"
@@ -198,11 +235,9 @@ const FlightDataAPI = (() => {
 
 			if (result) {
 				updateStatus(`Flugdaten für ${aircraftId} erfolgreich abgerufen.`);
-				console.log("API-FASSADE: Ergebnis erfolgreich verarbeitet:", result);
 				return result;
 			} else {
-				updateStatus(`Keine Flugdaten für ${aircraftId} gefunden.`, true);
-				console.warn("API-FASSADE: Keine Flugdaten zurückgegeben");
+				updateStatus(`Keine Flugdaten für ${aircraftId} verfügbar.`, true);
 				return null;
 			}
 		} catch (error) {
@@ -215,61 +250,9 @@ const FlightDataAPI = (() => {
 				true
 			);
 
-			// Bei Fehler auf andere APIs zurückfallen
-			if (activeProvider !== PROVIDERS.OPENSKY && window.OpenskyAPI) {
-				console.log("API-FASSADE: Fallback auf OpenSky Network API...");
-				updateStatus("Versuche Fallback auf OpenSky Network API...");
-
-				try {
-					const fallbackResult = await window.OpenskyAPI.updateAircraftData(
-						aircraftId,
-						currentDate,
-						nextDate
-					);
-
-					if (fallbackResult) {
-						updateStatus(
-							`Flugdaten mit Fallback-API für ${aircraftId} erfolgreich abgerufen.`
-						);
-						console.log("API-FASSADE: Fallback erfolgreich:", fallbackResult);
-						return fallbackResult;
-					}
-				} catch (fallbackError) {
-					console.error(
-						"API-FASSADE: Auch Fallback-API fehlgeschlagen:",
-						fallbackError
-					);
-				}
-			}
-
-			// Wenn OpenSky nicht verfügbar oder fehlschlägt, versuche Amadeus
-			if (activeProvider !== PROVIDERS.AMADEUS && window.AmadeusAPI) {
-				console.log("API-FASSADE: Fallback auf Amadeus API...");
-				updateStatus("Versuche Fallback auf Amadeus API...");
-
-				try {
-					const fallbackResult = await window.AmadeusAPI.updateAircraftData(
-						aircraftId,
-						currentDate,
-						nextDate
-					);
-
-					if (fallbackResult) {
-						updateStatus(
-							`Flugdaten mit Fallback-API für ${aircraftId} erfolgreich abgerufen.`
-						);
-						console.log("API-FASSADE: Fallback erfolgreich:", fallbackResult);
-						return fallbackResult;
-					}
-				} catch (fallbackError) {
-					console.error(
-						"API-FASSADE: Auch Fallback-API fehlgeschlagen:",
-						fallbackError
-					);
-				}
-			}
-
-			throw error; // Original-Fehler weitergeben
+			// WICHTIG: Automatischen Fallback entfernen, damit nur die ausgewählte API verwendet wird
+			// Stattdessen direkt den Fehler werfen
+			throw error;
 		}
 	};
 
