@@ -1,356 +1,304 @@
 /**
- * API-Fassade für Flugdaten
- * Ermöglicht die Verwendung verschiedener APIs für Flugdatenabfragen
+ * API-Fassade für die Integration verschiedener Flugdaten-APIs
+ * Bietet eine einheitliche Schnittstelle für den Zugriff auf verschiedene Datenquellen
  */
 
 const FlightDataAPI = (() => {
-	// Verfügbare API-Provider
-	const PROVIDERS = {
-		AMADEUS: "amadeus",
-		AERODATABOX: "aerodatabox",
-		OPENSKY: "opensky",
-		API_MARKET: "apimarket", // Neuer API Market Provider
+	// Konfiguration und Status
+	const config = {
+		activeProvider: "aerodatabox", // Standard-Provider
+		availableProviders: ["aerodatabox", "apimarket", "amadeus", "opensky"],
+		debugMode: true,
 	};
 
-	// Standard-Provider
-	let activeProvider = PROVIDERS.AERODATABOX;
-
-	/**
-	 * Initialisiert die API-Fassade
-	 */
+	// Initialisierungslogik
 	const init = () => {
 		try {
-			// Vorhandene Einstellung aus localStorage laden, falls vorhanden
-			const savedProvider = localStorage.getItem("flightDataApiProvider");
-			if (savedProvider && Object.values(PROVIDERS).includes(savedProvider)) {
-				activeProvider = savedProvider;
+			// Gespeicherten Provider aus localStorage laden, falls verfügbar
+			const savedProvider = localStorage.getItem("selectedApiProvider");
+			if (savedProvider) {
+				config.activeProvider = savedProvider;
 				console.log(
-					`API-Provider aus lokaler Speicherung geladen: ${activeProvider}`
+					`API-Provider aus lokaler Speicherung geladen: ${config.activeProvider}`
 				);
+
+				// Den Provider sofort in den zugrundeliegenden APIs setzen
+				applyProviderToAPIs(config.activeProvider);
 			}
 
-			// Prüfen ob der aktuelle Provider verfügbar ist, sonst zurück zum Default
-			if (
-				(activeProvider === PROVIDERS.OPENSKY &&
-					typeof window.OpenskyAPI === "undefined") ||
-				(activeProvider === PROVIDERS.AMADEUS &&
-					typeof window.AmadeusAPI === "undefined") ||
-				(activeProvider === PROVIDERS.AERODATABOX &&
-					typeof window.AeroDataBoxAPI === "undefined") ||
-				// Korrigierte Prüfung für API Market - nur prüfen ob AeroDataBoxAPI existiert
-				(activeProvider === PROVIDERS.API_MARKET &&
-					typeof window.AeroDataBoxAPI === "undefined")
-			) {
-				console.warn(
-					`Gewählter Provider ${activeProvider} nicht verfügbar, verwende Standard-Provider`
-				);
-				activeProvider = PROVIDERS.AERODATABOX;
+			// Dropdown-Selektor mit aktuellem Provider synchronisieren
+			const apiSelector = document.getElementById("apiProviderSelect");
+			if (apiSelector) {
+				apiSelector.value = config.activeProvider;
 			}
 
 			console.log(
-				`Flight Data API-Fassade initialisiert mit Provider: ${activeProvider}`
+				`Flight Data API-Fassade initialisiert mit Provider: ${config.activeProvider}`
 			);
+			return true;
 		} catch (error) {
 			console.error("Fehler bei der Initialisierung der API-Fassade:", error);
+			return false;
 		}
 	};
 
 	/**
-	 * Setzt den aktiven API-Provider
-	 * @param {string} provider - Der zu verwendende Provider
+	 * Stellt sicher, dass alle APIs den gleichen Provider verwenden
+	 * @param {string} provider - Der zu verwendende API-Provider
+	 */
+	const applyProviderToAPIs = (provider) => {
+		// AeroDataBoxAPI konfigurieren, falls verfügbar
+		if (window.AeroDataBoxAPI) {
+			window.AeroDataBoxAPI.setApiProvider(provider);
+		}
+
+		// Andere APIs hier hinzufügen, falls notwendig
+		if (
+			window.AmadeusAPI &&
+			typeof window.AmadeusAPI.setProvider === "function"
+		) {
+			window.AmadeusAPI.setProvider(provider);
+		}
+
+		if (
+			window.OpenSkyAPI &&
+			typeof window.OpenSkyAPI.setProvider === "function"
+		) {
+			window.OpenSkyAPI.setProvider(provider);
+		}
+
+		// Provider-Selektor aktualisieren
+		const apiSelector = document.getElementById("apiProviderSelect");
+		if (apiSelector) {
+			apiSelector.value = provider;
+		}
+	};
+
+	/**
+	 * Wechselt den aktiven API-Provider
+	 * @param {string} provider - Der neue Provider
 	 */
 	const setProvider = (provider) => {
-		if (!Object.values(PROVIDERS).includes(provider)) {
+		if (!config.availableProviders.includes(provider)) {
 			console.error(`Ungültiger API-Provider: ${provider}`);
-			return;
+			return false;
 		}
 
-		activeProvider = provider;
-		localStorage.setItem("flightDataApiProvider", provider);
-		console.log(`API-Provider geändert auf: ${provider}`);
+		config.activeProvider = provider;
+		applyProviderToAPIs(provider);
 
-		// Bei API Market über AeroDataBox den internen Provider umstellen
-		if (provider === PROVIDERS.API_MARKET && window.AeroDataBoxAPI) {
-			window.AeroDataBoxAPI.setApiProvider("apimarket");
-			console.log("AeroDataBoxAPI auf API Market umgestellt");
-		} else if (provider === PROVIDERS.AERODATABOX && window.AeroDataBoxAPI) {
-			window.AeroDataBoxAPI.setApiProvider("aerodatabox");
-			console.log("AeroDataBoxAPI auf Standard-Provider umgestellt");
-		}
+		// Provider im localStorage speichern
+		localStorage.setItem("selectedApiProvider", provider);
+		console.log(`API-Provider gewechselt zu: ${provider}`);
 
-		// Status-Anzeige aktualisieren
-		updateStatus(
-			`API-Provider geändert auf ${getProviderDisplayName(provider)}`
-		);
+		return true;
 	};
 
 	/**
-	 * Gibt den Anzeigenamen eines Providers zurück
+	 * Gibt den aktuell aktiven Provider zurück
+	 * @returns {string} Name des aktiven Providers
+	 */
+	const getActiveProvider = () => {
+		return config.activeProvider;
+	};
+
+	/**
+	 * Aktualisiert die API-Status-Anzeige im UI
+	 * @param {string} message - Die anzuzeigende Nachricht
+	 * @param {boolean} isError - Ob es sich um eine Fehlermeldung handelt
+	 */
+	const updateFetchStatus = (message, isError = false) => {
+		const fetchStatus = document.getElementById("fetchStatus");
+		if (fetchStatus) {
+			fetchStatus.textContent = message;
+			fetchStatus.className = isError
+				? "text-sm text-center text-status-red"
+				: "text-sm text-center text-white";
+
+			// Pulsierende Animation bei Aktivität hinzufügen
+			if (
+				!isError &&
+				!message.includes("bereit") &&
+				!message.includes("erfolgreich")
+			) {
+				fetchStatus.classList.add("animate-pulse");
+			} else {
+				fetchStatus.classList.remove("animate-pulse");
+			}
+		}
+
+		console.log(`API-FASSADE: ${message}`);
+	};
+
+	/**
+	 * Aktualisiert Flugdaten für ein bestimmtes Flugzeug
+	 * @param {string} aircraftId - Die Flugzeugkennung
+	 * @param {string} currentDate - Das aktuelle Datum
+	 * @param {string} nextDate - Das nächste Datum
+	 * @returns {Promise<Object>} Flugdaten
+	 */
+	const updateAircraftData = async (aircraftId, currentDate, nextDate) => {
+		try {
+			if (!aircraftId) {
+				updateFetchStatus("Bitte Flugzeugkennung eingeben", true);
+				return null;
+			}
+
+			// Log Provider-Info
+			console.log(
+				`API-FASSADE: Verwende ${config.activeProvider.toUpperCase()} für ${aircraftId}`
+			);
+			updateFetchStatus(
+				`Flugdaten werden abgerufen für ${aircraftId} mit ${getProviderDisplayName(
+					config.activeProvider
+				)}...`
+			);
+
+			// Je nach ausgewähltem Provider die entsprechende API verwenden
+			let result;
+
+			// WICHTIG: Hier wird der ausgewählte Provider beachtet und nicht zu einem Fallback gewechselt
+			switch (config.activeProvider) {
+				case "aerodatabox":
+					console.log(`API-FASSADE: Rufe AeroDataBoxAPI auf mit Parametern:`, {
+						aircraftId,
+						currentDate,
+						nextDate,
+					});
+					if (window.AeroDataBoxAPI) {
+						// Wenn API Market ausgewählt ist, aber AeroDataBox verwendet wird,
+						// stelle sicher, dass AeroDataBox mit der richtigen Konfiguration aufgerufen wird
+						window.AeroDataBoxAPI.setApiProvider("aerodatabox");
+						result = await window.AeroDataBoxAPI.updateAircraftData(
+							aircraftId,
+							currentDate,
+							nextDate
+						);
+					} else {
+						throw new Error("AeroDataBoxAPI nicht verfügbar");
+					}
+					break;
+
+				case "apimarket":
+					console.log(
+						`API-FASSADE: Rufe API Market über AeroDataBoxAPI auf mit Parametern:`,
+						{ aircraftId, currentDate, nextDate }
+					);
+					if (window.AeroDataBoxAPI) {
+						// Wenn AeroDataBox ausgewählt ist, aber API Market verwendet wird,
+						// stelle sicher, dass AeroDataBox mit der richtigen Konfiguration aufgerufen wird
+						window.AeroDataBoxAPI.setApiProvider("apimarket");
+						result = await window.AeroDataBoxAPI.updateAircraftData(
+							aircraftId,
+							currentDate,
+							nextDate
+						);
+					} else {
+						throw new Error("AeroDataBoxAPI nicht verfügbar");
+					}
+					break;
+
+				// Andere Provider hier ergänzen
+				case "amadeus":
+					if (window.AmadeusAPI) {
+						result = await window.AmadeusAPI.updateAircraftData(
+							aircraftId,
+							currentDate,
+							nextDate
+						);
+					} else {
+						throw new Error("AmadeusAPI nicht verfügbar");
+					}
+					break;
+
+				case "opensky":
+					if (window.OpenSkyAPI) {
+						result = await window.OpenSkyAPI.updateAircraftData(
+							aircraftId,
+							currentDate,
+							nextDate
+						);
+					} else {
+						throw new Error("OpenSkyAPI nicht verfügbar");
+					}
+					break;
+
+				default:
+					throw new Error(`Unbekannter API-Provider: ${config.activeProvider}`);
+			}
+
+			console.log(
+				`API-FASSADE: Ergebnis von ${config.activeProvider.toUpperCase()} erhalten:`,
+				result
+			);
+			updateFetchStatus(`Flugdaten für ${aircraftId} erfolgreich abgerufen.`);
+			return result;
+		} catch (error) {
+			console.error("API-FASSADE: Fehler beim Abrufen der Flugdaten:", error);
+			updateFetchStatus(
+				`Fehler beim Abrufen der Flugdaten: ${error.message}`,
+				true
+			);
+			return null;
+		}
+	};
+
+	/**
+	 * Gibt einen schöneren Anzeigetext für den Provider zurück
+	 * @param {string} provider - Der Provider-Code
+	 * @returns {string} Anzeigetext
 	 */
 	const getProviderDisplayName = (provider) => {
 		switch (provider) {
-			case PROVIDERS.AMADEUS:
-				return "Amadeus API";
-			case PROVIDERS.AERODATABOX:
+			case "aerodatabox":
 				return "AeroDataBox API";
-			case PROVIDERS.OPENSKY:
-				return "OpenSky Network API";
-			case PROVIDERS.API_MARKET:
+			case "apimarket":
 				return "API Market";
+			case "amadeus":
+				return "Amadeus API";
+			case "opensky":
+				return "OpenSky API";
 			default:
 				return provider;
 		}
 	};
 
-	/**
-	 * Aktualisiert den Status in der UI
-	 */
-	const updateStatus = (message, isError = false) => {
-		// Delegate zum aktiven Provider wenn verfügbar, sonst eigene Implementierung
-		if (activeProvider === PROVIDERS.AMADEUS && window.AmadeusAPI) {
-			window.AmadeusAPI.updateFetchStatus(message, isError);
-		} else if (
-			activeProvider === PROVIDERS.AERODATABOX &&
-			window.AeroDataBoxAPI
-		) {
-			window.AeroDataBoxAPI.updateFetchStatus(message, isError);
-		} else if (activeProvider === PROVIDERS.OPENSKY && window.OpenskyAPI) {
-			window.OpenskyAPI.updateFetchStatus(message, isError);
-		} else {
-			const fetchStatus = document.getElementById("fetchStatus");
-			if (fetchStatus) {
-				fetchStatus.textContent = message;
-				fetchStatus.className = isError
-					? "text-sm text-center text-status-red"
-					: "text-sm text-center";
-			}
-			console[isError ? "error" : "log"](message);
-		}
-	};
-
-	/**
-	 * Sucht Flugdaten für ein Flugzeug
-	 * @param {string} aircraftId - Flugzeugkennung
-	 * @param {string} currentDate - Aktuelles Datum (ISO-Format)
-	 * @param {string} nextDate - Nächstes Datum (ISO-Format)
-	 * @returns {Promise} Flugdaten
-	 */
-	const updateAircraftData = async (aircraftId, currentDate, nextDate) => {
-		if (!aircraftId) {
-			updateStatus("Bitte Flugzeugkennung eingeben", true);
-			console.error("API-FASSADE: Fehler - Keine Flugzeugkennung angegeben");
-			return null;
-		}
-
-		console.log(
-			`API-FASSADE: Verwende ${activeProvider.toUpperCase()} für ${aircraftId}`
-		);
-		updateStatus(
-			`Flugdaten werden abgerufen für ${aircraftId} mit ${getProviderDisplayName(
-				activeProvider
-			)}...`
-		);
-
-		try {
-			// API-Aufrufe an den aktiven Provider delegieren
-			let result;
-
-			// Prüfen ob der Provider überhaupt existiert
-			if (
-				activeProvider === PROVIDERS.AMADEUS &&
-				typeof window.AmadeusAPI !== "undefined"
-			) {
-				console.log("API-FASSADE: Rufe AmadeusAPI auf mit Parametern:", {
-					aircraftId,
-					currentDate,
-					nextDate,
-				});
-				result = await window.AmadeusAPI.updateAircraftData(
-					aircraftId,
-					currentDate,
-					nextDate
-				);
-				console.log("API-FASSADE: Ergebnis von AmadeusAPI erhalten:", result);
-			} else if (
-				activeProvider === PROVIDERS.AERODATABOX &&
-				typeof window.AeroDataBoxAPI !== "undefined"
-			) {
-				console.log("API-FASSADE: Rufe AeroDataBoxAPI auf mit Parametern:", {
-					aircraftId,
-					currentDate,
-					nextDate,
-				});
-				// Stelle sicher, dass AeroDataBox im Standard-Modus arbeitet
-				window.AeroDataBoxAPI.setApiProvider("aerodatabox");
-				result = await window.AeroDataBoxAPI.updateAircraftData(
-					aircraftId,
-					currentDate,
-					nextDate
-				);
-				console.log(
-					"API-FASSADE: Ergebnis von AeroDataBoxAPI erhalten:",
-					result
-				);
-			} else if (
-				activeProvider === PROVIDERS.API_MARKET &&
-				typeof window.AeroDataBoxAPI !== "undefined"
-			) {
-				console.log(
-					"API-FASSADE: Rufe API Market über AeroDataBoxAPI auf mit Parametern:",
-					{
-						aircraftId,
-						currentDate,
-						nextDate,
-					}
-				);
-				// Stelle AeroDataBox auf API Market um
-				window.AeroDataBoxAPI.setApiProvider("apimarket");
-				result = await window.AeroDataBoxAPI.updateAircraftData(
-					aircraftId,
-					currentDate,
-					nextDate
-				);
-				console.log("API-FASSADE: Ergebnis von API Market erhalten:", result);
-			} else if (
-				activeProvider === PROVIDERS.OPENSKY &&
-				typeof window.OpenskyAPI !== "undefined"
-			) {
-				console.log("API-FASSADE: Rufe OpenskyAPI auf mit Parametern:", {
-					aircraftId,
-					currentDate,
-					nextDate,
-				});
-				result = await window.OpenskyAPI.updateAircraftData(
-					aircraftId,
-					currentDate,
-					nextDate
-				);
-				console.log("API-FASSADE: Ergebnis von OpenskyAPI erhalten:", result);
-			} else {
-				const errorMsg = `API-Provider ${activeProvider} nicht verfügbar`;
-				console.error(`API-FASSADE: ${errorMsg}`);
-				updateStatus(errorMsg, true);
-				throw new Error(errorMsg);
-			}
-
-			if (result) {
-				updateStatus(`Flugdaten für ${aircraftId} erfolgreich abgerufen.`);
-				return result;
-			} else {
-				updateStatus(`Keine Flugdaten für ${aircraftId} verfügbar.`, true);
-				return null;
-			}
-		} catch (error) {
-			console.error(
-				`API-FASSADE: Fehler beim Abrufen der Flugdaten mit ${activeProvider}:`,
-				error
-			);
-			updateStatus(
-				`Fehler beim Datenabruf: ${error.message || "Unbekannter Fehler"}`,
-				true
-			);
-
-			// WICHTIG: Automatischen Fallback entfernen, damit nur die ausgewählte API verwendet wird
-			// Stattdessen direkt den Fehler werfen
-			throw error;
-		}
-	};
-
-	/**
-	 * Ruft Flugdaten für ein Flugzeug ab (Alias für updateAircraftData)
-	 * @param {string} aircraftId - Flugzeugkennung
-	 * @param {string} currentDate - Aktuelles Datum (ISO-Format)
-	 * @param {string} nextDate - Nächstes Datum (ISO-Format)
-	 * @returns {Promise} Flugdaten
-	 */
-	const getAircraftFlights = async (aircraftId, currentDate, nextDate) => {
-		return updateAircraftData(aircraftId, currentDate, nextDate);
-	};
-
-	/**
-	 * Ruft Flugdaten für mehrere Flugzeuge ab
-	 * @param {string[]} aircraftIds - Liste der Flugzeugregistrierungen
-	 * @param {string} currentDate - Aktuelles Datum (ISO-Format)
-	 * @returns {Promise<Object[]>} Liste der Flugdaten
-	 */
-	const getMultipleAircraftFlights = async (aircraftIds, currentDate) => {
-		if (!aircraftIds || aircraftIds.length === 0) {
-			updateStatus("Keine Flugzeugkennungen angegeben", true);
-			return [];
-		}
-
-		try {
-			// Delegieren an den aktiven Provider
-			if (
-				activeProvider === PROVIDERS.AMADEUS &&
-				window.AmadeusAPI &&
-				typeof window.AmadeusAPI.getMultipleAircraftFlights === "function"
-			) {
-				return await window.AmadeusAPI.getMultipleAircraftFlights(
-					aircraftIds,
-					currentDate
-				);
-			} else if (
-				activeProvider === PROVIDERS.AERODATABOX &&
-				window.AeroDataBoxAPI &&
-				typeof window.AeroDataBoxAPI.getMultipleAircraftFlights === "function"
-			) {
-				return await window.AeroDataBoxAPI.getMultipleAircraftFlights(
-					aircraftIds,
-					currentDate
-				);
-			} else if (
-				activeProvider === PROVIDERS.OPENSKY &&
-				window.OpenskyAPI &&
-				typeof window.OpenskyAPI.getMultipleAircraftFlights === "function"
-			) {
-				return await window.OpenskyAPI.getMultipleAircraftFlights(
-					aircraftIds,
-					currentDate
-				);
-			} else {
-				// Manuell sequentiell abfragen, wenn keine Batch-Funktion verfügbar ist
-				const results = [];
-				for (const id of aircraftIds) {
-					try {
-						const data = await updateAircraftData(id, currentDate);
-						results.push({ registration: id, data });
-					} catch (err) {
-						console.error(`Fehler bei ${id}:`, err);
-						results.push({ registration: id, error: err.message });
-					}
-				}
-				return results;
-			}
-		} catch (error) {
-			console.error("Fehler beim Abrufen mehrerer Flugzeugdaten:", error);
-			updateStatus(
-				`Fehler beim Abrufen mehrerer Flugzeugdaten: ${error.message}`,
-				true
-			);
-			throw error;
-		}
-	};
-
-	// Beim Laden der Seite initialisieren und auch auf DOMContentLoaded warten
-	if (document.readyState === "loading") {
-		document.addEventListener("DOMContentLoaded", init);
-	} else {
-		// Falls DOM bereits geladen ist
-		init();
-	}
-
 	// Öffentliche API
 	return {
-		PROVIDERS,
-		updateAircraftData,
-		getAircraftFlights,
-		getMultipleAircraftFlights,
+		init,
 		setProvider,
-		getActiveProvider: () => activeProvider,
-		updateStatus,
+		getActiveProvider,
+		updateAircraftData,
+		getAircraftFlights: async (aircraftId, date) => {
+			// Lade Flugdaten für ein Flugzeug an einem bestimmten Datum
+			try {
+				switch (config.activeProvider) {
+					case "aerodatabox":
+					case "apimarket":
+						if (window.AeroDataBoxAPI) {
+							window.AeroDataBoxAPI.setApiProvider(config.activeProvider);
+							return await window.AeroDataBoxAPI.getAircraftFlights(
+								aircraftId,
+								date
+							);
+						}
+						break;
+					// Weitere Provider hier
+				}
+				throw new Error("Kein passender Provider verfügbar");
+			} catch (error) {
+				console.error("API-FASSADE: Fehler in getAircraftFlights", error);
+				updateFetchStatus(
+					`Fehler beim Abrufen von Flugdaten: ${error.message}`,
+					true
+				);
+				return { data: [] };
+			}
+		},
+		// Weitere Methoden hier
 	};
 })();
 
-// Globalen Namespace für API-Zugriff erstellen
+// API-Fassade initialisieren und global verfügbar machen
 window.FlightDataAPI = FlightDataAPI;
+document.addEventListener("DOMContentLoaded", FlightDataAPI.init);

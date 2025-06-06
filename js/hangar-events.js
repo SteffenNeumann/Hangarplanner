@@ -1204,23 +1204,19 @@ function initializeApiProviderSelect() {
  * @param {string} type - Art der Nachricht (success, warning, error, info)
  */
 function showNotification(message, type = "info") {
-	// Prüfen ob die Funktion bereits im globalen Namespace existiert
-	if (typeof window.showNotification === "function") {
-		window.showNotification(message, type);
-		return;
-	}
+	// Direkte Implementierung ohne rekursiven Aufruf
 
-	// Fallback: Einfache Benachrichtigung in der Konsole und als Alert
+	// Ausgabe in der Konsole
 	console.log(`Benachrichtigung (${type}): ${message}`);
 
-	// Bei Fehlern als Alert anzeigen, ansonsten nur in der Konsole
+	// Bei Fehlern detailliertere Konsolenausgabe
 	if (type === "error") {
-		alert(`Fehler: ${message}`);
+		console.error(`Fehler: ${message}`);
 	} else if (type === "warning") {
 		console.warn(`Warnung: ${message}`);
 	}
 
-	// Optional: Falls ein Statuselement vorhanden ist, dort anzeigen
+	// UI-Elemente aktualisieren, wenn vorhanden
 	const fetchStatus = document.getElementById("fetchStatus");
 	if (fetchStatus) {
 		fetchStatus.textContent = message;
@@ -1234,6 +1230,7 @@ function showNotification(message, type = "info") {
 }
 
 // Zur globalen Verfügbarkeit im window-Objekt registrieren
+// WICHTIG: Direkter Verweis auf die Funktion ohne erneuten Aufruf
 window.showNotification = showNotification;
 
 /**
@@ -1348,8 +1345,6 @@ async function fetchFlightButtonHandler() {
 					currentDate,
 					nextDate
 				);
-			} else {
-				showNotification("Keine Flight Data API verfügbar", "error");
 			}
 		}
 	} catch (error) {
@@ -1995,8 +1990,6 @@ async function fetchFlightButtonHandler() {
 					currentDate,
 					nextDate
 				);
-			} else {
-				showNotification("Keine Flight Data API verfügbar", "error");
 			}
 		}
 	} catch (error) {
