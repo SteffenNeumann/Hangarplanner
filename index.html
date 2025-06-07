@@ -29,6 +29,7 @@
 			};
 		</script>
 		<link rel="stylesheet" href="css/hangarplanner-ui.css" />
+		<link rel="stylesheet" href="css/dark-mode-zoom.css" />
 	</head>
 	<body class="bg-industrial-dark text-white font-sans edit-mode">
 		<div class="flex h-screen">
@@ -1063,6 +1064,38 @@
 									<option value="3">3 Columns</option>
 									<option value="4" selected>4 Columns</option>
 								</select>
+							</div>
+
+							<!-- Dark Mode Toggle -->
+							<div class="sidebar-form-group">
+								<div class="sidebar-form-row">
+									<label for="darkModeToggle">Dark Mode:</label>
+									<div class="input-container">
+										<div class="mode-toggle">
+											<span class="mode-toggle-label text-xs">Light</span>
+											<label class="toggle-switch">
+												<input type="checkbox" id="darkModeToggle" />
+												<span class="toggle-slider"></span>
+											</label>
+											<span class="mode-toggle-label text-xs">Dark</span>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<!-- Display Zoom Slider -->
+							<div class="sidebar-form-group">
+								<label for="displayZoom"
+									>Display Zoom: <span id="zoomValue">100%</span></label
+								>
+								<input
+									type="range"
+									id="displayZoom"
+									min="75"
+									max="150"
+									step="5"
+									value="100"
+									class="sidebar-form-control w-full" />
 							</div>
 						</div>
 					</div>

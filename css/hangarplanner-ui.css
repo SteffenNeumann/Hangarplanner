@@ -815,3 +815,175 @@ input:checked + .toggle-slider:before {
 }
 
 /* Standardwert für 4+ Kacheln bleibt unverändert */
+
+/* Dark Mode Styles */
+.dark-mode {
+	color-scheme: dark;
+	/* Hintergrund */
+	--bg-primary: #1f2937;
+	--bg-secondary: #111827;
+	--bg-tertiary: #374151;
+
+	/* Textfarben */
+	--text-primary: #f9fafb;
+	--text-secondary: #d1d5db;
+	--text-tertiary: #9ca3af;
+
+	/* UI-Elemente */
+	--card-bg: #374151;
+	--card-header-bg: #4b5563;
+	--input-bg: #4b5563;
+	--input-text: #e5e7eb;
+	--border-color: #4b5563;
+
+	/* Status-Farben anpassen für besseren Kontrast im Darkmode */
+	--status-ready-bg: #065f46; /* Dunkleres Grün */
+	--status-maintenance-bg: #854d0e; /* Dunkleres Gelb */
+	--status-aog-bg: #991b1b; /* Dunkleres Rot */
+}
+
+/* Background und Text Colors */
+.dark-mode body {
+	background-color: var(--bg-primary);
+	color: var(--text-primary);
+}
+
+/* Sidebar styling im Dark Mode */
+.dark-mode .sidebar-container {
+	background-color: var(--bg-secondary);
+	color: var(--text-primary);
+}
+
+.dark-mode .sidebar-accordion-header {
+	background-color: var(--bg-tertiary);
+	border-color: var(--border-color);
+}
+
+.dark-mode .sidebar-accordion-content {
+	background-color: var(--bg-secondary);
+}
+
+/* Form-Elemente im Dark Mode */
+.dark-mode input,
+.dark-mode select,
+.dark-mode textarea {
+	background-color: var(--input-bg);
+	color: var(--input-text);
+	border-color: var(--border-color);
+}
+
+.dark-mode .sidebar-form-control,
+.dark-mode .sidebar-form-select {
+	background-color: var(--input-bg);
+	color: var(--input-text);
+}
+
+.dark-mode .sidebar-btn {
+	background-color: var(--bg-tertiary);
+}
+
+.dark-mode .sidebar-btn-primary {
+	background-color: #2563eb; /* Blautonung anpassen */
+}
+
+/* Hangar-Kacheln im Dark Mode */
+.dark-mode .hangar-cell {
+	background-color: var(--card-bg);
+	color: var(--text-primary);
+	box-shadow: 8px 8px 12px rgba(0, 0, 0, 0.35),
+		-8px -8px 12px rgba(55, 65, 81, 0.7);
+	border-color: var(--border-color);
+}
+
+.dark-mode .card-header {
+	background-color: var(--card-header-bg);
+	border-color: var(--border-color);
+}
+
+.dark-mode .aircraft-id {
+	background-color: var(--input-bg);
+	color: var(--text-primary);
+	border-color: var(--border-color);
+}
+
+.dark-mode .info-label {
+	color: var(--text-secondary);
+}
+
+.dark-mode .info-value {
+	color: var(--text-primary);
+}
+
+.dark-mode .tow-status-selector {
+	background-color: var(--input-bg);
+	color: var(--text-secondary);
+}
+
+.dark-mode .notes-textarea {
+	background-color: var(--input-bg);
+	color: var(--input-text);
+	border-color: var(--border-color);
+}
+
+/* Status-Lichter im Dark Mode sichtbarer machen */
+.dark-mode .status-ready {
+	background-color: var(--status-ready-bg);
+}
+
+.dark-mode .status-maintenance {
+	background-color: var(--status-maintenance-bg);
+}
+
+.dark-mode .status-aog {
+	background-color: var(--status-aog-bg);
+}
+
+/* Header und andere UI-Elemente */
+.dark-mode header {
+	background-color: var(--bg-tertiary);
+}
+
+.dark-mode .section-divider {
+	border-color: var(--border-color);
+}
+
+/* Zoom-Slider Styling */
+#displayZoom {
+	-webkit-appearance: none;
+	appearance: none;
+	height: 8px;
+	border-radius: 4px;
+	background: #d1d5db;
+	outline: none;
+	margin: 10px 0;
+}
+
+#displayZoom::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	appearance: none;
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	background: #ff7043;
+	cursor: pointer;
+}
+
+#displayZoom::-moz-range-thumb {
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	background: #ff7043;
+	cursor: pointer;
+}
+
+.dark-mode #displayZoom {
+	background: #4b5563;
+}
+
+.dark-mode #displayZoom::-webkit-slider-thumb {
+	background: #ff7043;
+}
+
+.dark-mode #displayZoom::-moz-range-thumb {
+	background: #ff7043;
+}

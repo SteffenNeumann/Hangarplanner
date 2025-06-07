@@ -8,6 +8,8 @@ const uiSettings = {
 	tilesCount: 8,
 	secondaryTilesCount: 0,
 	layout: 4,
+	darkMode: false,
+	zoomLevel: 100,
 
 	// Lädt Einstellungen aus dem LocalStorage (beibehalten)
 	load: async function () {
@@ -17,9 +19,15 @@ const uiSettings = {
 			if (savedSettingsJSON) {
 				const settings = JSON.parse(savedSettingsJSON);
 				this.layout = settings.layout || 4;
+				this.darkMode = settings.darkMode || false;
+				this.zoomLevel = settings.zoomLevel || 100;
 
 				// UI-Elemente aktualisieren
 				this.updateUIControls();
+
+				// Dark Mode und Zoom anwenden
+				this.applyDarkMode(this.darkMode);
+				this.applyZoomLevel(this.zoomLevel);
 
 				// Kachelwerte anwenden, falls vorhanden
 				if (settings.tileValues && Array.isArray(settings.tileValues)) {
@@ -54,6 +62,13 @@ const uiSettings = {
 				this.layout =
 					parseInt(document.getElementById("layoutType").value) || 4;
 			}
+			if (checkElement("darkModeToggle")) {
+				this.darkMode = document.getElementById("darkModeToggle").checked;
+			}
+			if (checkElement("displayZoom")) {
+				this.zoomLevel =
+					parseInt(document.getElementById("displayZoom").value) || 100;
+			}
 
 			// Alle Kacheln sammeln (primäre und sekundäre)
 			const tileValues = [];
@@ -69,6 +84,8 @@ const uiSettings = {
 				tilesCount: this.tilesCount,
 				secondaryTilesCount: this.secondaryTilesCount,
 				layout: this.layout,
+				darkMode: this.darkMode,
+				zoomLevel: this.zoomLevel,
 				tileValues: tileValues,
 				lastSaved: new Date().toISOString(),
 			};
@@ -154,6 +171,10 @@ const uiSettings = {
 			// Sekundäre Kacheln aktualisieren
 			updateSecondaryTiles(this.secondaryTilesCount, this.layout);
 
+			// Dark Mode und Zoom anwenden
+			this.applyDarkMode(this.darkMode);
+			this.applyZoomLevel(this.zoomLevel);
+
 			// Skalierung nach Layoutänderung neu berechnen
 			setTimeout(adjustScaling, 50);
 			return true;
@@ -161,6 +182,80 @@ const uiSettings = {
 			console.error("Fehler beim Anwenden der Einstellungen:", error);
 			return false;
 		}
+	},
+
+	// Aktualisiert die UI-Steuerelemente
+	updateUIControls: function () {
+		if (checkElement("tilesCount")) {
+			document.getElementById("tilesCount").value = this.tilesCount;
+		}
+		if (checkElement("secondaryTilesCount")) {
+			document.getElementById("secondaryTilesCount").value =
+				this.secondaryTilesCount;
+		}
+		if (checkElement("layoutType")) {
+			document.getElementById("layoutType").value = this.layout;
+		}
+		if (checkElement("darkModeToggle")) {
+			document.getElementById("darkModeToggle").checked = this.darkMode;
+		}
+		if (checkElement("displayZoom")) {
+			document.getElementById("displayZoom").value = this.zoomLevel;
+			document.getElementById("zoomValue").textContent = `${this.zoomLevel}%`;
+		}
+	},
+
+	// Dark Mode anwenden
+	applyDarkMode: function (enabled) {
+		const body = document.body;
+
+		if (enabled) {
+			body.classList.add("dark-mode");
+		} else {
+			body.classList.remove("dark-mode");
+		}
+
+		// Status speichern
+		this.darkMode = enabled;
+
+		// Benachrichtigung, wenn Debugmodus aktiv ist
+		if (localStorage.getItem("debugMode") === "true") {
+			console.log(`Dark Mode ${enabled ? "aktiviert" : "deaktiviert"}`);
+		}
+	},
+
+	// Zoom-Level anwenden
+	applyZoomLevel: function (level) {
+		const contentContainer = document.querySelector(".content-container");
+		if (!contentContainer) return;
+
+		// Zoom-Wert zwischen 0.75 und 1.5 setzen
+		const zoomFactor = level / 100;
+		contentContainer.style.transformOrigin = "top left";
+		contentContainer.style.transform = `scale(${zoomFactor})`;
+
+		// Bei größeren Zoom-Werten muss der Container erweitert werden
+		if (zoomFactor > 1) {
+			contentContainer.style.width = `${100 / zoomFactor}%`;
+		} else {
+			contentContainer.style.width = "100%";
+		}
+
+		// Aktuellen Wert anzeigen
+		if (checkElement("zoomValue")) {
+			document.getElementById("zoomValue").textContent = `${level}%`;
+		}
+
+		// Status speichern
+		this.zoomLevel = level;
+
+		// Benachrichtigung, wenn Debugmodus aktiv ist
+		if (localStorage.getItem("debugMode") === "true") {
+			console.log(`Zoom-Level auf ${level}% gesetzt`);
+		}
+
+		// Skalierung nach Zoom-Änderung neu berechnen
+		setTimeout(adjustScaling, 50);
 	},
 
 	// Hilfsmethode zum Sammeln von Kachelwerten
@@ -242,20 +337,6 @@ const uiSettings = {
 		});
 
 		console.log(`${cells.length} Kacheln aus ${containerSelector} verarbeitet`);
-	},
-
-	// Aktualisiert die UI-Steuerelemente
-	updateUIControls: function () {
-		if (checkElement("tilesCount")) {
-			document.getElementById("tilesCount").value = this.tilesCount;
-		}
-		if (checkElement("secondaryTilesCount")) {
-			document.getElementById("secondaryTilesCount").value =
-				this.secondaryTilesCount;
-		}
-		if (checkElement("layoutType")) {
-			document.getElementById("layoutType").value = this.layout;
-		}
 	},
 
 	// Wendet geladene Kachelwerte auf die UI an
@@ -1452,10 +1533,69 @@ function initializeUI() {
 	initializeFlightDataSection();
 }
 
-// Wenn initializeUI nicht definiert ist:
-if (typeof window.initializeUI === "undefined") {
-	window.initializeUI = initializeUI;
+/**
+ * Setup event listeners für Dark Mode und Zoom-Einstellungen
+ */
+function initializeDisplaySettings() {
+	const darkModeToggle = document.getElementById("darkModeToggle");
+	const zoomSlider = document.getElementById("displayZoom");
+
+	if (darkModeToggle) {
+		// Beim Laden den korrekten Status setzen
+		const savedSettings = helpers.storageHelper.get(
+			"hangarPlannerSettings",
+			true
+		);
+		if (savedSettings && savedSettings.darkMode !== undefined) {
+			darkModeToggle.checked = savedSettings.darkMode;
+			window.hangarUI.uiSettings.applyDarkMode(savedSettings.darkMode);
+		}
+
+		// Event Listener für Änderungen
+		darkModeToggle.addEventListener("change", function () {
+			window.hangarUI.uiSettings.applyDarkMode(this.checked);
+			window.hangarUI.uiSettings.save();
+		});
+	}
+
+	if (zoomSlider) {
+		// Beim Laden den korrekten Status setzen
+		const savedSettings = helpers.storageHelper.get(
+			"hangarPlannerSettings",
+			true
+		);
+		if (savedSettings && savedSettings.zoomLevel !== undefined) {
+			zoomSlider.value = savedSettings.zoomLevel;
+			document.getElementById(
+				"zoomValue"
+			).textContent = `${savedSettings.zoomLevel}%`;
+			window.hangarUI.uiSettings.applyZoomLevel(savedSettings.zoomLevel);
+		}
+
+		// Event Listener für Änderungen
+		zoomSlider.addEventListener("input", function () {
+			const zoomLevel = parseInt(this.value);
+			document.getElementById("zoomValue").textContent = `${zoomLevel}%`;
+			window.hangarUI.uiSettings.applyZoomLevel(zoomLevel);
+		});
+
+		// Speichern beim Loslassen des Sliders
+		zoomSlider.addEventListener("change", function () {
+			window.hangarUI.uiSettings.save();
+		});
+	}
 }
+
+// Zur Initialisierungsfunktion hinzufügen
+function initializeUI() {
+	// ... existing code ...
+
+	// Initialisiere Dark Mode und Zoom-Einstellungen
+	initializeDisplaySettings();
+}
+
+// Exportiere neue Funktionen
+window.hangarUI.initializeDisplaySettings = initializeDisplaySettings;
 
 /**
  * Erstellt die sekundären Kacheln und fügt sie dem Grid hinzu
