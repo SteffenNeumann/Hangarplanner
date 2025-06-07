@@ -169,9 +169,34 @@ const uiSettings = {
 		if (!container) return;
 
 		const cells = container.querySelectorAll(".hangar-cell");
+		const isSecondary = containerSelector === "#secondaryHangarGrid";
+
+		console.log(
+			`Sammle Daten aus ${containerSelector}: ${cells.length} Kacheln gefunden`
+		);
 
 		cells.forEach((cell, index) => {
-			const cellId = baseIndex + index;
+			// Bei sekundären Kacheln immer zuerst das data-cell-id Attribut verwenden
+			let cellId;
+			if (isSecondary) {
+				// Wichtig: Immer zuerst das data-cell-id Attribut prüfen
+				const dataCellId = cell.getAttribute("data-cell-id");
+				if (dataCellId) {
+					cellId = parseInt(dataCellId);
+					console.log(
+						`Verwende data-cell-id=${dataCellId} für sekundäre Kachel ${index}`
+					);
+				} else {
+					// Nur als Fallback den Index verwenden
+					cellId = baseIndex + index;
+					console.warn(
+						`⚠️ Keine data-cell-id für sekundäre Kachel ${index} gefunden, verwende berechnete ID: ${cellId}`
+					);
+				}
+			} else {
+				// Für primäre Kacheln kann die berechnete ID verwendet werden
+				cellId = baseIndex + index;
+			}
 
 			// Position-Input finden - immer über die spezifische ID
 			const positionInput = document.getElementById(
@@ -195,9 +220,16 @@ const uiSettings = {
 
 			const positionValue = positionInput ? positionInput.value : "";
 
+			// Aircraft-ID für diese Kachel holen
+			const aircraftInput = document.getElementById(`aircraft-${cellId}`);
+			const aircraftValue = aircraftInput ? aircraftInput.value : "";
+
 			// Debug-Ausgabe zur Fehlersuche
-			debug(
-				`Sammle Daten für Kachel ${cellId}: Position=${positionValue}, Manual=${manualInputValue}`
+			console.log(
+				`Sammle Daten für Kachel ${cellId} (${
+					isSecondary ? "sekundär" : "primär"
+				}): ` +
+					`Position=${positionValue}, Manual=${manualInputValue}, Aircraft=${aircraftValue}`
 			);
 
 			// Immer speichern, auch wenn keine Werte vorhanden sind
@@ -205,10 +237,11 @@ const uiSettings = {
 				cellId: cellId,
 				position: positionValue || "",
 				manualInput: manualInputValue || "",
+				aircraftId: aircraftValue || "", // Wichtig: Aircraft-ID auch speichern
 			});
 		});
 
-		debug(`${cells.length} Kacheln aus ${containerSelector} verarbeitet`);
+		console.log(`${cells.length} Kacheln aus ${containerSelector} verarbeitet`);
 	},
 
 	// Aktualisiert die UI-Steuerelemente
@@ -311,6 +344,29 @@ function updateSecondaryTiles(count, layout) {
 		return;
 	}
 
+	// Speichere vorhandene Daten vor dem Leeren
+	const existingData = [];
+	if (secondaryGrid.children.length > 0) {
+		console.log("Sichere bestehende sekundäre Kacheldaten vor Aktualisierung");
+		secondaryGrid.querySelectorAll(".hangar-cell").forEach((cell, index) => {
+			const cellId = 101 + index;
+			const posInput = document.getElementById(`hangar-position-${cellId}`);
+			const aircraftInput = document.getElementById(`aircraft-${cellId}`);
+			const manualInput = document.getElementById(`manual-input-${cellId}`);
+
+			if (posInput || aircraftInput || manualInput) {
+				existingData.push({
+					index: index,
+					cellId: cellId,
+					position: posInput ? posInput.value : "",
+					aircraftId: aircraftInput ? aircraftInput.value : "",
+					manualInput: manualInput ? manualInput.value : "",
+				});
+			}
+		});
+		console.log(`${existingData.length} bestehende Kacheldaten gesichert`);
+	}
+
 	// Leere den Container
 	secondaryGrid.innerHTML = "";
 
@@ -334,6 +390,10 @@ function updateSecondaryTiles(count, layout) {
 		// Klone die Vorlage-Kachel
 		const cellClone = templateCell.cloneNode(true);
 
+		// WICHTIG: Setze explizit das data-cell-id Attribut für korrekte Identifizierung
+		cellClone.setAttribute("data-cell-id", cellId.toString());
+		cellClone.id = `secondary-cell-${cellId}`;
+
 		// Spezifische Anpassungen für sekundäre Kacheln
 		// Position-Input finden oder ggf. erstellen
 		const posInput = cellClone.querySelector('input[id^="hangar-position-"]');
@@ -344,7 +404,13 @@ function updateSecondaryTiles(count, layout) {
 			console.warn(
 				`Position-Input in Template für Kachel ${cellId} nicht gefunden`
 			);
-			// Da dies später in updateCellAttributes behandelt wird, lassen wir es hier bei der Warnung
+		}
+
+		// Aircraft-ID Feld leeren
+		const aircraftInput = cellClone.querySelector(".aircraft-id");
+		if (aircraftInput) {
+			aircraftInput.value = "";
+			aircraftInput.id = `aircraft-${cellId}`;
 		}
 
 		// IDs und andere Attribute aktualisieren
@@ -359,6 +425,32 @@ function updateSecondaryTiles(count, layout) {
 
 	// Verzögertes Anwenden der gespeicherten Werte auf sekundäre Kacheln
 	setTimeout(() => {
+		// Gesicherte Daten wiederherstellen
+		if (existingData.length > 0) {
+			console.log("Stelle gesicherte sekundäre Kacheldaten wieder her");
+			existingData.forEach((data) => {
+				// Nur wiederherstellen, wenn der Index noch gültig ist (im Bereich der neuen Anzahl)
+				if (data.index < count) {
+					const posInput = document.getElementById(
+						`hangar-position-${data.cellId}`
+					);
+					const aircraftInput = document.getElementById(
+						`aircraft-${data.cellId}`
+					);
+					const manualInput = document.getElementById(
+						`manual-input-${data.cellId}`
+					);
+
+					if (posInput) posInput.value = data.position;
+					if (aircraftInput) aircraftInput.value = data.aircraftId;
+					if (manualInput) manualInput.value = data.manualInput;
+					console.log(
+						`Wiederhergestellt: Kachel ${data.cellId}, Position=${data.position}, Aircraft=${data.aircraftId}`
+					);
+				}
+			});
+		}
+
 		// CustomEvent auslösen, um andere Komponenten zu informieren
 		const event = new CustomEvent("secondaryTilesCreated", {
 			detail: { count: count },
@@ -366,7 +458,6 @@ function updateSecondaryTiles(count, layout) {
 		document.dispatchEvent(event);
 
 		// Sicherstellen, dass die aktualisierten sekundären Kacheleinstellungen gespeichert werden
-		// Dies ist besonders wichtig, wenn man den Wert über die UI ändert
 		if (window.hangarUI && window.hangarUI.uiSettings) {
 			window.hangarUI.uiSettings.secondaryTilesCount = count;
 
@@ -404,10 +495,41 @@ function loadSecondaryTileValues() {
 		const secondaryTileValues = settings.tileValues.filter(
 			(tile) => tile.cellId >= 101
 		);
-		console.log(`Lade ${secondaryTileValues.length} sekundäre Kachelwerte`);
 
-		// Wende Werte auf sekundäre Kacheln an
+		// Debug: Was wurde exakt gefunden?
+		console.log(`Lade ${secondaryTileValues.length} sekundäre Kachelwerte:`);
+		secondaryTileValues.forEach((tile) => {
+			console.log(
+				`  Kachel ${tile.cellId}: Position=${tile.position}, Aircraft=${tile.aircraftId}`
+			);
+		});
+
+		// Vor dem Anwenden prüfen, ob sekundäre Kacheln existieren
+		const secondaryGrid = document.getElementById("secondaryHangarGrid");
+		if (!secondaryGrid || secondaryGrid.children.length === 0) {
+			console.warn(
+				"Sekundäres Grid nicht gefunden oder leer, kann Werte nicht anwenden"
+			);
+			return;
+		}
+
+		// Werte auf sekundäre Kacheln anwenden
 		secondaryTileValues.forEach((tileValue) => {
+			// Der Index für die sekundäre Kachel
+			const secondaryIndex = tileValue.cellId - 101;
+
+			// Prüfen ob der Index gültig ist (innerhalb der vorhandenen Kacheln)
+			if (
+				secondaryIndex >= secondaryGrid.children.length ||
+				secondaryIndex < 0
+			) {
+				console.warn(
+					`Kein Element für sekundären Index ${secondaryIndex} (ID: ${tileValue.cellId}) vorhanden`
+				);
+				return;
+			}
+
+			// Position-Eingabe finden und setzen
 			const posInput = document.getElementById(
 				`hangar-position-${tileValue.cellId}`
 			);
@@ -416,27 +538,27 @@ function loadSecondaryTileValues() {
 				console.log(
 					`Sekundäre Position für Kachel ${tileValue.cellId} gesetzt: ${tileValue.position}`
 				);
-			} else if (!posInput && tileValue.position) {
-				// Wenn das Element nicht gefunden wurde, speichern wir die Info für spätere Versuche
-				console.warn(
-					`Element für sekundäre Kachel ${tileValue.cellId} noch nicht gefunden, merke Position: ${tileValue.position}`
-				);
+			}
 
-				// Verzögerter erneuter Versuch
-				setTimeout(() => {
-					const delayedInput = document.getElementById(
-						`hangar-position-${tileValue.cellId}`
-					);
-					if (delayedInput) {
-						delayedInput.value = tileValue.position;
-						console.log(
-							`Verzögert: Sekundäre Position für Kachel ${tileValue.cellId} gesetzt: ${tileValue.position}`
-						);
-					}
-				}, 300);
-			} else {
-				console.warn(
-					`Konnte Position für sekundäre Kachel ${tileValue.cellId} nicht setzen, Element nicht gefunden oder kein Wert vorhanden`
+			// Aircraft-ID setzen (falls vorhanden)
+			const aircraftInput = document.getElementById(
+				`aircraft-${tileValue.cellId}`
+			);
+			if (aircraftInput && tileValue.aircraftId) {
+				aircraftInput.value = tileValue.aircraftId;
+				console.log(
+					`Sekundäre Aircraft-ID für Kachel ${tileValue.cellId} gesetzt: ${tileValue.aircraftId}`
+				);
+			}
+
+			// Manuelle Eingabe setzen (falls vorhanden)
+			const manualInput = document.getElementById(
+				`manual-input-${tileValue.cellId}`
+			);
+			if (manualInput && tileValue.manualInput) {
+				manualInput.value = tileValue.manualInput;
+				console.log(
+					`Sekundäre manuelle Eingabe für Kachel ${tileValue.cellId} gesetzt`
 				);
 			}
 		});
@@ -451,6 +573,9 @@ function loadSecondaryTileValues() {
  * @param {number} cellId - ID für die Kachel
  */
 function updateCellAttributes(cell, cellId) {
+	// Wichtig: Explizit auch hier nochmal das data-cell-id Attribut setzen
+	cell.setAttribute("data-cell-id", cellId.toString());
+
 	// Aktualisiere ID-basierte Attribute in allen Unterelementen
 	const elements = cell.querySelectorAll("[id]");
 	elements.forEach((element) => {
@@ -1364,7 +1489,7 @@ function adjustSecondaryGridLayout(count) {
 		"grid-cols-4"
 	);
 
-	// Bestimme optimale Spaltenzahl basierend auf Kachelanzahl
+	// Bestimme optimale Spaltenzahl basierend auf Kachelnanzahl
 	let colCount;
 	if (count === 1) {
 		colCount = 1;

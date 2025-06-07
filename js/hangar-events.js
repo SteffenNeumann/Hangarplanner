@@ -1644,79 +1644,117 @@ function updateAllInstancesOfAircraft(
  */
 function applyFlightDataToCell(cellId, flightData, preferredAirport) {
 	try {
-		// Standard-Werte falls keine Daten gefunden werden
+		// Frühe Rückkehr, wenn keine Daten vorhanden sind
+		if (!flightData || !flightData.data || flightData.data.length === 0) {
+			console.log(
+				`Keine Flugdaten für Kachel ${cellId} gefunden - keine UI-Aktualisierung`
+			);
+			return false;
+		}
+
+		// Flug finden, der zum bevorzugten Flughafen passt
+		let flight = null;
+
+		if (preferredAirport) {
+			// Suche nach Flügen mit dem bevorzugten Flughafen
+			flight = flightData.data.find((f) => {
+				return (
+					f.flightPoints &&
+					f.flightPoints.some((point) => point.iataCode === preferredAirport)
+				);
+			});
+
+			console.log(
+				`Flug mit Flughafen ${preferredAirport} ${
+					flight ? "gefunden" : "nicht gefunden"
+				}`
+			);
+		}
+
+		// Wenn kein passender Flug gefunden wurde, nehme den ersten
+		if (!flight && flightData.data.length > 0) {
+			flight = flightData.data[0];
+			console.log(`Verwende ersten verfügbaren Flug`);
+		}
+
+		// Wenn kein Flug gefunden wurde oder keine gültigen FlightPoints hat, keine Änderungen vornehmen
+		if (!flight || !flight.flightPoints || flight.flightPoints.length < 2) {
+			console.log(`Keine verwendbaren Flugdaten für Kachel ${cellId}`);
+			return false;
+		}
+
+		// Standard-Werte falls keine spezifischen Daten gefunden werden
 		let departureTime = "--:--";
 		let arrivalTime = "--:--";
 		let originCode = "---";
 		let destCode = "---";
 
-		// Extrahieren der Flugdaten wenn vorhanden
-		if (flightData && flightData.data && flightData.data.length > 0) {
-			// Wenn wir mehrere Flüge haben, versuchen wir den passendsten zu finden
-			// Priorisieren von Flügen mit dem bevorzugten Flughafen
-			let flight = null;
-
-			if (preferredAirport) {
-				// Suche nach Flügen mit dem bevorzugten Flughafen
-				flight = flightData.data.find((f) => {
-					return (
-						f.flightPoints &&
-						f.flightPoints.some((point) => point.iataCode === preferredAirport)
-					);
-				});
-
-				console.log(
-					`Flug mit Flughafen ${preferredAirport} ${
-						flight ? "gefunden" : "nicht gefunden"
-					}`
-				);
+		// Ankunftsdaten vom aktuellen Tag extrahieren
+		const arrival = flight.flightPoints.find((point) => point.arrivalPoint);
+		if (arrival) {
+			destCode = arrival.iataCode || "---";
+			if (
+				arrival.arrival &&
+				arrival.arrival.timings &&
+				arrival.arrival.timings.length > 0
+			) {
+				const timeStr = arrival.arrival.timings[0].value;
+				arrivalTime = timeStr.substring(0, 5);
 			}
+		}
 
-			// Wenn kein passender Flug gefunden wurde, nehme den ersten
-			if (!flight && flightData.data.length > 0) {
-				flight = flightData.data[0];
-				console.log(`Verwende ersten verfügbaren Flug`);
+		// Verbesserte Prüfung für Folgetags-Flüge
+		// 1. Extrahiere Datumsangaben aus den Rohdaten und dem scheduledDepartureDate
+		const currentDateString = flight._currentDateRequested || ""; // Datum des aktuellen Tages (Anfrage)
+		const nextDateString = flight._nextDateRequested || ""; // Datum des Folgetages (Anfrage)
+		const departureDateFromRaw =
+			flight._rawFlightData?.departure?.scheduledTime?.local?.split("T")[0] ||
+			"";
+
+		// 2. Loggen für Debug-Zwecke
+		console.log(`[Debug] Flug-Daten für ${cellId}:`, {
+			flightId: flight.flightDesignator?.flightNumber,
+			departureDateRaw: departureDateFromRaw,
+			currentDate: currentDateString,
+			nextDate: nextDateString,
+			scheduledDepartureDate: flight.scheduledDepartureDate,
+		});
+
+		// 3. Verbesserte Prüfung: Ist es ein Folgetags-Flug?
+		// Ein Flug ist ein Folgetags-Flug, wenn sein Abflugdatum dem nextDate entspricht
+		const isNextDayFlight =
+			departureDateFromRaw &&
+			nextDateString &&
+			departureDateFromRaw === nextDateString;
+
+		// Abflugsdaten extrahieren - NUR wenn es sich um einen Flug am Folgetag handelt
+		const departure = flight.flightPoints.find((point) => point.departurePoint);
+		if (departure && isNextDayFlight) {
+			originCode = departure.iataCode || "---";
+			if (
+				departure.departure &&
+				departure.departure.timings &&
+				departure.departure.timings.length > 0
+			) {
+				const timeStr = departure.departure.timings[0].value;
+				departureTime = timeStr.substring(0, 5);
 			}
-
-			if (flight && flight.flightPoints && flight.flightPoints.length >= 2) {
-				const departure = flight.flightPoints.find(
-					(point) => point.departurePoint
-				);
-				const arrival = flight.flightPoints.find((point) => point.arrivalPoint);
-
-				if (departure) {
-					originCode = departure.iataCode || "---";
-					if (
-						departure.departure &&
-						departure.departure.timings &&
-						departure.departure.timings.length > 0
-					) {
-						const timeStr = departure.departure.timings[0].value;
-						departureTime = timeStr.substring(0, 5);
-					}
-				}
-
-				if (arrival) {
-					destCode = arrival.iataCode || "---";
-					if (
-						arrival.arrival &&
-						arrival.arrival.timings &&
-						arrival.arrival.timings.length > 0
-					) {
-						const timeStr = arrival.arrival.timings[0].value;
-						arrivalTime = timeStr.substring(0, 5);
-					}
-				}
-
-				// Überprüfen, ob der bevorzugte Flughafen enthalten ist
-				if (preferredAirport) {
-					const hasPreferredAirport =
-						originCode === preferredAirport || destCode === preferredAirport;
-					console.log(
-						`Flug enthält bevorzugten Flughafen ${preferredAirport}: ${hasPreferredAirport}`
-					);
-				}
+		} else {
+			// Wenn es kein Folgetags-Flug ist oder keine Abflugsdaten vorhanden sind,
+			// dann keine Departure Time eintragen, nur die Route
+			departureTime = "--:--";
+			if (departure) {
+				originCode = departure.iataCode || "---";
 			}
+		}
+
+		// Überprüfen, ob der bevorzugte Flughafen enthalten ist
+		if (preferredAirport) {
+			const hasPreferredAirport =
+				originCode === preferredAirport || destCode === preferredAirport;
+			console.log(
+				`Flug enthält bevorzugten Flughafen ${preferredAirport}: ${hasPreferredAirport}`
+			);
 		}
 
 		// UI-Elemente aktualisieren
@@ -1724,12 +1762,29 @@ function applyFlightDataToCell(cellId, flightData, preferredAirport) {
 		const departureTimeEl = document.getElementById(`departure-time-${cellId}`);
 		const positionEl = document.getElementById(`position-${cellId}`);
 
-		if (arrivalTimeEl) arrivalTimeEl.textContent = arrivalTime;
-		if (departureTimeEl) departureTimeEl.textContent = departureTime;
-		if (positionEl) positionEl.textContent = `${originCode}→${destCode}`;
+		// Zeiten nur eintragen, wenn sie gültig sind
+		if (arrivalTimeEl && arrivalTime !== "--:--")
+			arrivalTimeEl.textContent = arrivalTime;
+
+		// Departure Time nur eintragen, wenn es ein Folgetags-Flug ist
+		if (departureTimeEl) {
+			if (isNextDayFlight && departureTime !== "--:--") {
+				departureTimeEl.textContent = departureTime;
+			} else {
+				departureTimeEl.textContent = "--:--";
+			}
+		}
+
+		// Position nur eintragen, wenn mindestens ein Code gültig ist
+		if (positionEl && originCode !== "---" && destCode !== "---") {
+			positionEl.textContent = `${originCode}→${destCode}`;
+		} else if (positionEl && (originCode !== "---" || destCode !== "---")) {
+			// Wenn nur ein Code gültig ist, zeige nur diesen an
+			positionEl.textContent = originCode !== "---" ? originCode : destCode;
+		}
 
 		console.log(
-			`Kachel ${cellId} mit Flugdaten aktualisiert: ${originCode}→${destCode}, Abflug: ${departureTime}, Ankunft: ${arrivalTime}`
+			`Kachel ${cellId} mit Flugdaten aktualisiert: ${originCode}→${destCode}, Abflug: ${departureTime}, Ankunft: ${arrivalTime}, Folgetags-Flug: ${isNextDayFlight}`
 		);
 
 		return true;
@@ -1741,6 +1796,75 @@ function applyFlightDataToCell(cellId, flightData, preferredAirport) {
 		return false;
 	}
 }
+
+/**
+ * Richtet die Event-Handler für Eingabefelder ein
+ * Wird aufgerufen, nachdem DOM-Updates durchgeführt wurden
+ */
+function setupInputEventListeners() {
+	// Verbesserte Einrichtung von Event-Handlern für sekundäre Kacheln
+	document
+		.querySelectorAll("#secondaryHangarGrid .hangar-cell")
+		.forEach((cell) => {
+			// Verwende das data-cell-id Attribut, um die korrekte ID zu bekommen
+			const cellId = parseInt(cell.getAttribute("data-cell-id") || 0);
+
+			if (!cellId || cellId < 101) {
+				console.warn(
+					`Ungültige cellId ${cellId} für sekundäre Kachel gefunden`
+				);
+				return;
+			}
+
+			console.log(`Richte Event-Handler für sekundäre Kachel ${cellId} ein`);
+
+			// Aircraft-ID Eingabe
+			const aircraftInput = cell.querySelector(`#aircraft-${cellId}`);
+			if (aircraftInput) {
+				aircraftInput.addEventListener("blur", function () {
+					console.log(
+						`Aircraft-ID in Kachel ${cellId} geändert: ${this.value}`
+					);
+					saveDataToLocalStorage();
+				});
+			}
+
+			// Position Eingabe
+			const positionInput = cell.querySelector(`#hangar-position-${cellId}`);
+			if (positionInput) {
+				positionInput.addEventListener("blur", function () {
+					console.log(`Position in Kachel ${cellId} geändert: ${this.value}`);
+					saveDataToLocalStorage();
+				});
+			}
+
+			// Manuelle Eingabe
+			const manualInput = cell.querySelector(`#manual-input-${cellId}`);
+			if (manualInput) {
+				manualInput.addEventListener("blur", function () {
+					console.log(
+						`Manuelle Eingabe in Kachel ${cellId} geändert: ${this.value}`
+					);
+					saveDataToLocalStorage();
+				});
+			}
+		});
+}
+
+// Funktion zum direkten Speichern der Daten im localStorage
+function saveDataToLocalStorage() {
+	if (window.hangarUI && window.hangarUI.uiSettings) {
+		window.hangarUI.uiSettings.save().then(() => {
+			console.log("Daten nach Änderung im localStorage gespeichert");
+		});
+	}
+}
+
+// Event-Listener für secondaryTilesCreated einrichten, um Event-Handler nach Erstellung zu aktualisieren
+document.addEventListener("secondaryTilesCreated", function () {
+	console.log("Sekundäre Kacheln wurden erstellt, aktualisiere Event-Handler");
+	setupInputEventListeners();
+});
 
 // Exportiere Funktionen als globales Objekt
 window.hangarEvents = {

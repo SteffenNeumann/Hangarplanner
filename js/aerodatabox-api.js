@@ -472,6 +472,10 @@ const AeroDataBoxAPI = (() => {
 
 			// Flüge filtern für Ankunft am ausgewählten Flughafen am aktuellen Tag
 			currentDayFlights.forEach((flight) => {
+				// Datum-Tags für die spätere Erkennung von Folgetags-Flügen hinzufügen
+				flight._currentDateRequested = currentDate;
+				flight._nextDateRequested = nextDate;
+
 				if (flight.flightPoints && flight.flightPoints.length >= 2) {
 					const arrivalPoint = flight.flightPoints.find((p) => p.arrivalPoint);
 
@@ -484,6 +488,10 @@ const AeroDataBoxAPI = (() => {
 
 			// Flüge filtern für Abflug vom ausgewählten Flughafen am Folgetag
 			nextDayFlights.forEach((flight) => {
+				// Datum-Tags für die spätere Erkennung von Folgetags-Flügen hinzufügen
+				flight._currentDateRequested = currentDate;
+				flight._nextDateRequested = nextDate;
+
 				if (flight.flightPoints && flight.flightPoints.length >= 2) {
 					const departurePoint = flight.flightPoints.find(
 						(p) => p.departurePoint
