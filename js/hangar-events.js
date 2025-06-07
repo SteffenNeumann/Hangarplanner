@@ -1295,6 +1295,7 @@ async function fetchFlightButtonHandler() {
 	// Eingabewerte sammeln
 	const currentDateInput = document.getElementById("currentDateInput");
 	const nextDateInput = document.getElementById("nextDateInput");
+	const airportCodeInput = document.getElementById("airportCodeInput");
 
 	// Zuerst im dedizierten Suchfeld suchen
 	let searchInput = document.getElementById("searchAircraft");
@@ -1317,19 +1318,62 @@ async function fetchFlightButtonHandler() {
 		}
 	}
 
+	// Prüfen ob alle erforderlichen Eingaben vorhanden sind
+	if (!aircraftId) {
+		showNotification("Bitte geben Sie eine Flugzeug-ID ein", "warning");
+		return;
+	}
+
+	if (!airportCodeInput?.value) {
+		showNotification(
+			"Bitte geben Sie einen Flughafen (IATA-Code) ein",
+			"warning"
+		);
+		return;
+	}
+
+	// Datumswerte holen
 	const currentDate = currentDateInput?.value;
 	const nextDate = nextDateInput?.value;
 
-	console.log(`Rufe Flugdaten mit API-Fassade ab für: ${aircraftId}`);
+	// Debug-Ausgabe
+	console.log(
+		`[DEBUG] fetchFlightButtonHandler: Rufe API für ${aircraftId} mit Daten ${currentDate} und ${nextDate} auf`
+	);
 
 	try {
+		// Status aktualisieren
+		updateFetchStatus(
+			`Rufe Flugdaten für ${aircraftId} ab (${currentDate}/${nextDate})...`
+		);
+
 		// API-Fassade für alle API-Aufrufe verwenden
 		if (window.FlightDataAPI) {
-			await window.FlightDataAPI.updateAircraftData(
-				aircraftId,
-				currentDate,
-				nextDate
+			console.log(
+				`[DEBUG] Starte API-Fassaden-Aufruf: updateAircraftData(${aircraftId}, ${currentDate}, ${nextDate})`
 			);
+
+			// WICHTIG: updateAircraftData verwenden, nicht getAircraftFlights!
+			const result = await window.FlightDataAPI.updateAircraftData(
+				aircraftId,
+				currentDate || new Date().toISOString().split("T")[0],
+				nextDate ||
+					new Date(new Date().getTime() + 86400000).toISOString().split("T")[0]
+			);
+
+			console.log(
+				`[DEBUG] API-Fassaden-Aufruf abgeschlossen, Ergebnis:`,
+				result
+			);
+
+			if (result) {
+				showNotification(
+					`Flugdaten erfolgreich abgerufen: ${
+						result.positionText || "keine Positionsdaten"
+					}`,
+					"success"
+				);
+			}
 		} else {
 			console.error("API-Fassade nicht verfügbar");
 			// Fallback auf direkte API-Aufrufe nur wenn nötig
@@ -1389,6 +1433,7 @@ function fetchAllAircraftData() {
 			if (fetchStatus) {
 				fetchStatus.innerHTML = `⚠️ Keine Flugzeug-IDs gefunden! Bitte tragen Sie zuerst Flugzeugkennungen ein.`;
 			}
+			showNotification("Keine Flugzeug-IDs gefunden", "warning");
 			return;
 		}
 
@@ -1405,6 +1450,10 @@ function fetchAllAircraftData() {
 		);
 	} catch (error) {
 		console.error("Fehler beim Sammeln der Flugzeug-IDs:", error);
+		showNotification(
+			"Fehler beim Sammeln der Flugzeug-IDs: " + error.message,
+			"error"
+		);
 		const fetchStatus = document.getElementById("fetchStatus");
 		if (fetchStatus) {
 			fetchStatus.innerHTML = `❌ Fehler: ${
@@ -1453,19 +1502,30 @@ async function fetchAndApplyAllAircraftData(
 				let flightData;
 				try {
 					if (window.FlightDataAPI) {
-						flightData = await window.FlightDataAPI.getAircraftFlights(
+						// VEREINFACHT: Immer updateAircraftData mit beiden Datumsparametern aufrufen
+						console.log(
+							`[DEBUG] Rufe updateAircraftData für ${aircraftId} mit beiden Daten auf: ${currentDate}, ${nextDate}`
+						);
+						flightData = await window.FlightDataAPI.updateAircraftData(
 							aircraftId,
-							currentDate
+							currentDate,
+							nextDate
 						);
 					} else if (window.AeroDataBoxAPI) {
-						flightData = await window.AeroDataBoxAPI.getAircraftFlights(
+						// Direkter Fallback auf AeroDataBoxAPI wenn nötig
+						console.log(
+							`[DEBUG] Rufe AeroDataBoxAPI.updateAircraftData direkt auf mit beiden Daten: ${currentDate}, ${nextDate}`
+						);
+						flightData = await window.AeroDataBoxAPI.updateAircraftData(
 							aircraftId,
-							currentDate
+							currentDate,
+							nextDate
 						);
 					} else {
 						if (fetchStatus) {
 							fetchStatus.innerHTML = "❌ Keine API für Flugdaten verfügbar";
 						}
+						results.failed++;
 						continue;
 					}
 				} catch (apiError) {
@@ -1492,7 +1552,6 @@ async function fetchAndApplyAllAircraftData(
 			} catch (error) {
 				console.error(`Fehler bei ${aircraftId}:`, error);
 				results.failed++;
-				// Fehler für einzelne Flugzeuge werden geloggt, aber der Prozess wird fortgesetzt
 			}
 		}
 
@@ -1507,6 +1566,12 @@ async function fetchAndApplyAllAircraftData(
 				fetchStatus.textContent = "Bereit zum Abrufen von Flugdaten";
 			}
 		}, 8000);
+
+		// Benachrichtigung anzeigen
+		showNotification(
+			`Flugdaten aktualisiert: ${results.success} erfolgreich, ${results.failed} fehlgeschlagen`,
+			"success"
+		);
 	} catch (error) {
 		console.error("Fehler bei der Verarbeitung aller Flugzeug-IDs:", error);
 		const fetchStatus = document.getElementById("fetchStatus");
@@ -1515,6 +1580,10 @@ async function fetchAndApplyAllAircraftData(
 				error.message || "Unbekannter Fehler"
 			}`;
 		}
+		showNotification(
+			"Fehler bei der Aktualisierung der Flugdaten: " + error.message,
+			"error"
+		);
 	}
 }
 
@@ -1659,9 +1728,6 @@ function applyFlightDataToCell(cellId, flightData, preferredAirport) {
 		if (departureTimeEl) departureTimeEl.textContent = departureTime;
 		if (positionEl) positionEl.textContent = `${originCode}→${destCode}`;
 
-		// Tow-Status aktualisieren basierend auf Flugdaten
-		updateTowStatus(cellId, departureTime);
-
 		console.log(
 			`Kachel ${cellId} mit Flugdaten aktualisiert: ${originCode}→${destCode}, Abflug: ${departureTime}, Ankunft: ${arrivalTime}`
 		);
@@ -1674,421 +1740,6 @@ function applyFlightDataToCell(cellId, flightData, preferredAirport) {
 		);
 		return false;
 	}
-}
-
-/**
- * Aktualisiert den Tow-Status basierend auf der Abflugzeit
- * @param {string} cellId - ID der Kachel
- * @param {string} departureTime - Abflugzeit im Format "HH:MM"
- */
-function updateTowStatus(cellId, departureTime) {
-	try {
-		const towStatus = document.getElementById(`tow-status-${cellId}`);
-		if (!towStatus) return;
-
-		// Bestimme den Status basierend auf der Abflugzeit
-		let status;
-		let label;
-
-		if (departureTime === "--:--") {
-			// Wenn keine Abflugzeit verfügbar ist, zufälligen Status verwenden
-			const statuses = ["tow-initiated", "tow-ongoing", "tow-on-position"];
-			const labels = ["Initiated", "In Progress", "On Position"];
-			const randomIndex = Math.floor(Math.random() * statuses.length);
-			status = statuses[randomIndex];
-			label = labels[randomIndex];
-		} else {
-			// Aktuelle Zeit und Abflugzeit für Vergleich vorbereiten
-			const now = new Date();
-			const [hours, minutes] = departureTime.split(":").map(Number);
-			const departureDate = new Date();
-			departureDate.setHours(hours, minutes, 0);
-
-			// Zeitdifferenz in Minuten
-			const diffMinutes = Math.floor((departureDate - now) / (1000 * 60));
-
-			// Status basierend auf Zeitdifferenz
-			if (diffMinutes < -15) {
-				// Abflug verpasst oder bereits erfolgt
-				status = "tow-on-position";
-				label = "Departed";
-			} else if (diffMinutes < 45) {
-				// Weniger als 45 Minuten bis zum Abflug: an Position
-				status = "tow-on-position";
-				label = "On Position";
-			} else if (diffMinutes < 90) {
-				// Weniger als 90 Minuten: unterwegs zur Position
-				status = "tow-ongoing";
-				label = "In Progress";
-			} else {
-				// Noch lange Zeit bis zum Abflug
-				status = "tow-initiated";
-				label = "Initiated";
-			}
-		}
-
-		// Status anwenden
-		towStatus.className = `tow-status ${status}`;
-		towStatus.textContent = label;
-	} catch (error) {
-		console.error(
-			`Fehler beim Aktualisieren des Tow-Status für Kachel ${cellId}:`,
-			error
-		);
-	}
-}
-
-/**
- * Aktualisiert die Flugzeuginformationen in einer Kachel mit den abgerufenen Flugdaten
- */
-function updateAircraftInfoWithFlightData(aircraftId, flightData) {
-	// Suchen des Elements mit der Aircraft-ID
-	const cells = document.querySelectorAll(".hangar-cell");
-	let foundCell = null;
-
-	cells.forEach((cell) => {
-		const aircraftInput = cell.querySelector(".aircraft-id");
-		if (aircraftInput && aircraftInput.value === aircraftId) {
-			foundCell = cell;
-		}
-	});
-
-	if (!foundCell) {
-		window.AeroDataBoxAPI.updateFetchStatus(
-			`Keine Kachel mit Aircraft ID ${aircraftId} gefunden.`,
-			true
-		);
-		return;
-	}
-
-	// Extrahieren der Flugdaten
-	if (flightData && flightData.data && flightData.data.length > 0) {
-		const flight = flightData.data[0];
-		const cellId = foundCell.querySelector(".aircraft-id").id.split("-")[1];
-
-		// Extrahieren der Flugzeiten
-		let departureTime = "--:--";
-		let arrivalTime = "--:--";
-		let originCode = "---";
-		let destCode = "---";
-
-		if (flight.flightPoints && flight.flightPoints.length >= 2) {
-			const departure = flight.flightPoints.find(
-				(point) => point.departurePoint
-			);
-			const arrival = flight.flightPoints.find((point) => point.arrivalPoint);
-
-			if (departure) {
-				originCode = departure.iataCode || "---";
-				if (
-					departure.departure &&
-					departure.departure.timings &&
-					departure.departure.timings.length > 0
-				) {
-					const timeStr = departure.departure.timings[0].value;
-					departureTime = timeStr.substring(0, 5); // HH:MM Format
-				}
-			}
-
-			if (arrival) {
-				destCode = arrival.iataCode || "---";
-				if (
-					arrival.arrival &&
-					arrival.arrival.timings &&
-					arrival.arrival.timings.length > 0
-				) {
-					const timeStr = arrival.arrival.timings[0].value;
-					arrivalTime = timeStr.substring(0, 5); // HH:MM Format
-				}
-			}
-		}
-
-		// Aktualisieren der UI-Elemente mit den Flugdaten
-		document.getElementById(`arrival-time-${cellId}`).textContent = arrivalTime;
-		document.getElementById(`departure-time-${cellId}`).textContent =
-			departureTime;
-		document.getElementById(
-			`position-${cellId}`
-		).textContent = `${originCode}→${destCode}`;
-
-		// Aktualisieren des Tow-Status (zufällig für Demozwecke)
-		const towStatus = document.getElementById(`tow-status-${cellId}`);
-		const statuses = ["tow-initiated", "tow-ongoing", "tow-on-position"];
-		const statusLabels = ["Initiated", "In Progress", "On Position"];
-		const randomIndex = Math.floor(Math.random() * statuses.length);
-
-		towStatus.className = `tow-status ${statuses[randomIndex]}`;
-		towStatus.textContent = statusLabels[randomIndex];
-
-		window.AeroDataBoxAPI.updateFetchStatus(
-			`Flugdaten für ${aircraftId} wurden erfolgreich aktualisiert`,
-			false
-		);
-	} else {
-		window.AeroDataBoxAPI.updateFetchStatus(
-			`Keine Flugdaten für ${aircraftId} verfügbar.`,
-			true
-		);
-	}
-}
-
-/**
- * Hilfsfunktion zur Formatierung eines Datums im Format YYYY-MM-DD
- */
-function formatDate(date) {
-	const d = new Date(date);
-	const month = String(d.getMonth() + 1).padStart(2, "0");
-	const day = String(d.getDate()).padStart(2, "0");
-	const year = d.getFullYear();
-	return `${year}-${month}-${day}`;
-}
-
-/**
- * Richtet die Ereignisbehandler für die Flugdatenabfrage ein
- */
-function setupFlightDataEventHandlers() {
-	// Fetch Flight Button Event Listener
-	const fetchFlightBtn = document.getElementById("fetchFlightData");
-	if (fetchFlightBtn) {
-		// Event-Listener entfernen, falls bereits vorhanden
-		const oldClickHandler = fetchFlightBtn.onclick;
-		if (oldClickHandler)
-			fetchFlightBtn.removeEventListener("click", oldClickHandler);
-
-		// Neuen Event-Handler hinzufügen, der die API-Fassade verwendet
-		fetchFlightBtn.onclick = async () => {
-			// Eingabewerte sammeln
-			const currentDateInput = document.getElementById("currentDateInput");
-			const nextDateInput = document.getElementById("nextDateInput");
-
-			// Flugzeugkennung aus dem Suchfeld oder ausgewählter Kachel holen
-			let searchInput = document.getElementById("searchAircraft");
-			let aircraftId = searchInput?.value?.trim();
-
-			// Wenn keine ID im Suchfeld, dann in ausgewählter Kachel suchen
-			if (!aircraftId) {
-				const selectedCell = document.querySelector(".hangar-cell.selected");
-				if (selectedCell) {
-					const cellId = selectedCell.getAttribute("data-cell-id");
-					if (cellId) {
-						const aircraftInput = document.getElementById(`aircraft-${cellId}`);
-						if (aircraftInput && aircraftInput.value.trim()) {
-							aircraftId = aircraftInput.value.trim();
-							console.log(
-								`Verwende Flugzeug-ID aus ausgewählter Kachel: ${aircraftId}`
-							);
-						}
-					}
-				}
-			}
-
-			const currentDate = currentDateInput?.value;
-			const nextDate = nextDateInput?.value;
-
-			console.log(
-				`API-Fassade wird verwendet für Flugdatenabruf: ${aircraftId}`
-			);
-
-			// Flugdaten über die API-Fassade abrufen
-			if (window.FlightDataAPI) {
-				await window.FlightDataAPI.updateAircraftData(
-					aircraftId,
-					currentDate,
-					nextDate
-				);
-			} else {
-				console.error("API-Fassade nicht verfügbar");
-				// Fallback auf direkte API-Aufrufe
-				if (window.AeroDataBoxAPI) {
-					await window.AeroDataBoxAPI.updateAircraftData(
-						aircraftId,
-						currentDate,
-						nextDate
-					);
-				} else if (window.AmadeusAPI) {
-					await window.AmadeusAPI.updateAircraftData(
-						aircraftId,
-						currentDate,
-						nextDate
-					);
-				}
-			}
-		};
-
-		console.log("Flight Data Button mit API-Fassade verbunden");
-	}
-
-	// Verbindung zwischen Suchbutton und Flugdatenabruf herstellen
-	const searchBtn = document.getElementById("btnSearch");
-	if (searchBtn) {
-		searchBtn.removeEventListener("click", searchButtonHandler);
-		searchBtn.addEventListener("click", searchButtonHandler);
-	}
-
-	// Eingabefeld für Flugzeugsuche mit Enter-Taste verbinden
-	const searchInput = document.getElementById("searchAircraft");
-	if (searchInput) {
-		searchInput.removeEventListener("keypress", searchInputKeyHandler);
-		searchInput.addEventListener("keypress", searchInputKeyHandler);
-	}
-}
-
-/**
- * Event-Handler für den 'Flugdaten abrufen'-Button
- */
-async function fetchFlightButtonHandler() {
-	// Eingabewerte sammeln
-	const currentDateInput = document.getElementById("currentDateInput");
-	const nextDateInput = document.getElementById("nextDateInput");
-
-	// Zuerst im dedizierten Suchfeld suchen
-	let searchInput = document.getElementById("searchAircraft");
-	let aircraftId = searchInput?.value?.trim();
-
-	// Wenn keine ID im Suchfeld gefunden wurde, suche nach einer aktiv ausgewählten Kachel
-	if (!aircraftId) {
-		const selectedCell = document.querySelector(".hangar-cell.selected");
-		if (selectedCell) {
-			const cellId = selectedCell.getAttribute("data-cell-id");
-			if (cellId) {
-				const aircraftInput = document.getElementById(`aircraft-${cellId}`);
-				if (aircraftInput && aircraftInput.value.trim()) {
-					aircraftId = aircraftInput.value.trim();
-					console.log(
-						`Verwende Flugzeug-ID aus ausgewählter Kachel: ${aircraftId}`
-					);
-				}
-			}
-		}
-	}
-
-	const currentDate = currentDateInput?.value;
-	const nextDate = nextDateInput?.value;
-
-	console.log(`Rufe Flugdaten mit API-Fassade ab für: ${aircraftId}`);
-
-	try {
-		// API-Fassade für alle API-Aufrufe verwenden
-		if (window.FlightDataAPI) {
-			await window.FlightDataAPI.updateAircraftData(
-				aircraftId,
-				currentDate,
-				nextDate
-			);
-		} else {
-			console.error("API-Fassade nicht verfügbar");
-			// Fallback auf direkte API-Aufrufe nur wenn nötig
-			if (window.AeroDataBoxAPI) {
-				await window.AeroDataBoxAPI.updateAircraftData(
-					aircraftId,
-					currentDate,
-					nextDate
-				);
-			} else if (window.AmadeusAPI) {
-				await window.AmadeusAPI.updateAircraftData(
-					aircraftId,
-					currentDate,
-					nextDate
-				);
-			}
-		}
-	} catch (error) {
-		console.error("Fehler beim Abrufen der Flugdaten:", error);
-		showNotification(`Datenabruf fehlgeschlagen: ${error.message}`, "error");
-	}
-}
-
-/**
- * Event-Handler für den Such-Button
- */
-function searchButtonHandler() {
-	const searchInput = document.getElementById("searchAircraft");
-	if (searchInput && searchInput.value.trim()) {
-		// Löse den Flugdaten-Button aus
-		const fetchFlightBtn = document.getElementById("fetchFlightData");
-		if (fetchFlightBtn) {
-			console.log("Suche nach Flugdaten für: " + searchInput.value.trim());
-			fetchFlightButtonHandler(); // Direkter Aufruf des Handlers statt Click-Event
-		}
-	}
-}
-
-/**
- * Event-Handler für die Eingabetaste im Suchfeld
- */
-function searchInputKeyHandler(event) {
-	if (event.key === "Enter") {
-		event.preventDefault();
-		searchButtonHandler(); // Direkter Aufruf des Such-Handlers
-	}
-}
-
-/**
- * Initialisiert das Akkordeon-Verhalten für die Sidebar
- */
-function initSidebarAccordion() {
-	// Finde alle Akkordeon-Header
-	const accordionHeaders = document.querySelectorAll(
-		".sidebar-accordion-header"
-	);
-
-	console.log(`${accordionHeaders.length} Akkordeon-Header gefunden`);
-
-	// Für jeden Header die Funktionalität initialisieren
-	accordionHeaders.forEach((header, index) => {
-		// Standardmäßig das erste Element öffnen, Rest schließen
-		if (index !== 0) {
-			header.classList.add("collapsed");
-			const content = header.nextElementSibling;
-			if (content && content.classList.contains("sidebar-accordion-content")) {
-				content.classList.remove("open");
-			}
-		} else {
-			header.classList.remove("collapsed");
-			const content = header.nextElementSibling;
-			if (content && content.classList.contains("sidebar-accordion-content")) {
-				content.classList.add("open");
-			}
-		}
-
-		// Alten Event-Handler entfernen, falls vorhanden
-		if (header._clickHandler) {
-			header.removeEventListener("click", header._clickHandler);
-		}
-
-		// Neuen Event-Handler definieren
-		header._clickHandler = function () {
-			// Akkordeon umschalten
-			this.classList.toggle("collapsed");
-
-			// Content-Element finden und Klasse umschalten
-			const content = this.nextElementSibling;
-			if (content && content.classList.contains("sidebar-accordion-content")) {
-				content.classList.toggle("open");
-			}
-		};
-
-		// Event-Listener hinzufügen
-		header.addEventListener("click", header._clickHandler);
-
-		// Sicherstellen, dass die Icon-Ausrichtung korrekt ist
-		const iconContainer = header.querySelector(".sidebar-header-content");
-		if (iconContainer) {
-			iconContainer.style.display = "flex";
-			iconContainer.style.alignItems = "center";
-
-			const icon = iconContainer.querySelector(".sidebar-icon");
-			const title = iconContainer.querySelector(".sidebar-section-title");
-
-			if (icon && title) {
-				icon.style.marginRight = "8px";
-				icon.style.display = "inline-block";
-				title.style.display = "inline-block";
-			}
-		}
-	});
-
-	console.log("Sidebar-Akkordeon erfolgreich initialisiert");
 }
 
 // Exportiere Funktionen als globales Objekt

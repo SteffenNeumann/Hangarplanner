@@ -5,36 +5,15 @@
  */
 
 const AeroDataBoxAPI = (() => {
-	// API-Konfiguration
+	// Vereinfachte API-Konfiguration - nur AeroDataBox
 	const config = {
-		// RapidAPI wird immer verwendet - keine alternative Auswahl mehr
 		baseUrl: "https://aerodatabox.p.rapidapi.com",
 		flightsEndpoint: "/flights",
 		statusEndpoint: "/status",
 		rapidApiHost: "aerodatabox.p.rapidapi.com",
 		rapidApiKey: "b76afbf516mshf864818d919de86p10475ejsna65b718a8602", // RapidAPI Key
-
-		// Aviationstack Konfiguration
-		useAviationstack: false, // Schalter für die API-Auswahl
-		aviationstackBaseUrl: "http://api.aviationstack.com/v1",
-		aviationstackKey: "426b652e15703c7b01f50adf5c41e7e6",
-
-		// AirLabs Konfiguration - 1000 kostenlose Anfragen pro Monat
-		useAirLabs: false, // Schalter für AirLabs
-		airLabsBaseUrl: "https://airlabs.co/api/v9",
-		airLabsKey: "", // Hier deinen API-Key eintragen nach Registrierung
-
-		// API Market AeroDataBox Konfiguration
-		useApiMarket: false, // Schalter für API Market
-		apiMarketBaseUrl: "https://api.market/aedbx/aerodatabox",
-		apiMarketKey: "cmbkazz9w000akv0420b6iz2x", // API Market Key
-
-		// API-Provider Auswahl: "aerodatabox", "aviationstack", "airlabs" oder "apimarket"
-		activeProvider: "aerodatabox",
-
 		debugMode: true, // Debug-Modus für zusätzliche Konsolenausgaben
 		rateLimitDelay: 1200, // 1.2 Sekunden Verzögerung zwischen API-Anfragen
-		useMockData: false, // Wenn true, werden Testdaten statt API-Anfragen verwendet
 	};
 
 	// Tracking der letzten API-Anfrage für Rate Limiting
@@ -45,43 +24,14 @@ const AeroDataBoxAPI = (() => {
 	 * @param {Object} options - Konfigurationsoptionen
 	 */
 	const init = (options = {}) => {
-		// Optionen aus dem Funktionsaufruf übernehmen
-		if (options.activeProvider) {
-			config.activeProvider = options.activeProvider;
-			// Kompatibilität mit altem Code
-			config.useAviationstack = options.activeProvider === "aviationstack";
-			config.useAirLabs = options.activeProvider === "airlabs";
-			config.useApiMarket = options.activeProvider === "apimarket";
-		} else if (options.useAviationstack !== undefined) {
-			config.useAviationstack = Boolean(options.useAviationstack);
-			config.activeProvider = options.useAviationstack
-				? "aviationstack"
-				: "aerodatabox";
-		} else if (options.useAirLabs !== undefined) {
-			config.useAirLabs = Boolean(options.useAirLabs);
-			config.activeProvider = options.useAirLabs ? "airlabs" : "aerodatabox";
-		} else if (options.useApiMarket !== undefined) {
-			config.useApiMarket = Boolean(options.useApiMarket);
-			config.activeProvider = options.useApiMarket
-				? "apimarket"
-				: "aerodatabox";
-		}
-
-		if (options.useMockData !== undefined)
-			config.useMockData = Boolean(options.useMockData);
+		// Nur die notwendigen Optionen übernehmen
 		if (options.debugMode !== undefined)
 			config.debugMode = Boolean(options.debugMode);
-
-		// API-Keys übernehmen, falls angegeben
-		if (options.aviationstackKey)
-			config.aviationstackKey = options.aviationstackKey;
 		if (options.rapidApiKey) config.rapidApiKey = options.rapidApiKey;
-		if (options.airLabsKey) config.airLabsKey = options.airLabsKey;
-		if (options.apiMarketKey) config.apiMarketKey = options.apiMarketKey;
 
 		if (config.debugMode) {
 			console.log(
-				`AeroDataBoxAPI initialisiert: ${config.activeProvider} API aktiviert`
+				`AeroDataBoxAPI initialisiert: nur AeroDataBox API aktiviert`
 			);
 		}
 	};
@@ -140,462 +90,58 @@ const AeroDataBoxAPI = (() => {
 	};
 
 	/**
-	 * Ruft Daten von der Aviationstack API ab
-	 * @param {string} endpoint - API-Endpunkt (z.B. "flights")
-	 * @param {Object} params - Abfrageparameter
-	 * @returns {Promise<Object>} API-Antwortdaten
-	 */
-	const getAviationstackData = async (endpoint, params = {}) => {
-		try {
-			// URL aufbauen mit API-Key
-			let url = `${config.aviationstackBaseUrl}/${endpoint}?access_key=${config.aviationstackKey}`;
-
-			// Parameter hinzufügen
-			Object.keys(params).forEach((key) => {
-				url += `&${key}=${encodeURIComponent(params[key])}`;
-			});
-
-			if (config.debugMode) {
-				console.log(`Aviationstack API-Anfrage: ${url}`);
-			}
-
-			// API-Anfrage durchführen
-			const response = await fetch(url);
-
-			if (!response.ok) {
-				const errorText = await response.text();
-				throw new Error(
-					`Aviationstack API-Fehler: ${response.status} ${response.statusText}. Details: ${errorText}`
-				);
-			}
-
-			const data = await response.json();
-
-			if (data.error) {
-				throw new Error(
-					`Aviationstack API-Fehler: ${data.error.code} - ${data.error.message}`
-				);
-			}
-
-			if (config.debugMode) {
-				console.log("Aviationstack API-Antwort:", data);
-			}
-
-			return data;
-		} catch (error) {
-			console.error("Fehler bei Aviationstack API-Anfrage:", error);
-			throw error;
-		}
-	};
-
-	/**
-	 * Ruft Daten von der AirLabs API ab
-	 * @param {string} endpoint - API-Endpunkt (z.B. "flights")
-	 * @param {Object} params - Abfrageparameter
-	 * @returns {Promise<Object>} API-Antwortdaten
-	 */
-	const getAirLabsData = async (endpoint, params = {}) => {
-		try {
-			// URL aufbauen mit API-Key
-			let url = `${config.airLabsBaseUrl}/${endpoint}?api_key=${config.airLabsKey}`;
-
-			// Parameter hinzufügen
-			Object.keys(params).forEach((key) => {
-				url += `&${key}=${encodeURIComponent(params[key])}`;
-			});
-
-			if (config.debugMode) {
-				console.log(`AirLabs API-Anfrage: ${url}`);
-			}
-
-			// API-Anfrage durchführen
-			const response = await fetch(url);
-
-			if (!response.ok) {
-				const errorText = await response.text();
-				throw new Error(
-					`AirLabs API-Fehler: ${response.status} ${response.statusText}. Details: ${errorText}`
-				);
-			}
-
-			const data = await response.json();
-
-			if (data.error) {
-				throw new Error(
-					`AirLabs API-Fehler: ${data.error.code} - ${data.error.message}`
-				);
-			}
-
-			if (config.debugMode) {
-				console.log("AirLabs API-Antwort:", data);
-			}
-
-			return data;
-		} catch (error) {
-			console.error("Fehler bei AirLabs API-Anfrage:", error);
-			throw error;
-		}
-	};
-
-	/**
-	 * Ruft Daten von der API Market ab
-	 * @param {string} endpoint - API-Endpunkt (z.B. "flights/reg")
-	 * @param {Object} params - Abfrageparameter
-	 * @returns {Promise<Object>} API-Antwortdaten
-	 */
-	const getApiMarketData = async (endpoint, params = {}) => {
-		try {
-			// URL aufbauen mit API-Key
-			let url = `${config.apiMarketBaseUrl}${endpoint}`;
-
-			// Parameter als Query-String erstellen
-			const queryParams = new URLSearchParams();
-			Object.keys(params).forEach((key) => {
-				queryParams.append(key, params[key]);
-			});
-
-			const queryString = queryParams.toString();
-			if (queryString) {
-				url += `?${queryString}`;
-			}
-
-			if (config.debugMode) {
-				console.log(`API Market Anfrage: ${url}`);
-			}
-
-			// CORS-Proxy für die Entwicklungsumgebung verwenden
-			// Wir nutzen jetzt einen funktionierenden CORS-Proxy
-			const corsProxyUrl = "https://corsproxy.io/?";
-			const proxiedUrl = `${corsProxyUrl}${encodeURIComponent(url)}`;
-
-			if (config.debugMode) {
-				console.log(`Verwende CORS-Proxy: ${proxiedUrl}`);
-			}
-
-			// API-Anfrage durchführen
-			const response = await fetch(proxiedUrl, {
-				headers: {
-					"X-API-KEY": config.apiMarketKey,
-					Accept: "application/json",
-				},
-			});
-
-			if (!response.ok) {
-				const errorText = await response.text();
-				throw new Error(
-					`API Market Fehler: ${response.status} ${response.statusText}. Details: ${errorText}`
-				);
-			}
-
-			const data = await response.json();
-
-			if (data.error) {
-				throw new Error(
-					`API Market Fehler: ${data.error.code || ""} - ${
-						data.error.message || "Unbekannter Fehler"
-					}`
-				);
-			}
-
-			if (config.debugMode) {
-				console.log("API Market Antwort:", data);
-			}
-
-			return data;
-		} catch (error) {
-			console.error("Fehler bei API Market Anfrage:", error);
-
-			// Wenn ein CORS- oder Netzwerkfehler vorliegt, generiere Testdaten
-			if (
-				error.message.includes("Failed to fetch") ||
-				error.message.includes("CORS") ||
-				error.message.includes("NetworkError")
-			) {
-				console.warn(
-					"CORS- oder Netzwerkfehler bei API Market, verwende Testdaten"
-				);
-				throw new Error(
-					`API Market CORS-Fehler: Bitte verwenden Sie einen anderen API-Provider oder führen Sie die Anwendung mit einem CORS-Proxy aus.`
-				);
-			}
-
-			throw error;
-		}
-	};
-
-	/**
-	 * Konvertiert Aviationstack-Daten in das einheitliche Format
-	 * @param {Object} aviationstackData - Daten von der Aviationstack API
+	 * Konvertiert AeroDataBox API Daten in das einheitliche Format
+	 * @param {Array|Object} aeroDataBoxData - Daten von der AeroDataBox API
 	 * @param {string} aircraftRegistration - Flugzeugregistrierung
 	 * @param {string} date - Abfragedatum
 	 * @returns {Object} Vereinheitlichte Flugdaten
 	 */
-	const convertAviationstackToUnifiedFormat = (
-		aviationstackData,
+	const convertToUnifiedFormat = (
+		aeroDataBoxData,
 		aircraftRegistration,
 		date
 	) => {
+		// Wenn keine Daten vorhanden sind oder ein leeres Array zurückgegeben wurde
 		if (
-			!aviationstackData ||
-			!aviationstackData.data ||
-			!aviationstackData.data.length
+			!aeroDataBoxData ||
+			(Array.isArray(aeroDataBoxData) && aeroDataBoxData.length === 0)
 		) {
 			return { data: [] };
 		}
 
-		const formattedData = aviationstackData.data
+		// Sicherstellen, dass wir mit einem Array arbeiten
+		const flightsArray = Array.isArray(aeroDataBoxData)
+			? aeroDataBoxData
+			: [aeroDataBoxData];
+
+		const formattedData = flightsArray
 			.map((flight) => {
 				try {
 					// Extrahiere Flugdaten
-					const departureIata = flight.departure?.iata || "???";
-					const arrivalIata = flight.arrival?.iata || "???";
-					const departureTime = flight.departure?.scheduled
-						? new Date(flight.departure.scheduled)
-								.toTimeString()
-								.substring(0, 5)
+					const departureIata = flight.departure?.airport?.iata || "???";
+					const arrivalIata = flight.arrival?.airport?.iata || "???";
+
+					// Zeiten formatieren
+					const departureTime = flight.departure?.scheduledTime?.local
+						? flight.departure.scheduledTime.local.substring(11, 16) // Format HH:MM aus ISO-Timestamp
 						: "--:--";
-					const arrivalTime = flight.arrival?.scheduled
-						? new Date(flight.arrival.scheduled).toTimeString().substring(0, 5)
-						: "--:--";
-
-					// Fluggesellschaft und Flugnummer
-					const airline = flight.airline?.iata || "";
-					const flightNumber = flight.flight?.number || "";
-
-					// Flugzeugtyp
-					const aircraftType = flight.aircraft?.icao || "Unknown";
-
-					// Geplantes Abflugdatum aus den API-Daten oder Parameter
-					const scheduledDepartureDate = flight.flight_date || date;
-
-					return {
-						type: "DatedFlight",
-						scheduledDepartureDate: scheduledDepartureDate,
-						flightDesignator: {
-							carrierCode: airline,
-							flightNumber: flightNumber,
-						},
-						flightPoints: [
-							{
-								departurePoint: true,
-								arrivalPoint: false,
-								iataCode: departureIata,
-								departure: {
-									timings: [
-										{
-											qualifier: "STD",
-											value: departureTime + ":00.000",
-										},
-									],
-								},
-							},
-							{
-								departurePoint: false,
-								arrivalPoint: true,
-								iataCode: arrivalIata,
-								arrival: {
-									timings: [
-										{
-											qualifier: "STA",
-											value: arrivalTime + ":00.000",
-										},
-									],
-								},
-							},
-						],
-						legs: [
-							{
-								aircraftEquipment: {
-									aircraftType: aircraftType,
-								},
-								aircraftRegistration:
-									aircraftRegistration || flight.aircraft?.registration || "",
-							},
-						],
-						_source: "aviationstack",
-						_rawFlightData: flight,
-					};
-				} catch (error) {
-					console.error(
-						"Fehler bei der Konvertierung eines Aviationstack-Fluges:",
-						error,
-						flight
-					);
-					return null;
-				}
-			})
-			.filter(Boolean);
-
-		return { data: formattedData };
-	};
-
-	/**
-	 * Konvertiert AirLabs-Daten in das einheitliche Format
-	 * @param {Object} airLabsData - Daten von der AirLabs API
-	 * @param {string} aircraftRegistration - Flugzeugregistrierung
-	 * @param {string} date - Abfragedatum
-	 * @returns {Object} Vereinheitlichte Flugdaten
-	 */
-	const convertAirLabsToUnifiedFormat = (
-		airLabsData,
-		aircraftRegistration,
-		date
-	) => {
-		if (!airLabsData || !airLabsData.response || !airLabsData.response.length) {
-			return { data: [] };
-		}
-
-		const formattedData = airLabsData.response
-			.map((flight) => {
-				try {
-					// Extrahiere Flugdaten
-					const departureIata = flight.dep_iata || "???";
-					const arrivalIata = flight.arr_iata || "???";
-
-					// Zeiten formatieren (falls vorhanden)
-					const departureTime = flight.dep_time
-						? new Date(flight.dep_time).toTimeString().substring(0, 5)
-						: "--:--";
-					const arrivalTime = flight.arr_time
-						? new Date(flight.arr_time).toTimeString().substring(0, 5)
+					const arrivalTime = flight.arrival?.scheduledTime?.local
+						? flight.arrival.scheduledTime.local.substring(11, 16) // Format HH:MM aus ISO-Timestamp
 						: "--:--";
 
 					// Fluggesellschaft und Flugnummer
-					const airline = flight.airline_iata || "";
-					const flightNumber =
-						flight.flight_number || flight.flight_iata?.substring(2) || "";
-
-					// Flugzeugtyp
-					const aircraftType = flight.aircraft_icao || "Unknown";
-
-					// Geplantes Abflugdatum aus den API-Daten oder Parameter
-					const scheduledDepartureDate = flight.dep_time
-						? new Date(flight.dep_time).toISOString().split("T")[0]
-						: date;
-
-					return {
-						type: "DatedFlight",
-						scheduledDepartureDate: scheduledDepartureDate,
-						flightDesignator: {
-							carrierCode: airline,
-							flightNumber: flightNumber,
-						},
-						flightPoints: [
-							{
-								departurePoint: true,
-								arrivalPoint: false,
-								iataCode: departureIata,
-								departure: {
-									timings: [
-										{
-											qualifier: "STD",
-											value: departureTime + ":00.000",
-										},
-									],
-								},
-							},
-							{
-								departurePoint: false,
-								arrivalPoint: true,
-								iataCode: arrivalIata,
-								arrival: {
-									timings: [
-										{
-											qualifier: "STA",
-											value: arrivalTime + ":00.000",
-										},
-									],
-								},
-							},
-						],
-						legs: [
-							{
-								aircraftEquipment: {
-									aircraftType: aircraftType,
-								},
-								aircraftRegistration:
-									aircraftRegistration || flight.reg_number || "",
-							},
-						],
-						_source: "airlabs",
-						_rawFlightData: flight,
-					};
-				} catch (error) {
-					console.error(
-						"Fehler bei der Konvertierung eines AirLabs-Fluges:",
-						error,
-						flight
-					);
-					return null;
-				}
-			})
-			.filter(Boolean);
-
-		return { data: formattedData };
-	};
-
-	/**
-	 * Konvertiert API Market Daten in das einheitliche Format
-	 * @param {Object} apiMarketData - Daten von der API Market
-	 * @param {string} aircraftRegistration - Flugzeugregistrierung
-	 * @param {string} date - Abfragedatum
-	 * @returns {Object} Vereinheitlichte Flugdaten
-	 */
-	const convertApiMarketToUnifiedFormat = (
-		apiMarketData,
-		aircraftRegistration,
-		date
-	) => {
-		if (!apiMarketData || !Array.isArray(apiMarketData)) {
-			return { data: [] };
-		}
-
-		const formattedData = apiMarketData
-			.map((flight) => {
-				try {
-					// Extrahiere Flugdaten aus der API Market Antwort
-					// Die Struktur kann je nach Endpunkt variieren
-					const departureFlightPoint =
-						flight.flightPoints?.find((p) => p.departurePoint) || {};
-					const arrivalFlightPoint =
-						flight.flightPoints?.find((p) => p.arrivalPoint) || {};
-
-					// IATA-Codes extrahieren
-					const departureIata = departureFlightPoint.iataCode || "???";
-					const arrivalIata = arrivalFlightPoint.iataCode || "???";
-
-					// Zeiten extrahieren
-					let departureTime = "--:--";
-					let arrivalTime = "--:--";
-
-					if (departureFlightPoint.departure?.timings?.length) {
-						const timing = departureFlightPoint.departure.timings[0];
-						if (timing.value) {
-							departureTime = timing.value.substring(0, 5); // Format HH:MM
-						}
-					}
-
-					if (arrivalFlightPoint.arrival?.timings?.length) {
-						const timing = arrivalFlightPoint.arrival.timings[0];
-						if (timing.value) {
-							arrivalTime = timing.value.substring(0, 5); // Format HH:MM
-						}
-					}
-
-					// Fluggesellschaft und Flugnummer
-					const airline = flight.flightDesignator?.carrierCode || "";
-					const flightNumber = flight.flightDesignator?.flightNumber || "";
+					const airline = flight.number?.slice(0, 2) || "";
+					const flightNumber = flight.number?.slice(2) || "";
 
 					// Flugzeugtyp und Registrierung
-					const aircraftType =
-						flight.legs?.[0]?.aircraftEquipment?.aircraftType || "Unknown";
+					const aircraftType = flight.aircraft?.model || "Unknown";
 					const registration =
-						flight.legs?.[0]?.aircraftRegistration ||
-						aircraftRegistration ||
-						"";
+						flight.aircraft?.reg || aircraftRegistration || "";
 
-					// Geplantes Abflugdatum
-					const scheduledDepartureDate = flight.scheduledDepartureDate || date;
+					// Abflugdatum aus der API oder übergebenes Datum
+					const scheduledDepartureDate = flight.departure?.scheduledTime?.local
+						? flight.departure.scheduledTime.local.substring(0, 10) // Format YYYY-MM-DD
+						: date;
 
 					return {
 						type: "DatedFlight",
@@ -640,19 +186,19 @@ const AeroDataBoxAPI = (() => {
 								aircraftRegistration: registration,
 							},
 						],
-						_source: "apimarket",
+						_source: "aerodatabox",
 						_rawFlightData: flight,
 					};
 				} catch (error) {
 					console.error(
-						`Fehler bei der Konvertierung eines API Market Fluges:`,
+						"Fehler bei der Konvertierung eines AeroDataBox-Fluges:",
 						error,
 						flight
 					);
 					return null;
 				}
 			})
-			.filter(Boolean);
+			.filter(Boolean); // Entferne null-Werte
 
 		return { data: formattedData };
 	};
@@ -690,190 +236,29 @@ const AeroDataBoxAPI = (() => {
 				return { data: [] };
 			}
 
-			if (config.useMockData) {
-				if (config.debugMode) {
-					console.log(
-						`Mock-Modus deaktiviert, es werden keine Testdaten verwendet`
-					);
-				}
-				config.useMockData = false; // Mock-Modus explizit deaktivieren
-			}
-
 			updateFetchStatus(
 				`Suche Flüge für Aircraft ${registration} am ${date}...`
 			);
 
-			// Entscheide, welche API verwendet werden soll
-			if (config.activeProvider === "apimarket") {
-				try {
-					// Verwende API Market
-					const endpoint = `/flights/reg/${aircraftRegistration}/${date}`;
-					const params = {
-						withAircraftImage: false,
-						withLocation: true,
-					};
-
-					const apiMarketData = await rateLimiter(() =>
-						getApiMarketData(endpoint, params)
-					);
-
-					if (config.debugMode) {
-						console.log(
-							`API Market Antwort für ${aircraftRegistration}:`,
-							apiMarketData
-						);
-					}
-
-					if (
-						!apiMarketData ||
-						(Array.isArray(apiMarketData) && apiMarketData.length === 0)
-					) {
-						updateFetchStatus(
-							`Keine Flugdaten für ${aircraftRegistration} bei API Market gefunden.`,
-							false
-						);
-						// Leeres Ergebnis zurückgeben statt Testdaten
-						return { data: [] };
-					}
-
-					return convertApiMarketToUnifiedFormat(
-						apiMarketData,
-						aircraftRegistration,
-						date
-					);
-				} catch (apiMarketError) {
-					console.error(
-						`Fehler bei API Market Anfrage für ${aircraftRegistration}:`,
-						apiMarketError
-					);
-
-					// CORS-Fehler explizit erkennen
-					const isCorsError =
-						apiMarketError.message.includes("CORS") ||
-						apiMarketError.message.includes("Forbidden") ||
-						apiMarketError.message.includes("403") ||
-						apiMarketError.message.includes("Failed to fetch");
-
-					updateFetchStatus(
-						`Fehler bei API Market Anfrage: ${
-							isCorsError
-								? "CORS-Problem - bitte anderen Provider wählen"
-								: apiMarketError.message
-						}`,
-						true
-					);
-
-					// Leeres Ergebnis zurückgeben statt Testdaten
-					console.log(
-						"API Market konnte keine Daten liefern - leeres Ergebnis wird zurückgegeben"
-					);
-					return { data: [] };
-				}
-			} else if (config.activeProvider === "airlabs") {
-				try {
-					// Verwende AirLabs API
-					const params = {
-						reg_number: registration,
-					};
-
-					const airLabsData = await rateLimiter(() =>
-						getAirLabsData("flights", params)
-					);
-
-					if (config.debugMode) {
-						console.log(`AirLabs Antwort für ${registration}:`, airLabsData);
-					}
-
-					if (!airLabsData.response || airLabsData.response.length === 0) {
-						updateFetchStatus(
-							`Keine AirLabs-Daten für ${registration} gefunden`,
-							false
-						);
-						return { data: [] }; // Leeres Datenarray zurückgeben
-					}
-
-					return convertAirLabsToUnifiedFormat(airLabsData, registration, date);
-				} catch (airLabsError) {
-					console.error(
-						`Fehler bei AirLabs API-Anfrage für ${registration}:`,
-						airLabsError
-					);
-					updateFetchStatus(
-						`Fehler bei AirLabs-Anfrage: ${airLabsError.message}`,
-						true
-					);
-
-					// Leeres Datenarray statt Fallback oder Testdaten
-					return { data: [] };
-				}
-			} else if (
-				config.activeProvider === "aviationstack" ||
-				config.useAviationstack
-			) {
-				try {
-					// Verwende Aviationstack API
-					const params = {
-						flight_status: "scheduled",
-						aircraft_reg: registration,
-						flight_date: date,
-					};
-
-					const aviationstackData = await rateLimiter(() =>
-						getAviationstackData("flights", params)
-					);
-
-					if (config.debugMode) {
-						console.log(
-							`Aviationstack Antwort für ${registration}:`,
-							aviationstackData
-						);
-					}
-
-					if (!aviationstackData.data || aviationstackData.data.length === 0) {
-						updateFetchStatus(
-							`Keine Aviationstack-Daten für ${registration} gefunden`,
-							false
-						);
-						return { data: [] }; // Leeres Datenarray zurückgeben
-					}
-
-					return convertAviationstackToUnifiedFormat(
-						aviationstackData,
-						registration,
-						date
-					);
-				} catch (aviationstackError) {
-					console.error(
-						`Fehler bei Aviationstack API-Anfrage für ${registration}:`,
-						aviationstackError
-					);
-					updateFetchStatus(
-						`Fehler bei Aviationstack-Anfrage: ${aviationstackError.message}`,
-						true
-					);
-
-					// Leeres Datenarray statt Fallback oder Testdaten
-					return { data: [] };
-				}
-			}
-
-			// Standard AeroDataBox API
+			// Standard AeroDataBox API - direkte Abfrage mit Datum im Pfad
 			return await rateLimiter(async () => {
-				// API-URL basierend auf dem Beispiel konstruieren
-				const apiUrl = `${config.baseUrl}${config.flightsEndpoint}/reg/${registration}/${date}?withAircraftImage=false&withLocation=true&dateLocalRole=Both`;
+				// Direkte AeroDataBox API-Abfrage mit Datum im Pfad und dateLocalRole=Both
+				const apiUrl = `${config.baseUrl}/flights/reg/${registration}/${date}?withAircraftImage=false&withLocation=true&dateLocalRole=Both`;
 
 				if (config.debugMode) {
 					console.log(`API-Anfrage URL: ${apiUrl}`);
 				}
 
 				// API-Anfrage durchführen mit RapidAPI-Headers
-				const response = await fetch(apiUrl, {
+				const options = {
 					method: "GET",
 					headers: {
 						"x-rapidapi-key": config.rapidApiKey,
 						"x-rapidapi-host": config.rapidApiHost,
 					},
-				});
+				};
+
+				const response = await fetch(apiUrl, options);
 
 				if (!response.ok) {
 					const errorText = await response.text();
@@ -915,10 +300,7 @@ const AeroDataBoxAPI = (() => {
 				}
 
 				if (config.debugMode) {
-					console.log(
-						`AeroDataBox API-Antwort für ${registration} im Datumsbereich:`,
-						data
-					);
+					console.log(`AeroDataBox API-Antwort für ${registration}:`, data);
 				}
 
 				// Formatieren der Antwort in ein einheitliches Format
@@ -940,102 +322,86 @@ const AeroDataBoxAPI = (() => {
 	};
 
 	/**
-	 * Ruft Flugdaten für mehrere Flugzeuge ab
-	 * @param {string[]} registrations - Liste der Flugzeugregistrierungen
-	 * @param {string} date - Datum im Format YYYY-MM-DD
-	 * @returns {Promise<Object[]>} Liste der Flugdaten
+	 * Extrahiert eine numerische Zeitangabe aus einem Flugpunkt für die Sortierung
+	 * @param {Object} flightPoint - Der Flugpunkt (Ankunft oder Abflug)
+	 * @returns {number} Numerische Repräsentation der Zeit für Sortierung
 	 */
-	const getMultipleAircraftFlights = async (registrations, date) => {
-		try {
-			updateFetchStatus(
-				`Beginne Abruf für ${registrations.length} Flugzeuge...`
-			);
+	const getTimeFromFlightPoint = (flightPoint) => {
+		if (!flightPoint) return 0;
 
-			const results = [];
-			for (const reg of registrations) {
-				try {
-					updateFetchStatus(`Rufe Daten für ${reg} ab...`);
-					const data = await getAircraftFlights(reg, date);
-					results.push({ registration: reg, data });
-				} catch (error) {
-					console.error(`Fehler bei ${reg}:`, error);
-					results.push({
-						registration: reg,
-						error: error.message,
-						data: { data: [] }, // Leeres Datenarray statt Testdaten
-					});
-				}
+		try {
+			let timeStr;
+			// Für Abflugpunkt
+			if (
+				flightPoint.departurePoint &&
+				flightPoint.departure &&
+				flightPoint.departure.timings &&
+				flightPoint.departure.timings.length
+			) {
+				timeStr = flightPoint.departure.timings[0].value;
+			}
+			// Für Ankunftspunkt
+			else if (
+				flightPoint.arrivalPoint &&
+				flightPoint.arrival &&
+				flightPoint.arrival.timings &&
+				flightPoint.arrival.timings.length
+			) {
+				timeStr = flightPoint.arrival.timings[0].value;
+			} else {
+				return 0;
 			}
 
-			updateFetchStatus(
-				`Alle Flugdaten abgerufen (${results.length} Flugzeuge)`
-			);
-			return results;
+			// Extrahiere Stunden und Minuten und konvertiere in einen numerischen Wert
+			const timeParts = timeStr.substring(0, 5).split(":");
+			return parseInt(timeParts[0]) * 60 + parseInt(timeParts[1]);
 		} catch (error) {
-			console.error("Fehler beim Abrufen mehrerer Flugzeugdaten:", error);
-			throw error;
+			console.error("Fehler bei der Zeitextraktion:", error);
+			return 0;
 		}
 	};
 
 	/**
-	 * Holt den Flugstatus eines bestimmten Fluges
-	 * @param {string} number - Flugnummer (z.B. "LH123")
-	 * @param {string} date - Datum im Format YYYY-MM-DD
-	 * @returns {Promise<Object>} Flugstatusdaten
+	 * Extrahiert einen Zeit-String aus einem Flugpunkt
+	 * @param {Object} flightPoint - Der Flugpunkt (Ankunft oder Abflug)
+	 * @returns {string} Zeit im Format HH:MM
 	 */
-	const getFlightStatus = async (number, date) => {
+	const getTimeStringFromFlightPoint = (flightPoint) => {
+		if (!flightPoint) return "--:--";
+
 		try {
-			updateFetchStatus(`Prüfe Flugstatus für ${number} am ${date}...`);
+			let timeStr;
+			// Für Abflugpunkt
+			if (
+				flightPoint.departurePoint &&
+				flightPoint.departure &&
+				flightPoint.departure.timings &&
+				flightPoint.departure.timings.length
+			) {
+				timeStr = flightPoint.departure.timings[0].value;
+			}
+			// Für Ankunftspunkt
+			else if (
+				flightPoint.arrivalPoint &&
+				flightPoint.arrival &&
+				flightPoint.arrival.timings &&
+				flightPoint.arrival.timings.length
+			) {
+				timeStr = flightPoint.arrival.timings[0].value;
+			} else {
+				return "--:--";
+			}
 
-			// Parameter für die Anfrage
-			const withAircraftImage = true;
-			const withLocation = true;
-
-			// API-Aufruf mit Rate Limiting
-			return await rateLimiter(async () => {
-				// Immer RapidAPI verwenden - keine Alternativen mehr
-				const apiUrl = `${config.baseUrl}${config.statusEndpoint}/${number}/${date}?withAircraftImage=${withAircraftImage}&withLocation=${withLocation}`;
-
-				if (config.debugMode) {
-					console.log(`API-Anfrage URL: ${apiUrl}`);
-				}
-
-				// API-Anfrage durchführen mit RapidAPI-Headers
-				const response = await fetch(apiUrl, {
-					headers: {
-						"x-rapidapi-key": config.rapidApiKey,
-						"x-rapidapi-host": config.rapidApiHost,
-					},
-				});
-
-				if (!response.ok) {
-					const errorText = await response.text();
-					console.error(`API-Fehler: ${response.status} - ${errorText}`);
-					throw new Error(
-						`Flugstatus-Anfrage fehlgeschlagen: ${response.status} ${response.statusText}`
-					);
-				}
-
-				const data = await response.json();
-
-				if (config.debugMode) {
-					console.log(`Flugstatus-Antwort:`, data);
-				}
-
-				return data;
-			});
+			// Extrahiere Stunden und Minuten
+			return timeStr.substring(0, 5);
 		} catch (error) {
-			console.error("Fehler beim Abrufen des Flugstatus:", error);
-			updateFetchStatus(
-				`Fehler beim Abrufen des Flugstatus: ${error.message}`,
-				true
-			);
-			throw error;
+			console.error("Fehler bei der Zeitextraktion:", error);
+			return "--:--";
 		}
 	};
 
 	/**
-	 * Sucht Flugdaten für ein Flugzeug
+	 * Sucht Flugdaten für ein Flugzeug - VEREINFACHTE VERSION mit expliziten Abfragen für zwei Tage
 	 * @param {string} aircraftId - Flugzeugkennung (Registrierung)
 	 * @param {string} currentDate - Das aktuelle Datum für die Ankunft (letzter Flug)
 	 * @param {string} nextDate - Das Folgedatum für den Abflug (erster Flug)
@@ -1057,7 +423,7 @@ const AeroDataBoxAPI = (() => {
 		nextDate = nextDate || tomorrow;
 
 		console.log(
-			`AeroDataBoxAPI: Suche Flugdaten für ${aircraftId} - Ankunft (letzter Flug am ${currentDate}), Abflug (erster Flug am ${nextDate})`
+			`AeroDataBoxAPI: Suche Flugdaten für ${aircraftId} - EXPLIZIT an zwei Tagen: ${currentDate} und ${nextDate}`
 		);
 		updateFetchStatus(`Suche Flugdaten für ${aircraftId}...`);
 
@@ -1070,84 +436,76 @@ const AeroDataBoxAPI = (() => {
 				console.log(`Gewählter Flughafen für Filterung: ${selectedAirport}`);
 			}
 
-			// Flugdaten für beide Tage mit separaten Anfragen abrufen
-			let allFlights = [];
-			let currentDayError = false;
+			// VEREINFACHT: Zwei separate API-Abfragen für die beiden Tage
+			console.log(
+				`[EXPLIZITE ABFRAGE 1] Suche nach Flügen für ${aircraftId} am ${currentDate}`
+			);
+			updateFetchStatus(
+				`[1/2] Suche Flüge für ${aircraftId} am ${currentDate}...`
+			);
 
-			// Für aktuellen Tag
-			try {
-				const currentDayData = await getAircraftFlights(
-					aircraftId,
-					currentDate
-				);
+			// Erste Abfrage - aktueller Tag
+			const currentDayResponse = await getAircraftFlights(
+				aircraftId,
+				currentDate
+			);
+			const currentDayFlights = currentDayResponse?.data || [];
 
-				if (currentDayData && currentDayData.data) {
-					allFlights = [...allFlights, ...currentDayData.data];
-				}
-			} catch (error) {
-				console.warn(
-					`Fehler beim Abrufen der Flüge für ${currentDate}: ${error.message}`
-				);
-				currentDayError = true;
-			}
+			console.log(
+				`[EXPLIZITE ABFRAGE 2] Suche nach Flügen für ${aircraftId} am ${nextDate}`
+			);
+			updateFetchStatus(
+				`[2/2] Suche Flüge für ${aircraftId} am ${nextDate}...`
+			);
 
-			// Für nächsten Tag - nur wenn aktueller Tag erfolgreich war
-			if (!currentDayError) {
-				try {
-					const nextDayData = await getAircraftFlights(aircraftId, nextDate);
+			// Zweite Abfrage - Folgetag
+			const nextDayResponse = await getAircraftFlights(aircraftId, nextDate);
+			const nextDayFlights = nextDayResponse?.data || [];
 
-					if (nextDayData && nextDayData.data) {
-						allFlights = [...allFlights, ...nextDayData.data];
-					}
-				} catch (error) {
-					console.warn(
-						`Keine Daten für Folgetag ${nextDate} verfügbar: ${error.message}`
-					);
-					// Kein Fehler werfen - wir haben bereits Daten vom aktuellen Tag
-				}
-			}
+			console.log(
+				`[ERGEBNISSE] Gefunden: ${currentDayFlights.length} Flüge am ${currentDate} und ${nextDayFlights.length} Flüge am ${nextDate}`
+			);
 
 			// Separate Flüge zum und vom ausgewählten Flughafen
 			let arrivalFlights = [];
 			let departureFlights = [];
 
-			allFlights.forEach((flight) => {
+			// Flüge filtern für Ankunft am ausgewählten Flughafen am aktuellen Tag
+			currentDayFlights.forEach((flight) => {
 				if (flight.flightPoints && flight.flightPoints.length >= 2) {
-					const departurePoint = flight.flightPoints.find(
-						(p) => p.departurePoint
-					);
 					const arrivalPoint = flight.flightPoints.find((p) => p.arrivalPoint);
 
 					// Prüfen, ob der Flug zum ausgewählten Flughafen geht (Ankunft)
 					if (arrivalPoint && arrivalPoint.iataCode === selectedAirport) {
-						// Flug mit Ankunft am ausgewählten Flughafen
-						// Datum aus scheduledDepartureDate extrahieren, um zu prüfen ob es der aktuelle Tag ist
-						if (flight.scheduledDepartureDate === currentDate) {
-							arrivalFlights.push(flight);
-						}
-					}
-
-					// Prüfen, ob der Flug vom ausgewählten Flughafen kommt (Abflug)
-					if (departurePoint && departurePoint.iataCode === selectedAirport) {
-						// Flug mit Abflug vom ausgewählten Flughafen
-						// Datum aus scheduledDepartureDate extrahieren, um zu prüfen ob es der nächste Tag ist
-						if (flight.scheduledDepartureDate === nextDate) {
-							departureFlights.push(flight);
-						}
+						arrivalFlights.push(flight);
 					}
 				}
 			});
 
-			if (config.debugMode) {
-				console.log(`Ankünfte am ${selectedAirport}: ${arrivalFlights.length}`);
-				console.log(
-					`Abflüge von ${selectedAirport}: ${departureFlights.length}`
-				);
-			}
+			// Flüge filtern für Abflug vom ausgewählten Flughafen am Folgetag
+			nextDayFlights.forEach((flight) => {
+				if (flight.flightPoints && flight.flightPoints.length >= 2) {
+					const departurePoint = flight.flightPoints.find(
+						(p) => p.departurePoint
+					);
 
-			// Sortieren der Ankunftsflüge nach Zeit (späteste zuerst) und Abflüge (früheste zuerst)
+					// Prüfen, ob der Flug vom ausgewählten Flughafen kommt (Abflug)
+					if (departurePoint && departurePoint.iataCode === selectedAirport) {
+						departureFlights.push(flight);
+					}
+				}
+			});
+
+			// Debug-Info über gefundene Flüge
+			console.log(
+				`Gefilterte Ankünfte am ${selectedAirport} (${currentDate}): ${arrivalFlights.length}`
+			);
+			console.log(
+				`Gefilterte Abflüge von ${selectedAirport} (${nextDate}): ${departureFlights.length}`
+			);
+
+			// Sortieren der Ankunftsflüge nach Zeit (späteste zuerst)
 			arrivalFlights.sort((a, b) => {
-				// Zeit aus dem arrivalPoint extrahieren
 				const timeA = getTimeFromFlightPoint(
 					a.flightPoints.find((p) => p.arrivalPoint)
 				);
@@ -1158,8 +516,8 @@ const AeroDataBoxAPI = (() => {
 				return timeB - timeA;
 			});
 
+			// Sortieren der Abflüge nach Zeit (früheste zuerst)
 			departureFlights.sort((a, b) => {
-				// Zeit aus dem departurePoint extrahieren
 				const timeA = getTimeFromFlightPoint(
 					a.flightPoints.find((p) => p.departurePoint)
 				);
@@ -1170,52 +528,42 @@ const AeroDataBoxAPI = (() => {
 				return timeA - timeB;
 			});
 
-			// Verbesserte Sortierung mit Zeitrelevanz
-			arrivalFlights = improveDayTimeRelevance(
-				arrivalFlights,
-				(flight) => flight.flightPoints.find((p) => p.arrivalPoint),
-				true // ist Ankunft
-			);
-
-			departureFlights = improveDayTimeRelevance(
-				departureFlights,
-				(flight) => flight.flightPoints.find((p) => p.departurePoint),
-				false // ist Abflug
-			);
-
 			// Die relevanten Flüge auswählen (letzter Ankunftsflug, erster Abflugsflug)
 			const lastArrival = arrivalFlights.length > 0 ? arrivalFlights[0] : null;
 			const firstDeparture =
 				departureFlights.length > 0 ? departureFlights[0] : null;
 
 			// Debug-Information zu den ausgewählten Flügen
-			if (config.debugMode) {
-				if (lastArrival) {
-					const arrivalPoint = lastArrival.flightPoints.find(
-						(p) => p.arrivalPoint
-					);
-					console.log(
-						`Letzter Ankunftsflug: Von ${
-							lastArrival.flightPoints.find((p) => p.departurePoint)
-								?.iataCode || "---"
-						} nach ${
-							arrivalPoint?.iataCode || "---"
-						} um ${getTimeStringFromFlightPoint(arrivalPoint)}`
-					);
-				}
-				if (firstDeparture) {
-					const departurePoint = firstDeparture.flightPoints.find(
-						(p) => p.departurePoint
-					);
-					console.log(
-						`Erster Abflugsflug: Von ${
-							departurePoint?.iataCode || "---"
-						} nach ${
-							firstDeparture.flightPoints.find((p) => p.arrivalPoint)
-								?.iataCode || "---"
-						} um ${getTimeStringFromFlightPoint(departurePoint)}`
-					);
-				}
+			if (lastArrival) {
+				const arrivalPoint = lastArrival.flightPoints.find(
+					(p) => p.arrivalPoint
+				);
+				console.log(
+					`Letzter Ankunftsflug am ${currentDate}: Von ${
+						lastArrival.flightPoints.find((p) => p.departurePoint)?.iataCode ||
+						"---"
+					} nach ${
+						arrivalPoint?.iataCode || "---"
+					} um ${getTimeStringFromFlightPoint(arrivalPoint)}`
+				);
+			} else {
+				console.log(`Kein passender Ankunftsflug am ${currentDate} gefunden`);
+			}
+
+			if (firstDeparture) {
+				const departurePoint = firstDeparture.flightPoints.find(
+					(p) => p.departurePoint
+				);
+				console.log(
+					`Erster Abflugsflug am ${nextDate}: Von ${
+						departurePoint?.iataCode || "---"
+					} nach ${
+						firstDeparture.flightPoints.find((p) => p.arrivalPoint)?.iataCode ||
+						"---"
+					} um ${getTimeStringFromFlightPoint(departurePoint)}`
+				);
+			} else {
+				console.log(`Kein passender Abflugsflug am ${nextDate} gefunden`);
 			}
 
 			// Wenn keine passenden Flüge gefunden wurden
@@ -1244,7 +592,7 @@ const AeroDataBoxAPI = (() => {
 				destCode: "---",
 				departureTime: "--:--",
 				arrivalTime: "--:--",
-				positionText: "---", // Neue Eigenschaft für formatierte Positionsbeschreibung
+				positionText: "---",
 				data: selectedFlights,
 			};
 
@@ -1276,11 +624,14 @@ const AeroDataBoxAPI = (() => {
 				);
 
 				if (departurePoint) {
-					// Wenn lastArrival nicht vorhanden ist, verwende firstDeparture als Quelle für originCode
-					if (!lastArrival) {
+					if (lastArrival) {
+						// Wenn beide Flüge vorhanden sind, behält der Abflugsflug seine eigene originCode
+						result.departureTime = getTimeStringFromFlightPoint(departurePoint);
+					} else {
+						// Wenn kein lastArrival vorhanden ist, verwende firstDeparture als Quelle für originCode
 						result.originCode = departurePoint.iataCode || "---";
+						result.departureTime = getTimeStringFromFlightPoint(departurePoint);
 					}
-					result.departureTime = getTimeStringFromFlightPoint(departurePoint);
 				}
 
 				if (arrivalPoint && !lastArrival) {
@@ -1288,24 +639,28 @@ const AeroDataBoxAPI = (() => {
 				}
 			}
 
-			// Positionstext formatieren
+			// Positionstext formatieren - präziser mit Datumsangaben
 			if (result.originCode !== "---" || result.destCode !== "---") {
-				// Wenn mindestens einer der beiden Flughäfen bekannt ist
-				if (result.originCode !== "---" && result.destCode !== "---") {
-					// Wenn beide Flughäfen bekannt sind
-					result.positionText = `Abflug ${result.originCode} → ${result.destCode}`;
-				} else if (result.originCode !== "---") {
-					// Wenn nur der Abflughafen bekannt ist
-					result.positionText = `Abflug ${result.originCode}`;
-				} else {
-					// Wenn nur der Zielflughafen bekannt ist
-					result.positionText = `nach ${result.destCode}`;
+				if (lastArrival && firstDeparture) {
+					// Wenn beide Flüge bekannt sind - vollständige Information
+					result.positionText = `${result.originCode} → ${result.destCode}`;
+				} else if (lastArrival) {
+					// Nur Ankunft bekannt
+					result.positionText = `Ankunft: ${result.originCode} → ${result.destCode}`;
+				} else if (firstDeparture) {
+					// Nur Abflug bekannt
+					result.positionText = `Abflug: ${result.originCode} → ${result.destCode}`;
 				}
 			}
 
+			// Erfolgreiche Anfrage-Zusammenfassung
+			console.log(
+				`Flugdaten verarbeitet für ${aircraftId}: ${currentDate} und ${nextDate}`
+			);
 			updateFetchStatus(
 				`Flugdaten für ${aircraftId} gefunden: ${result.positionText}`
 			);
+
 			return result;
 		} catch (error) {
 			console.error(
@@ -1329,7 +684,7 @@ const AeroDataBoxAPI = (() => {
 	};
 
 	/**
-	 * Holt Flugdaten für einen Flughafen
+	 * Ruft Flugdaten für einen Flughafen ab
 	 * @param {string} airportCode - IATA-Code des Flughafens (z.B. "MUC")
 	 * @param {string} startDateTime - Startzeit für die Abfrage (ISO-Format oder YYYY-MM-DDThh:mm)
 	 * @param {string} endDateTime - Endzeit für die Abfrage (ISO-Format oder YYYY-MM-DDThh:mm)
@@ -1351,113 +706,11 @@ const AeroDataBoxAPI = (() => {
 			endDateTime = end.toISOString();
 		}
 
-		if (config.useMockData) {
-			console.log(
-				"Mock-Modus wird deaktiviert - keine Testdaten werden verwendet"
-			);
-			config.useMockData = false; // Mock-Modus explizit deaktivieren
-		}
-
 		try {
 			const normalizedAirport = airportCode.trim().toUpperCase();
 			updateFetchStatus(
 				`Flüge für Flughafen ${normalizedAirport} werden abgefragt...`
 			);
-
-			// Entscheiden, welche API für Flughafenanfragen verwendet werden soll
-			if (config.activeProvider === "airlabs") {
-				try {
-					// Verwende AirLabs API für Flughafenanfragen
-					const departuresParams = {
-						dep_iata: normalizedAirport,
-					};
-
-					const arrivalsParams = {
-						arr_iata: normalizedAirport,
-					};
-
-					// Parallel Abflüge und Ankünfte abrufen
-					const [departuresData, arrivalsData] = await Promise.all([
-						getAirLabsData("flights", departuresParams),
-						getAirLabsData("flights", arrivalsParams),
-					]);
-
-					if (config.debugMode) {
-						console.log(`AirLabs Flughafenanfrage für ${normalizedAirport}:`, {
-							abflüge: departuresData,
-							ankünfte: arrivalsData,
-						});
-					}
-
-					// Format für die Rückgabe anpassen
-					return {
-						departures: departuresData.response || [],
-						arrivals: arrivalsData.response || [],
-					};
-				} catch (airLabsError) {
-					console.error(
-						`Fehler bei AirLabs Flughafenanfrage für ${normalizedAirport}:`,
-						airLabsError
-					);
-					updateFetchStatus(
-						`Fehler bei AirLabs-Flughafenanfrage: ${airLabsError.message}`,
-						true
-					);
-
-					// Leere Arrays zurückgeben statt Fallback oder Testdaten
-					return { departures: [], arrivals: [] };
-				}
-			} else if (
-				config.activeProvider === "aviationstack" ||
-				config.useAviationstack
-			) {
-				try {
-					// Verwende Aviationstack API für Flughafenanfragen
-					const departuresParams = {
-						flight_status: "scheduled",
-						dep_iata: normalizedAirport,
-					};
-
-					const arrivalsParams = {
-						flight_status: "scheduled",
-						arr_iata: normalizedAirport,
-					};
-
-					// Parallel Abflüge und Ankünfte abrufen
-					const [departuresData, arrivalsData] = await Promise.all([
-						getAviationstackData("flights", departuresParams),
-						getAviationstackData("flights", arrivalsParams),
-					]);
-
-					if (config.debugMode) {
-						console.log(
-							`Aviationstack Flughafenanfrage für ${normalizedAirport}:`,
-							{
-								abflüge: departuresData,
-								ankünfte: arrivalsData,
-							}
-						);
-					}
-
-					// Format für die Rückgabe anpassen
-					return {
-						departures: departuresData.data || [],
-						arrivals: arrivalsData.data || [],
-					};
-				} catch (aviationstackError) {
-					console.error(
-						`Fehler bei Aviationstack Flughafenanfrage für ${normalizedAirport}:`,
-						aviationstackError
-					);
-					updateFetchStatus(
-						`Fehler bei Aviationstack-Flughafenanfrage: ${aviationstackError.message}`,
-						true
-					);
-
-					// Leere Arrays zurückgeben statt Fallback oder Testdaten
-					return { departures: [], arrivals: [] };
-				}
-			}
 
 			// Standard AeroDataBox Anfrage für Flughafen
 			return await rateLimiter(async () => {
@@ -1471,8 +724,8 @@ const AeroDataBoxAPI = (() => {
 
 				if (config.debugMode) {
 					console.log(`AeroDataBox API-Anfrage URLs: 
-						Abflüge: ${departuresUrl}
-						Ankünfte: ${arrivalsUrl}`);
+					Abflüge: ${departuresUrl}
+					Ankünfte: ${arrivalsUrl}`);
 				}
 
 				// Parallele Anfragen für bessere Performance
@@ -1523,10 +776,7 @@ const AeroDataBoxAPI = (() => {
 		}
 	};
 
-	// Entfernen der generateTestFlightData und generateTestAirportFlightData Funktionen
-	// Diese werden nicht mehr verwendet, da keine Testdaten mehr generiert werden sollen
-
-	// Update der public API
+	// Update der public API - vereinfacht, aber mit beibehaltenen Signaturen
 	return {
 		updateAircraftData,
 		getAircraftFlights,
@@ -1571,50 +821,98 @@ const AeroDataBoxAPI = (() => {
 				return { data: [] };
 			}
 		},
-		getMultipleAircraftFlights,
-		getFlightStatus,
+		getMultipleAircraftFlights: async (registrations, date) => {
+			try {
+				updateFetchStatus(
+					`Beginne Abruf für ${registrations.length} Flugzeuge...`
+				);
+
+				const results = [];
+				for (const reg of registrations) {
+					try {
+						updateFetchStatus(`Rufe Daten für ${reg} ab...`);
+						const data = await getAircraftFlights(reg, date);
+						results.push({ registration: reg, data });
+					} catch (error) {
+						console.error(`Fehler bei ${reg}:`, error);
+						results.push({
+							registration: reg,
+							error: error.message,
+							data: { data: [] },
+						});
+					}
+				}
+
+				updateFetchStatus(
+					`Alle Flugdaten abgerufen (${results.length} Flugzeuge)`
+				);
+				return results;
+			} catch (error) {
+				console.error("Fehler beim Abrufen mehrerer Flugzeugdaten:", error);
+				throw error;
+			}
+		},
+		getFlightStatus: async (number, date) => {
+			try {
+				updateFetchStatus(`Prüfe Flugstatus für ${number} am ${date}...`);
+
+				// Parameter für die Anfrage
+				const withAircraftImage = true;
+				const withLocation = true;
+
+				// API-Aufruf mit Rate Limiting
+				return await rateLimiter(async () => {
+					const apiUrl = `${config.baseUrl}${config.statusEndpoint}/${number}/${date}?withAircraftImage=${withAircraftImage}&withLocation=${withLocation}`;
+
+					if (config.debugMode) {
+						console.log(`API-Anfrage URL: ${apiUrl}`);
+					}
+
+					// API-Anfrage durchführen mit RapidAPI-Headers
+					const response = await fetch(apiUrl, {
+						headers: {
+							"x-rapidapi-key": config.rapidApiKey,
+							"x-rapidapi-host": config.rapidApiHost,
+						},
+					});
+
+					if (!response.ok) {
+						const errorText = await response.text();
+						console.error(`API-Fehler: ${response.status} - ${errorText}`);
+						throw new Error(
+							`Flugstatus-Anfrage fehlgeschlagen: ${response.status} ${response.statusText}`
+						);
+					}
+
+					const data = await response.json();
+
+					if (config.debugMode) {
+						console.log(`Flugstatus-Antwort:`, data);
+					}
+
+					return data;
+				});
+			} catch (error) {
+				console.error("Fehler beim Abrufen des Flugstatus:", error);
+				updateFetchStatus(
+					`Fehler beim Abrufen des Flugstatus: ${error.message}`,
+					true
+				);
+				throw error;
+			}
+		},
 		updateFetchStatus,
 		getAirportFlights,
 		init,
 		setMockMode: (useMock) => {
-			// Mock-Modus immer deaktivieren
-			config.useMockData = false;
 			console.log(
-				"API Mock-Modus ist permanent deaktiviert. Es werden nur echte API-Daten verwendet."
+				"Mock-Modus ist permanent deaktiviert. Es werden nur echte API-Daten verwendet."
 			);
 		},
 		setApiProvider: (provider) => {
-			if (typeof provider === "string") {
-				// String-basierte Anbieter-Einstellung
-				if (
-					["aerodatabox", "aviationstack", "airlabs", "apimarket"].includes(
-						provider
-					)
-				) {
-					config.activeProvider = provider;
-					// Für Rückwärtskompatibilität
-					config.useAviationstack = provider === "aviationstack";
-					config.useAirLabs = provider === "airlabs";
-					config.useApiMarket = provider === "apimarket";
-					console.log(`API-Provider gewechselt zu ${provider}`);
-				} else {
-					console.error(`Ungültiger Provider: ${provider}`);
-				}
-			} else {
-				// Boolean-basierte Anbieter-Einstellung (Rückwärtskompatibilität)
-				const useAviationstack = Boolean(provider);
-				config.useAviationstack = useAviationstack;
-				config.activeProvider = useAviationstack
-					? "aviationstack"
-					: "aerodatabox";
-				console.log(
-					`API-Provider gewechselt zu ${
-						useAviationstack ? "Aviationstack" : "AeroDataBox"
-					}`
-				);
-			}
+			console.log("Nur AeroDataBox API wird unterstützt.");
 		},
-		// Füge Eigenschaft für Konfigurationsexport hinzu
+		// Konfigurationsexport beibehalten
 		config,
 	};
 })();
