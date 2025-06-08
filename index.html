@@ -31,6 +31,17 @@
 		<link rel="stylesheet" href="css/hangarplanner-ui.css" />
 		<link rel="stylesheet" href="css/dark-mode-zoom.css" />
 		<link rel="stylesheet" href="css/weather-widget.css" />
+		<style>
+			.status-neutral {
+				background-color: white;
+				border: 1px solid #ccc;
+			}
+
+			.tow-neutral {
+				background-color: white;
+				color: #333333;
+			}
+		</style>
 	</head>
 	<body class="bg-industrial-dark text-white font-sans edit-mode">
 		<div class="flex h-screen">
@@ -100,10 +111,14 @@
 										<!-- Statuslicht und Dropdown -->
 										<div class="status-dropdown-container">
 											<span
-												class="status-light status-ready"
+												class="status-light status-neutral"
 												data-cell="1"
-												data-status="ready"></span>
-											<select id="status-1" class="status-selector">
+												data-status="neutral"></span>
+											<select
+												id="status-1"
+												class="status-selector"
+												title="Aircraft Status">
+												<option value="neutral" selected></option>
 												<option value="ready">Ready</option>
 												<option value="maintenance">MX</option>
 												<option value="aog">AOG</option>
@@ -112,12 +127,12 @@
 
 										<!-- Position -->
 										<div class="position-container">
-											<span class="position-label">Position:</span>
 											<input
 												type="text"
 												placeholder="1A"
 												id="hangar-position-1"
-												class="position-input" />
+												class="position-input"
+												title="Hangar Position" />
 										</div>
 									</div>
 								</div>
@@ -132,18 +147,19 @@
 
 									<!-- Einheitliche Ausrichtung für Infos -->
 									<div class="info-grid mb-3">
-										<div class="info-label">Arrival:</div>
+										<div class="info-label">Arr:</div>
 										<div id="arrival-time-1" class="info-value">--:--</div>
 
-										<div class="info-label">Departure:</div>
+										<div class="info-label">Dep:</div>
 										<div id="departure-time-1" class="info-value">--:--</div>
 
-										<div class="info-label">Position:</div>
+										<div class="info-label">Pos:</div>
 										<div id="position-1" class="info-value">--</div>
 
-										<div class="info-label">Towing Status:</div>
+										<div class="info-label">Tow:</div>
 										<div class="tow-status-container">
 											<select id="tow-status-1" class="tow-status-selector">
+												<option value="neutral" selected></option>
 												<option value="initiated" class="tow-initiated">
 													Initiated
 												</option>
@@ -176,10 +192,14 @@
 										<!-- Statuslicht und Dropdown -->
 										<div class="status-dropdown-container">
 											<span
-												class="status-light status-ready"
+												class="status-light status-neutral"
 												data-cell="2"
-												data-status="ready"></span>
-											<select id="status-2" class="status-selector">
+												data-status="neutral"></span>
+											<select
+												id="status-2"
+												class="status-selector"
+												title="Aircraft Status">
+												<option value="neutral" selected></option>
 												<option value="ready">Ready</option>
 												<option value="maintenance">MX</option>
 												<option value="aog">AOG</option>
@@ -188,12 +208,12 @@
 
 										<!-- Position -->
 										<div class="position-container">
-											<span class="position-label">Position:</span>
 											<input
 												type="text"
 												placeholder="1B"
 												id="hangar-position-2"
-												class="position-input" />
+												class="position-input"
+												title="Hangar Position" />
 										</div>
 									</div>
 								</div>
@@ -207,18 +227,19 @@
 
 									<!-- Einheitliche Ausrichtung für Infos -->
 									<div class="info-grid mb-3">
-										<div class="info-label">Arrival:</div>
+										<div class="info-label">Arr:</div>
 										<div id="arrival-time-2" class="info-value">--:--</div>
 
-										<div class="info-label">Departure:</div>
+										<div class="info-label">Dep:</div>
 										<div id="departure-time-2" class="info-value">--:--</div>
 
-										<div class="info-label">Position:</div>
+										<div class="info-label">Pos:</div>
 										<div id="position-2" class="info-value">--</div>
 
-										<div class="info-label">Towing Status:</div>
+										<div class="info-label">Tow:</div>
 										<div class="tow-status-container">
 											<select id="tow-status-2" class="tow-status-selector">
+												<option value="neutral" selected></option>
 												<option value="initiated" class="tow-initiated">
 													Initiated
 												</option>
@@ -251,10 +272,14 @@
 										<!-- Statuslicht und Dropdown -->
 										<div class="status-dropdown-container">
 											<span
-												class="status-light status-ready"
+												class="status-light status-neutral"
 												data-cell="3"
-												data-status="ready"></span>
-											<select id="status-3" class="status-selector">
+												data-status="neutral"></span>
+											<select
+												id="status-3"
+												class="status-selector"
+												title="Aircraft Status">
+												<option value="neutral" selected></option>
 												<option value="ready">Ready</option>
 												<option value="maintenance">MX</option>
 												<option value="aog">AOG</option>
@@ -263,12 +288,12 @@
 
 										<!-- Position -->
 										<div class="position-container">
-											<span class="position-label">Position:</span>
 											<input
 												type="text"
 												placeholder="2A"
 												id="hangar-position-3"
-												class="position-input" />
+												class="position-input"
+												title="Hangar Position" />
 										</div>
 									</div>
 								</div>
@@ -282,18 +307,19 @@
 
 									<!-- Einheitliche Ausrichtung für Infos -->
 									<div class="info-grid mb-3">
-										<div class="info-label">Arrival:</div>
+										<div class="info-label">Arr:</div>
 										<div id="arrival-time-3" class="info-value">--:--</div>
 
-										<div class="info-label">Departure:</div>
+										<div class="info-label">Dep:</div>
 										<div id="departure-time-3" class="info-value">--:--</div>
 
-										<div class="info-label">Position:</div>
+										<div class="info-label">Pos:</div>
 										<div id="position-3" class="info-value">--</div>
 
-										<div class="info-label">Towing Status:</div>
+										<div class="info-label">Tow:</div>
 										<div class="tow-status-container">
 											<select id="tow-status-3" class="tow-status-selector">
+												<option value="neutral" selected></option>
 												<option value="initiated" class="tow-initiated">
 													Initiated
 												</option>
@@ -326,10 +352,14 @@
 										<!-- Statuslicht und Dropdown -->
 										<div class="status-dropdown-container">
 											<span
-												class="status-light status-ready"
+												class="status-light status-neutral"
 												data-cell="4"
-												data-status="ready"></span>
-											<select id="status-4" class="status-selector">
+												data-status="neutral"></span>
+											<select
+												id="status-4"
+												class="status-selector"
+												title="Aircraft Status">
+												<option value="neutral" selected></option>
 												<option value="ready">Ready</option>
 												<option value="maintenance">MX</option>
 												<option value="aog">AOG</option>
@@ -338,12 +368,12 @@
 
 										<!-- Position -->
 										<div class="position-container">
-											<span class="position-label">Position:</span>
 											<input
 												type="text"
 												placeholder="2B"
 												id="hangar-position-4"
-												class="position-input" />
+												class="position-input"
+												title="Hangar Position" />
 										</div>
 									</div>
 								</div>
@@ -357,18 +387,19 @@
 
 									<!-- Einheitliche Ausrichtung für Infos -->
 									<div class="info-grid mb-3">
-										<div class="info-label">Arrival:</div>
+										<div class="info-label">Arr:</div>
 										<div id="arrival-time-4" class="info-value">--:--</div>
 
-										<div class="info-label">Departure:</div>
+										<div class="info-label">Dep:</div>
 										<div id="departure-time-4" class="info-value">--:--</div>
 
-										<div class="info-label">Position:</div>
+										<div class="info-label">Pos:</div>
 										<div id="position-4" class="info-value">--</div>
 
-										<div class="info-label">Towing Status:</div>
+										<div class="info-label">Tow:</div>
 										<div class="tow-status-container">
 											<select id="tow-status-4" class="tow-status-selector">
+												<option value="neutral" selected></option>
 												<option value="initiated" class="tow-initiated">
 													Initiated
 												</option>
@@ -402,10 +433,14 @@
 										<!-- Statuslicht und Dropdown -->
 										<div class="status-dropdown-container">
 											<span
-												class="status-light status-ready"
+												class="status-light status-neutral"
 												data-cell="5"
-												data-status="ready"></span>
-											<select id="status-5" class="status-selector">
+												data-status="neutral"></span>
+											<select
+												id="status-5"
+												class="status-selector"
+												title="Aircraft Status">
+												<option value="neutral" selected></option>
 												<option value="ready">Ready</option>
 												<option value="maintenance">MX</option>
 												<option value="aog">AOG</option>
@@ -414,12 +449,12 @@
 
 										<!-- Position -->
 										<div class="position-container">
-											<span class="position-label">Position:</span>
 											<input
 												type="text"
 												placeholder="2C"
 												id="hangar-position-5"
-												class="position-input" />
+												class="position-input"
+												title="Hangar Position" />
 										</div>
 									</div>
 								</div>
@@ -433,15 +468,16 @@
 										class="aircraft-id" />
 
 									<div class="info-grid mb-3">
-										<div class="info-label">Arrival:</div>
+										<div class="info-label">Arr:</div>
 										<div id="arrival-time-5" class="info-value">--:--</div>
-										<div class="info-label">Departure:</div>
+										<div class="info-label">Dep:</div>
 										<div id="departure-time-5" class="info-value">--:--</div>
-										<div class="info-label">Position:</div>
+										<div class="info-label">Pos:</div>
 										<div id="position-5" class="info-value">--</div>
-										<div class="info-label">Towing Status:</div>
+										<div class="info-label">Tow:</div>
 										<div class="tow-status-container">
 											<select id="tow-status-5" class="tow-status-selector">
+												<option value="neutral" selected></option>
 												<option value="initiated" class="tow-initiated">
 													Initiated
 												</option>
@@ -474,10 +510,14 @@
 										<!-- Statuslicht und Dropdown -->
 										<div class="status-dropdown-container">
 											<span
-												class="status-light status-ready"
+												class="status-light status-neutral"
 												data-cell="6"
-												data-status="ready"></span>
-											<select id="status-6" class="status-selector">
+												data-status="neutral"></span>
+											<select
+												id="status-6"
+												class="status-selector"
+												title="Aircraft Status">
+												<option value="neutral" selected></option>
 												<option value="ready">Ready</option>
 												<option value="maintenance">MX</option>
 												<option value="aog">AOG</option>
@@ -486,12 +526,12 @@
 
 										<!-- Position -->
 										<div class="position-container">
-											<span class="position-label">Position:</span>
 											<input
 												type="text"
 												placeholder="2D"
 												id="hangar-position-6"
-												class="position-input" />
+												class="position-input"
+												title="Hangar Position" />
 										</div>
 									</div>
 								</div>
@@ -505,15 +545,16 @@
 										class="aircraft-id" />
 
 									<div class="info-grid mb-3">
-										<div class="info-label">Arrival:</div>
+										<div class="info-label">Arr:</div>
 										<div id="arrival-time-6" class="info-value">--:--</div>
-										<div class="info-label">Departure:</div>
+										<div class="info-label">Dep:</div>
 										<div id="departure-time-6" class="info-value">--:--</div>
-										<div class="info-label">Position:</div>
+										<div class="info-label">Pos:</div>
 										<div id="position-6" class="info-value">--</div>
-										<div class="info-label">Towing Status:</div>
+										<div class="info-label">Tow:</div>
 										<div class="tow-status-container">
 											<select id="tow-status-6" class="tow-status-selector">
+												<option value="neutral" selected></option>
 												<option value="initiated" class="tow-initiated">
 													Initiated
 												</option>
@@ -546,10 +587,14 @@
 										<!-- Statuslicht und Dropdown -->
 										<div class="status-dropdown-container">
 											<span
-												class="status-light status-ready"
+												class="status-light status-neutral"
 												data-cell="7"
-												data-status="ready"></span>
-											<select id="status-7" class="status-selector">
+												data-status="neutral"></span>
+											<select
+												id="status-7"
+												class="status-selector"
+												title="Aircraft Status">
+												<option value="neutral" selected></option>
 												<option value="ready">Ready</option>
 												<option value="maintenance">MX</option>
 												<option value="aog">AOG</option>
@@ -558,12 +603,12 @@
 
 										<!-- Position -->
 										<div class="position-container">
-											<span class="position-label">Position:</span>
 											<input
 												type="text"
 												placeholder="2E"
 												id="hangar-position-7"
-												class="position-input" />
+												class="position-input"
+												title="Hangar Position" />
 										</div>
 									</div>
 								</div>
@@ -577,15 +622,16 @@
 										class="aircraft-id" />
 
 									<div class="info-grid mb-3">
-										<div class="info-label">Arrival:</div>
+										<div class="info-label">Arr:</div>
 										<div id="arrival-time-7" class="info-value">--:--</div>
-										<div class="info-label">Departure:</div>
+										<div class="info-label">Dep:</div>
 										<div id="departure-time-7" class="info-value">--:--</div>
-										<div class="info-label">Position:</div>
+										<div class="info-label">Pos:</div>
 										<div id="position-7" class="info-value">--</div>
-										<div class="info-label">Towing Status:</div>
+										<div class="info-label">Tow:</div>
 										<div class="tow-status-container">
 											<select id="tow-status-7" class="tow-status-selector">
+												<option value="neutral" selected></option>
 												<option value="initiated" class="tow-initiated">
 													Initiated
 												</option>
@@ -618,10 +664,14 @@
 										<!-- Statuslicht und Dropdown -->
 										<div class="status-dropdown-container">
 											<span
-												class="status-light status-ready"
+												class="status-light status-neutral"
 												data-cell="8"
-												data-status="ready"></span>
-											<select id="status-8" class="status-selector">
+												data-status="neutral"></span>
+											<select
+												id="status-8"
+												class="status-selector"
+												title="Aircraft Status">
+												<option value="neutral" selected></option>
 												<option value="ready">Ready</option>
 												<option value="maintenance">MX</option>
 												<option value="aog">AOG</option>
@@ -630,12 +680,12 @@
 
 										<!-- Position -->
 										<div class="position-container">
-											<span class="position-label">Position:</span>
 											<input
 												type="text"
 												placeholder="2F"
 												id="hangar-position-8"
-												class="position-input" />
+												class="position-input"
+												title="Hangar Position" />
 										</div>
 									</div>
 								</div>
@@ -649,15 +699,16 @@
 										class="aircraft-id" />
 
 									<div class="info-grid mb-3">
-										<div class="info-label">Arrival:</div>
+										<div class="info-label">Arr:</div>
 										<div id="arrival-time-8" class="info-value">--:--</div>
-										<div class="info-label">Departure:</div>
+										<div class="info-label">Dep:</div>
 										<div id="departure-time-8" class="info-value">--:--</div>
-										<div class="info-label">Position:</div>
+										<div class="info-label">Pos:</div>
 										<div id="position-8" class="info-value">--</div>
-										<div class="info-label">Towing Status:</div>
+										<div class="info-label">Tow:</div>
 										<div class="tow-status-container">
 											<select id="tow-status-8" class="tow-status-selector">
+												<option value="neutral" selected></option>
 												<option value="initiated" class="tow-initiated">
 													Initiated
 												</option>
@@ -690,10 +741,14 @@
 										<!-- Statuslicht und Dropdown -->
 										<div class="status-dropdown-container">
 											<span
-												class="status-light status-ready"
+												class="status-light status-neutral"
 												data-cell="9"
-												data-status="ready"></span>
-											<select id="status-9" class="status-selector">
+												data-status="neutral"></span>
+											<select
+												id="status-9"
+												class="status-selector"
+												title="Aircraft Status">
+												<option value="neutral" selected></option>
 												<option value="ready">Ready</option>
 												<option value="maintenance">MX</option>
 												<option value="aog">AOG</option>
@@ -702,12 +757,12 @@
 
 										<!-- Position -->
 										<div class="position-container">
-											<span class="position-label">Position:</span>
 											<input
 												type="text"
 												placeholder="3A"
 												id="hangar-position-9"
-												class="position-input" />
+												class="position-input"
+												title="Hangar Position" />
 										</div>
 									</div>
 								</div>
@@ -720,15 +775,16 @@
 										class="aircraft-id" />
 
 									<div class="info-grid mb-3">
-										<div class="info-label">Arrival:</div>
+										<div class="info-label">Arr:</div>
 										<div id="arrival-time-9" class="info-value">--:--</div>
-										<div class="info-label">Departure:</div>
+										<div class="info-label">Dep:</div>
 										<div id="departure-time-9" class="info-value">--:--</div>
-										<div class="info-label">Position:</div>
+										<div class="info-label">Pos:</div>
 										<div id="position-9" class="info-value">--</div>
-										<div class="info-label">Towing Status:</div>
+										<div class="info-label">Tow:</div>
 										<div class="tow-status-container">
 											<select id="tow-status-9" class="tow-status-selector">
+												<option value="neutral" selected></option>
 												<option value="initiated" class="tow-initiated">
 													Initiated
 												</option>
@@ -763,10 +819,14 @@
 										<!-- Statuslicht und Dropdown -->
 										<div class="status-dropdown-container">
 											<span
-												class="status-light status-ready"
+												class="status-light status-neutral"
 												data-cell="10"
-												data-status="ready"></span>
-											<select id="status-10" class="status-selector">
+												data-status="neutral"></span>
+											<select
+												id="status-10"
+												class="status-selector"
+												title="Aircraft Status">
+												<option value="neutral" selected></option>
 												<option value="ready">Ready</option>
 												<option value="maintenance">MX</option>
 												<option value="aog">AOG</option>
@@ -775,12 +835,12 @@
 
 										<!-- Position -->
 										<div class="position-container">
-											<span class="position-label">Position:</span>
 											<input
 												type="text"
 												placeholder="3B"
 												id="hangar-position-10"
-												class="position-input" />
+												class="position-input"
+												title="Hangar Position" />
 										</div>
 									</div>
 								</div>
@@ -793,15 +853,16 @@
 										class="aircraft-id" />
 
 									<div class="info-grid mb-3">
-										<div class="info-label">Arrival:</div>
+										<div class="info-label">Arr:</div>
 										<div id="arrival-time-10" class="info-value">--:--</div>
-										<div class="info-label">Departure:</div>
+										<div class="info-label">Dep:</div>
 										<div id="departure-time-10" class="info-value">--:--</div>
-										<div class="info-label">Position:</div>
+										<div class="info-label">Pos:</div>
 										<div id="position-10" class="info-value">--</div>
-										<div class="info-label">Towing Status:</div>
+										<div class="info-label">Tow:</div>
 										<div class="tow-status-container">
 											<select id="tow-status-10" class="tow-status-selector">
+												<option value="neutral" selected></option>
 												<option value="initiated" class="tow-initiated">
 													Initiated
 												</option>
@@ -833,10 +894,14 @@
 										<!-- Statuslicht und Dropdown -->
 										<div class="status-dropdown-container">
 											<span
-												class="status-light status-ready"
+												class="status-light status-neutral"
 												data-cell="11"
-												data-status="ready"></span>
-											<select id="status-11" class="status-selector">
+												data-status="neutral"></span>
+											<select
+												id="status-11"
+												class="status-selector"
+												title="Aircraft Status">
+												<option value="neutral" selected></option>
 												<option value="ready">Ready</option>
 												<option value="maintenance">MX</option>
 												<option value="aog">AOG</option>
@@ -845,12 +910,12 @@
 
 										<!-- Position -->
 										<div class="position-container">
-											<span class="position-label">Position:</span>
 											<input
 												type="text"
 												placeholder="3C"
 												id="hangar-position-11"
-												class="position-input" />
+												class="position-input"
+												title="Hangar Position" />
 										</div>
 									</div>
 								</div>
@@ -863,18 +928,19 @@
 										class="aircraft-id" />
 
 									<div class="info-grid mb-3">
-										<div class="info-label">Arrival:</div>
+										<div class="info-label">Arr:</div>
 										<div id="arrival-time-11" class="info-value">--:--</div>
 
-										<div class="info-label">Departure:</div>
+										<div class="info-label">Dep:</div>
 										<div id="departure-time-11" class="info-value">--:--</div>
 
-										<div class="info-label">Position:</div>
+										<div class="info-label">Pos:</div>
 										<div id="position-11" class="info-value">--</div>
 
-										<div class="info-label">Towing Status:</div>
+										<div class="info-label">Tow:</div>
 										<div class="tow-status-container">
 											<select id="tow-status-11" class="tow-status-selector">
+												<option value="neutral" selected></option>
 												<option value="initiated" class="tow-initiated">
 													Initiated
 												</option>
@@ -906,10 +972,14 @@
 										<!-- Statuslicht und Dropdown -->
 										<div class="status-dropdown-container">
 											<span
-												class="status-light status-ready"
+												class="status-light status-neutral"
 												data-cell="12"
-												data-status="ready"></span>
-											<select id="status-12" class="status-selector">
+												data-status="neutral"></span>
+											<select
+												id="status-12"
+												class="status-selector"
+												title="Aircraft Status">
+												<option value="neutral" selected></option>
 												<option value="ready">Ready</option>
 												<option value="maintenance">MX</option>
 												<option value="aog">AOG</option>
@@ -918,12 +988,12 @@
 
 										<!-- Position -->
 										<div class="position-container">
-											<span class="position-label">Position:</span>
 											<input
 												type="text"
 												placeholder="3D"
 												id="hangar-position-12"
-												class="position-input" />
+												class="position-input"
+												title="Hangar Position" />
 										</div>
 									</div>
 								</div>
@@ -936,18 +1006,19 @@
 										class="aircraft-id" />
 
 									<div class="info-grid mb-3">
-										<div class="info-label">Arrival:</div>
+										<div class="info-label">Arr:</div>
 										<div id="arrival-time-12" class="info-value">--:--</div>
 
-										<div class="info-label">Departure:</div>
+										<div class="info-label">Dep:</div>
 										<div id="departure-time-12" class="info-value">--:--</div>
 
-										<div class="info-label">Position:</div>
+										<div class="info-label">Pos:</div>
 										<div id="position-12" class="info-value">--</div>
 
-										<div class="info-label">Towing Status:</div>
+										<div class="info-label">Tow:</div>
 										<div class="tow-status-container">
 											<select id="tow-status-12" class="tow-status-selector">
+												<option value="neutral" selected></option>
 												<option value="initiated" class="tow-initiated">
 													Initiated
 												</option>
@@ -1524,6 +1595,7 @@
 					function updateTowStatusStyles(select) {
 						// Alle Styling-Klassen entfernen
 						select.classList.remove(
+							"tow-neutral",
 							"tow-initiated",
 							"tow-ongoing",
 							"tow-on-position"
@@ -1534,7 +1606,10 @@
 						select.classList.add(`tow-${value}`);
 
 						// Optional: Hintergrundfarbe direkt setzen
-						if (value === "initiated") {
+						if (value === "neutral") {
+							select.style.backgroundColor = "white";
+							select.style.color = "#333333";
+						} else if (value === "initiated") {
 							select.style.backgroundColor = "#FEF3C7"; // Hellgelb
 							select.style.color = "#92400E";
 						} else if (value === "ongoing") {

@@ -85,6 +85,9 @@ function initializeApp() {
 					);
 				}
 			}
+
+			// Sicherstellen, dass alle Kacheln den neutralen Status haben
+			resetAllTilesToNeutral();
 		} catch (error) {
 			console.error("Fehler bei der Initialisierung:", error);
 
@@ -243,6 +246,24 @@ function setupFlightDataEventHandlers() {
 			"Fetch-Button mit API-Fassade neu verbunden (alle anderen Handler entfernt)"
 		);
 	}
+}
+
+/**
+ * Setzt den neutralen Status für alle Kacheln
+ */
+function resetAllTilesToNeutral() {
+	// Status-Selektoren auf neutral setzen und aktualisieren
+	document.querySelectorAll(".status-selector").forEach((select) => {
+		select.value = "neutral";
+		const cellId = parseInt(select.id.split("-")[1]);
+		updateStatusLights(cellId);
+	});
+
+	// Towing-Status-Selektoren auf neutral setzen und aktualisieren
+	document.querySelectorAll(".tow-status-selector").forEach((select) => {
+		select.value = "neutral";
+		updateTowStatusStyles(select);
+	});
 }
 
 /**

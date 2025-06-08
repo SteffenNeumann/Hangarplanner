@@ -666,9 +666,22 @@ function updateCellAttributes(cell, cellId) {
 
 		// Wenn es ein Status-Select ist, setzen wir die Eventhandler neu
 		if (base === "status") {
+			// Sicherstellen, dass der neutrale Status ausgewählt ist
+			element.value = "neutral";
+			// Status-Licht aktualisieren
 			element.onchange = function () {
 				updateStatusLights(cellId);
 			};
+			// Initial den Status setzen
+			updateStatusLights(cellId);
+		}
+
+		// Wenn es ein Towing-Status-Select ist, auch hier neutralen Status setzen
+		if (base === "tow-status") {
+			// Sicherstellen, dass der neutrale Status ausgewählt ist
+			element.value = "neutral";
+			// Towing-Status-Styles aktualisieren
+			updateTowStatusStyles(element);
 		}
 	});
 
@@ -1122,6 +1135,7 @@ function updateStatusLights(cellId) {
 		if (statusLight) {
 			// Alle Status-Klassen entfernen
 			statusLight.classList.remove(
+				"status-neutral",
 				"status-ready",
 				"status-maintenance",
 				"status-aog"
@@ -1673,3 +1687,36 @@ if (typeof window.hangarUI === "undefined") {
 
 // Exportiere die neuen Funktionen
 window.hangarUI.adjustSecondaryGridLayout = adjustSecondaryGridLayout;
+
+// In der Funktion updateTowStatusStyles
+function updateTowStatusStyles(select) {
+	// Alle Styling-Klassen entfernen
+	select.classList.remove(
+		"tow-neutral",
+		"tow-initiated",
+		"tow-ongoing",
+		"tow-on-position"
+	);
+
+	// Neue Styling-Klasse basierend auf dem Wert hinzufügen
+	const value = select.value;
+	select.classList.add(`tow-${value}`);
+
+	// Hintergrundfarbe und Textfarbe direkt setzen
+	if (value === "neutral") {
+		select.style.backgroundColor = "white";
+		select.style.color = "#333333";
+	} else if (value === "initiated") {
+		select.style.backgroundColor = "#FEF3C7"; // Hellgelb
+		select.style.color = "#92400E";
+	} else if (value === "ongoing") {
+		select.style.backgroundColor = "#DBEAFE"; // Hellblau
+		select.style.color = "#1E40AF";
+	} else if (value === "on-position") {
+		select.style.backgroundColor = "#D1FAE5"; // Hellgrün
+		select.style.color = "#065F46";
+	}
+}
+
+// Exportiere die updateTowStatusStyles-Funktion als Teil des hangarUI-Objekts
+window.hangarUI.updateTowStatusStyles = updateTowStatusStyles;

@@ -161,7 +161,7 @@ select.status-selector {
 .info-label {
 	text-align: right;
 	font-weight: 500;
-	color: #4b5563;
+	color: #2d3142; /* Angepasst auf die gleiche Farbe wie Aircraft ID */
 	white-space: nowrap;
 	padding-right: 5px;
 	width: fit-content;
@@ -171,7 +171,7 @@ select.status-selector {
 	font-size: 0.8rem;
 }
 .info-value {
-	color: #4b5563;
+	color: #2d3142; /* Angepasst für bessere Konsistenz */
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
