@@ -40,8 +40,6 @@
 .dark-mode .hangar-cell {
 	background-color: var(--dark-card);
 	border: 1px solid var(--dark-border);
-	box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.3),
-		-5px -5px 10px rgba(45, 55, 72, 0.5);
 }
 
 /* Kachelheader */
@@ -194,6 +192,5 @@ textarea,
 select,
 button,
 .sidebar-container {
-	transition: background-color 0.3s, color 0.3s, border-color 0.3s,
-		box-shadow 0.3s;
+	transition: background-color 0.3s, color 0.3s, border-color 0.3s;
 }

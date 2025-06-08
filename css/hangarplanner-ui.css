@@ -41,9 +41,8 @@ body {
 	box-sizing: border-box;
 	transform-origin: center center;
 	justify-self: center;
-	box-shadow: 8px 8px 12px rgba(166, 166, 185, 0.25),
-		-8px -8px 12px rgba(255, 255, 255, 0.7) !important;
-	border: 1px solid rgba(150, 150, 180, 0.25);
+	box-shadow: none !important;
+	border: 1px solid #e5e7eb;
 	border-radius: 12px;
 	background-color: #e6eaef;
 }
@@ -93,7 +92,7 @@ body {
 	opacity: 1;
 	transition: all 0.3s ease;
 	border: 1px solid rgba(0, 0, 0, 0.1);
-	box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
+	box-shadow: none;
 }
 
 .status-ready {
@@ -134,7 +133,7 @@ select.status-selector {
 	width: fit-content;
 	margin: 0 auto;
 	white-space: nowrap;
-	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+	box-shadow: none;
 	background-color: #f3f4f6;
 	color: #4b5563;
 }
@@ -890,8 +889,7 @@ input:checked + .toggle-slider:before {
 .dark-mode .hangar-cell {
 	background-color: var(--card-bg);
 	color: var(--text-primary);
-	box-shadow: 8px 8px 12px rgba(0, 0, 0, 0.35),
-		-8px -8px 12px rgba(55, 65, 81, 0.7);
+	box-shadow: none;
 	border-color: var(--border-color);
 }
 
@@ -986,4 +984,58 @@ input:checked + .toggle-slider:before {
 
 .dark-mode #displayZoom::-moz-range-thumb {
 	background: #ff7043;
+}
+
+/* Weather Widget Styles */
+#weather-widget {
+	display: flex;
+	align-items: center;
+	font-size: 0.9rem;
+	background: rgba(255, 255, 255, 0.8);
+	padding: 0.25rem 0.75rem;
+	border-radius: 1rem;
+	box-shadow: none;
+	filter: none;
+	text-shadow: none;
+	border: 1px solid rgba(0, 0, 0, 0.05);
+	transition: all 0.2s ease;
+}
+
+#weather-widget:hover {
+	background: rgba(255, 255, 255, 1);
+	box-shadow: none;
+	border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.weather-airport {
+	font-weight: 600;
+	color: #5d6b89;
+}
+
+#weather-temp {
+	font-weight: 500;
+}
+
+#weather-icon {
+	color: #5d6b89;
+}
+
+#weather-description {
+	color: #5d6b89;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 120px;
+}
+
+/* Für Dark Mode */
+.dark-mode #weather-widget {
+	background: rgba(58, 67, 84, 0.9);
+	color: #d1d5db;
+}
+
+.dark-mode .weather-airport,
+.dark-mode #weather-icon,
+.dark-mode #weather-description {
+	color: #d1d5db;
 }

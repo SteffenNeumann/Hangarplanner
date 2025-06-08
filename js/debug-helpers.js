@@ -244,9 +244,134 @@ window.debugHelpers = {
 		
 		console.log('2-Spalten-Layout wurde angewendet');
 		return "2-Spalten-Layout wurde auf geeignete Abschnitte angewendet";
-	}
+	},
 
-	// Automatische Ausführung beim Laden
+	/**
+	 * Debugging-Helfer für die Wetter-API
+	 */
+
+	// Fügen Sie diese Funktion zu bestehenden Hilfsfunktionen hinzu
+	debugWeatherAPI: function () {
+		console.log("=== Weather API Debug ===");
+		
+		// Prüfen, ob die Widget-Elemente existieren
+		const elements = [
+			{ name: "weather-widget", el: document.getElementById("weather-widget") },
+			{ name: ".weather-airport", el: document.querySelector(".weather-airport") },
+			{ name: "#weather-temp", el: document.getElementById("weather-temp") },
+			{ name: "#weather-icon", el: document.getElementById("weather-icon") },
+			{ name: "#weather-description", el: document.getElementById("weather-description") },
+			{ name: "#weather-wind", el: document.getElementById("weather-wind") },
+			{ name: "#weather-visibility", el: document.getElementById("weather-visibility") }
+		];
+		
+		elements.forEach(item => {
+			console.log(`${item.name}: ${item.el ? "Gefunden" : "NICHT GEFUNDEN"}`);
+		});
+		
+		// API-Konfiguration prüfen
+		console.log("currentAirport:", window.weatherAPI?.currentAirport || "Nicht definiert");
+		
+		// CSS-Einbindung prüfen
+		const cssLinks = document.querySelectorAll('link[rel="stylesheet"]');
+		let weatherCSSFound = false;
+		
+		cssLinks.forEach(link => {
+			if (link.href.includes('weather-widget.css')) {
+				weatherCSSFound = true;
+			}
+		});
+		
+		console.log("weather-widget.css eingebunden:", weatherCSSFound ? "Ja" : "NEIN");
+		
+		// Manuelle API-Abfrage auslösen
+		console.log("Manuelle API-Abfrage wird ausgelöst...");
+		if (window.weatherAPI && typeof window.weatherAPI.fetchWeatherData === 'function') {
+			window.weatherAPI.fetchWeatherData();
+		} else {
+			console.error("weatherAPI.fetchWeatherData ist nicht verfügbar!");
+		}
+		
+		console.log("=== Debug Ende ===");
+	},
+
+	// Automatisch nach Initialisierung ausführen
+	document.addEventListener("DOMContentLoaded", function() {
+		setTimeout(() => {
+			// Debug-Modus prüfen
+			if (localStorage.getItem("debugMode") === "true") {
+				console.log("Debug-Modus aktiv, führe Weather API Debug aus");
+				debugWeatherAPI();
+			}
+		}, 1500);
+	})
+};
+
+// Globale Verfügbarkeit für Konsolenaufrufe
+window.debugWeatherAPI = window.debugHelpers.debugWeatherAPI;
+
+/**
+ * Debugging-Helfer für die Anwendung
+ */
+
+// Hilfsfunktionen für das Debugging
+window.debugHelpers = {
+    // Debugging-Modus aktivieren/deaktivieren
+    toggleDebugMode: function() {
+        const currentMode = localStorage.getItem('debugMode') === 'true';
+        localStorage.setItem('debugMode', (!currentMode).toString());
+        console.log(`Debug-Modus ${!currentMode ? 'aktiviert' : 'deaktiviert'}`);
+        return !currentMode;
+    },
+    
+    // Debugging-Informationen ausgeben
+    logDebugInfo: function() {
+        console.log('=== DEBUG INFORMATIONEN ===');
+        console.log('User Agent:', navigator.userAgent);
+        console.log('Bildschirmauflösung:', window.innerWidth, 'x', window.innerHeight);
+        console.log('Zoom Level:', window.devicePixelRatio * 100, '%');
+        
+        // Aktuelle Einstellungen
+        const settings = localStorage.getItem('hangarPlannerSettings');
+        if (settings) {
+            try {
+                const parsedSettings = JSON.parse(settings);
+                console.log('Aktuelle Einstellungen:', parsedSettings);
+            } catch (e) {
+                console.error('Fehler beim Parsen der Einstellungen:', e);
+            }
+        } else {
+            console.log('Keine gespeicherten Einstellungen gefunden');
+        }
+        
+        // DOM-Informationen
+        const hangarGrid = document.getElementById('hangarGrid');
+        if (hangarGrid) {
+            console.log('Hangar Grid:', {
+                childCount: hangarGrid.childElementCount,
+                visibleCells: hangarGrid.querySelectorAll('.hangar-cell:not(.hidden)').length,
+                style: {
+                    display: getComputedStyle(hangarGrid).display,
+                    gridTemplateColumns: getComputedStyle(hangarGrid).gridTemplateColumns
+                }
+            });
+        }
+        
+        // Sekundäres Grid
+        const secondaryGrid = document.getElementById('secondaryHangarGrid');
+        if (secondaryGrid) {
+            console.log('Sekundäres Grid:', {
+                childCount: secondaryGrid.childElementCount,
+                visibility: getComputedStyle(secondaryGrid).display,
+                gridTemplateColumns: getComputedStyle(secondaryGrid).gridTemplateColumns
+            });
+        }
+        
+        console.log('=== DEBUG ENDE ===');
+    }
+};
+
+// Automatische Ausführung beim Laden
 document.addEventListener("DOMContentLoaded", function () {
 	// Status beim Laden überprüfen
 	setTimeout(() => {

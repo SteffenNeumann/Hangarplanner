@@ -30,6 +30,7 @@
 		</script>
 		<link rel="stylesheet" href="css/hangarplanner-ui.css" />
 		<link rel="stylesheet" href="css/dark-mode-zoom.css" />
+		<link rel="stylesheet" href="css/weather-widget.css" />
 	</head>
 	<body class="bg-industrial-dark text-white font-sans edit-mode">
 		<div class="flex h-screen">
@@ -38,16 +39,50 @@
 				<!-- Header mit Titel und Aktionen -->
 				<header
 					class="bg-white p-4 shadow-md flex justify-between items-center">
-					<!-- Titel entfernt, Raum beibehalten -->
-					<div class="text-xl font-thin tracking-wide text-industrial-dark">
-						&nbsp;
+					<!-- Wetter-Widget mit verbessertem Layout -->
+					<div class="flex-grow"></div>
+					<div id="weather-widget">
+						<div class="weather-primary">
+							<div class="weather-airport">MUC</div>
+							<div class="weather-data">
+								<span id="weather-temp">--°C</span>
+								<div id="weather-icon">
+									<svg
+										class="w-5 h-5"
+										xmlns="http://www.w3.org/2000/svg"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor">
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+									</svg>
+								</div>
+							</div>
+						</div>
+						<div class="weather-secondary">
+							<span
+								id="weather-wind"
+								class="weather-wind-tooltip"
+								style="display: none"
+								>→ S 7</span
+							>
+							<span id="weather-description">Laden...</span>
+							<span id="weather-visibility" style="display: none"
+								>Sicht: 10km</span
+							>
+						</div>
 					</div>
-					<!-- Vereinfachter Toggle-Button -->
-					<button
-						id="menuToggle"
-						class="menu-toggle focus:outline-none bg-white text-industrial-accent px-2 py-1 rounded hover:bg-gray-50 z-50">
-						»
-					</button>
+					<div class="flex-grow flex justify-end">
+						<!-- Vereinfachter Toggle-Button -->
+						<button
+							id="menuToggle"
+							class="menu-toggle focus:outline-none bg-white text-industrial-accent px-2 py-1 rounded hover:bg-gray-50 z-50">
+							»
+						</button>
+					</div>
 				</header>
 
 				<!-- Hangar-Kacheln Bereich - Padding weiter reduziert -->
@@ -1307,6 +1342,7 @@
 			<script src="js/helpers.js"></script>
 			<script src="js/debug-helpers.js"></script>
 			<script src="js/fileManager.js"></script>
+			<script src="js/weather-api.js"></script>
 			<script src="js/hangar-ui.js"></script>
 			<script src="js/hangar-data.js"></script>
 			<!-- API-Implementierungen -->
@@ -1317,9 +1353,9 @@
 			<script src="js/airport-flights.js"></script>
 			<!-- API-Fassade -->
 			<script src="js/api-facade.js"></script>
-			<!-- Event-Handler und Hauptanwendung -->
 			<script src="js/hangar-events.js"></script>
 			<script src="js/hangar-pdf.js"></script>
+			<script src="js/weather-api.js"></script>
 			<script src="js/hangar.js"></script>
 
 			<!-- Event-Handler für den "Info anzeigen"-Button -->

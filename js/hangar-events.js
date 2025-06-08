@@ -1289,6 +1289,42 @@ function handleFlightDataFetch() {
 }
 
 /**
+ * Setzt alle Flugdatenfelder in den Kacheln zurück
+ */
+function resetAllFlightDataFields() {
+	try {
+		// Alle Kacheln finden
+		const cells = document.querySelectorAll(".hangar-cell");
+		console.log(`Setze Flugdaten in ${cells.length} Kacheln zurück...`);
+
+		cells.forEach((cell) => {
+			const cellId = cell.getAttribute("data-cell-id");
+			if (!cellId) return;
+
+			// Arrival Time zurücksetzen
+			const arrivalTimeEl = document.getElementById(`arrival-time-${cellId}`);
+			if (arrivalTimeEl) arrivalTimeEl.textContent = "--:--";
+
+			// Departure Time zurücksetzen
+			const departureTimeEl = document.getElementById(
+				`departure-time-${cellId}`
+			);
+			if (departureTimeEl) departureTimeEl.textContent = "--:--";
+
+			// Position zurücksetzen
+			const positionEl = document.getElementById(`position-${cellId}`);
+			if (positionEl) positionEl.textContent = "---";
+		});
+
+		console.log("Alle Flugdatenfelder wurden zurückgesetzt");
+		return true;
+	} catch (error) {
+		console.error("Fehler beim Zurücksetzen der Flugdatenfelder:", error);
+		return false;
+	}
+}
+
+/**
  * Event-Handler für den 'Flugdaten abrufen'-Button
  */
 async function fetchFlightButtonHandler() {
@@ -1342,6 +1378,9 @@ async function fetchFlightButtonHandler() {
 	);
 
 	try {
+		// NEUER CODE: Zuerst alle Kacheln zurücksetzen
+		resetAllFlightDataFields();
+
 		// Status aktualisieren
 		updateFetchStatus(
 			`Rufe Flugdaten für ${aircraftId} ab (${currentDate}/${nextDate})...`
@@ -1367,10 +1406,11 @@ async function fetchFlightButtonHandler() {
 			);
 
 			if (result) {
+				// NEUER CODE: Erfolgsbenachrichtigung mit UTC-Hinweis
 				showNotification(
 					`Flugdaten erfolgreich abgerufen: ${
 						result.positionText || "keine Positionsdaten"
-					}`,
+					} (UTC-Zeiten)`,
 					"success"
 				);
 			}
@@ -1762,14 +1802,14 @@ function applyFlightDataToCell(cellId, flightData, preferredAirport) {
 		const departureTimeEl = document.getElementById(`departure-time-${cellId}`);
 		const positionEl = document.getElementById(`position-${cellId}`);
 
-		// Zeiten nur eintragen, wenn sie gültig sind
+		// Zeiten mit UTC-Kennzeichnung eintragen, wenn sie gültig sind
 		if (arrivalTimeEl && arrivalTime !== "--:--")
-			arrivalTimeEl.textContent = arrivalTime;
+			arrivalTimeEl.textContent = arrivalTime + " UTC"; // GEÄNDERT: UTC-Kennzeichnung hinzugefügt
 
-		// Departure Time nur eintragen, wenn es ein Folgetags-Flug ist
+		// Departure Time nur eintragen, wenn es ein Folgetags-Flug ist, nun mit UTC-Kennzeichnung
 		if (departureTimeEl) {
 			if (isNextDayFlight && departureTime !== "--:--") {
-				departureTimeEl.textContent = departureTime;
+				departureTimeEl.textContent = departureTime + " UTC"; // GEÄNDERT: UTC-Kennzeichnung hinzugefügt
 			} else {
 				departureTimeEl.textContent = "--:--";
 			}
