@@ -213,9 +213,46 @@ const weatherAPI = {
 			// Windrichtungspfeil und Geschwindigkeit klarer darstellen
 			const windElement = document.getElementById("weather-wind");
 			if (windElement) {
+				// Korrigierte Zuordnungstabelle - dein Standardpfeil zeigt nach rechts (→)
+				// Für Wind aus Westen (W) muss Pfeil nach Osten (rechts) zeigen = 0° Rotation
+				const windDirectionToRotation = {
+					N: 180, // Wind aus Norden, Pfeil zeigt nach Süden
+					NNO: 202.5,
+					NO: 225,
+					ONO: 247.5,
+					O: 270, // Wind aus Osten, Pfeil zeigt nach Westen
+					OSO: 292.5,
+					SO: 315,
+					SSO: 337.5,
+					S: 0, // Wind aus Süden, Pfeil zeigt nach Norden
+					SSW: 22.5,
+					SW: 45,
+					WSW: 67.5,
+					W: 0, // Wind aus Westen, Pfeil zeigt nach Osten (KORRIGIERT)
+					WNW: 22.5,
+					NW: 45,
+					NNW: 67.5,
+				};
+
+				// Pfeilrotation bestimmen: Primär aus der Tabelle, Fallback auf Formel
+				let cssRotation;
+				if (windDirectionToRotation[windDirection] !== undefined) {
+					// Verwende die Tabellenwerte für präzise Pfeilrichtung
+					cssRotation = windDirectionToRotation[windDirection];
+					console.log(
+						`Windrichtung ${windDirection}: Pfeil rotiert um ${cssRotation}°`
+					);
+				} else {
+					// Alternative Berechnungsmethode als Fallback
+					cssRotation = (360 - weatherData.wind.direction.deg + 90) % 360;
+					console.log(
+						`Fallback-Berechnung für ${windDirection} (${weatherData.wind.direction.deg}°): ${cssRotation}°`
+					);
+				}
+
 				// Einheitlicher Stil für alle Elemente der zweiten Zeile
 				windElement.innerHTML = `
-					<span class="weather-wind-icon" style="transform: rotate(${weatherData.wind.direction.deg}deg)">→</span>
+					<span class="weather-wind-icon" style="transform: rotate(${cssRotation}deg)">→</span>
 					${windDirection} ${windSpeed} km/h
 				`;
 				windElement.style.display = "inline-block";

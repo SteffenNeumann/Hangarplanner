@@ -12,8 +12,6 @@
 	transition: all 0.3s ease;
 }
 
-
-
 /* Erste Zeile mit Airport und Temperatur */
 .weather-primary {
 	display: flex;
@@ -81,10 +79,11 @@
 
 .weather-wind-icon {
 	display: inline-block;
-	font-size: 1rem; /* Größerer Pfeil */
-	margin-right: 2px; /* Mehr Abstand */
+	font-size: 1.25rem; /* Noch größerer Pfeil */
+	margin-right: 3px; /* Mehr Abstand */
 	transform-origin: center;
 	transition: transform 0.3s ease;
+	font-weight: bold; /* Fetterer Pfeil für bessere Sichtbarkeit */
 }
 
 /* Wind-Tooltips */
