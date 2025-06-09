@@ -580,7 +580,16 @@ const AeroDataBoxAPI = (() => {
 	const updateAircraftData = async (aircraftId, currentDate, nextDate) => {
 		if (!aircraftId) {
 			updateFetchStatus("Bitte Flugzeugkennung eingeben", true);
-			return null;
+			// Leere Standardwerte zurückgeben, damit die Anwendung die Felder zurücksetzen kann
+			return {
+				originCode: "---",
+				destCode: "---",
+				departureTime: "--:--",
+				arrivalTime: "--:--",
+				positionText: "---",
+				data: [],
+				_isUtc: true,
+			};
 		}
 
 		// Standardwerte für Daten verwenden, falls nicht angegeben

@@ -41,6 +41,24 @@ const FlightDataAPI = (function () {
 		);
 
 		try {
+			// Explizite Prüfung auf leere Aircraft ID
+			if (!aircraftId || aircraftId.trim() === "") {
+				console.log(
+					"[API-FASSADE] Keine Aircraft ID angegeben oder leere ID, FORCE RESET wird ausgeführt"
+				);
+				// Füge ein spezielles Flag hinzu, das explizit ein Zurücksetzen erzwingt
+				return {
+					originCode: "---",
+					destCode: "---",
+					departureTime: "--:--",
+					arrivalTime: "--:--",
+					positionText: "---",
+					data: [],
+					_isUtc: true,
+					_forceReset: true, // Spezielles Flag für das UI-Update
+				};
+			}
+
 			// Prüfen, ob AeroDataBoxAPI verfügbar ist
 			if (!window.AeroDataBoxAPI) {
 				throw new Error("AeroDataBoxAPI ist nicht verfügbar");
@@ -55,6 +73,22 @@ const FlightDataAPI = (function () {
 				currentDate,
 				nextDate
 			);
+
+			// Sicherstellen, dass wir immer ein gültiges Ergebnisobjekt zurückgeben
+			if (!originalResult) {
+				console.log(
+					"[API-FASSADE] Keine Ergebnisse von der API erhalten, gebe leere Standardwerte zurück"
+				);
+				return {
+					originCode: "---",
+					destCode: "---",
+					departureTime: "--:--",
+					arrivalTime: "--:--",
+					positionText: "---",
+					data: [],
+					_isUtc: true,
+				};
+			}
 
 			// Wenn wir Ergebnisse haben und ein Flug für den Folgetag gefunden wurde, geben wir das zurück
 			const hasDepartureTime =

@@ -1039,3 +1039,107 @@ input:checked + .toggle-slider:before {
 .dark-mode #weather-description {
 	color: #d1d5db;
 }
+
+/* Styles für die Tabellenansicht - komplett neue Klassen, beeinflussen nicht die bestehende Ansicht */
+.table-view .hangar-cell {
+	display: flex;
+	flex-direction: row !important;
+	align-items: center;
+	min-height: 60px;
+	padding: 0 !important;
+	width: 100% !important;
+	max-width: none !important;
+	min-width: 100% !important;
+	border-radius: 8px;
+}
+
+.table-view .hangar-cell .card-header {
+	width: 120px;
+	min-width: 120px;
+	height: 100%;
+	border-radius: 8px 0 0 8px !important;
+	display: flex;
+	align-items: center;
+	padding: 0 0.5rem;
+	margin-right: 0.5rem;
+}
+
+.table-view .hangar-cell .card-header .header-elements {
+	flex-direction: row;
+	width: 100%;
+}
+
+.table-view .p-4 {
+	padding: 0.5rem !important;
+	display: flex !important;
+	flex-direction: row !important;
+	align-items: center !important;
+	width: 100%;
+}
+
+.table-view .aircraft-id {
+	width: 120px;
+	min-width: 120px;
+	text-align: left;
+	margin: 0 1rem 0 0;
+	padding: 0.25rem 0.5rem;
+	font-size: 0.9rem;
+	height: 30px;
+}
+
+.table-view .info-grid {
+	display: flex;
+	flex-direction: row;
+	gap: 1rem;
+	margin: 0;
+	align-items: center;
+	flex-wrap: nowrap;
+	flex-grow: 1;
+}
+
+.table-view .info-label,
+.table-view .info-value {
+	display: inline;
+	white-space: nowrap;
+}
+
+.table-view .info-grid > div {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
+}
+
+.table-view .notes-container {
+	margin: 0 0 0 1rem;
+	width: 180px;
+	min-width: 180px;
+}
+
+.table-view .notes-textarea {
+	height: 30px !important;
+	min-height: 30px !important;
+	max-height: 30px !important;
+}
+
+.table-view .tow-status-container {
+	width: 120px;
+	min-width: 120px;
+}
+
+/* Optimierte Grid-Layout für Tabellenansicht */
+.table-view #hangarGrid,
+.table-view #secondaryHangarGrid {
+	display: flex !important;
+	flex-direction: column !important;
+	gap: 8px !important;
+	width: 100% !important;
+}
+
+/* Anpassungen für Dark Mode in Tabellenansicht */
+.dark-mode.table-view .hangar-cell {
+	background-color: var(--card-bg);
+}
+
+.dark-mode.table-view .card-header {
+	background-color: var(--card-header-bg);
+}

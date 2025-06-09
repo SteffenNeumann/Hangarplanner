@@ -12,10 +12,7 @@
 	transition: all 0.3s ease;
 }
 
-#weather-widget:hover {
-	box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
-	transform: translateY(-1px);
-}
+
 
 /* Erste Zeile mit Airport und Temperatur */
 .weather-primary {

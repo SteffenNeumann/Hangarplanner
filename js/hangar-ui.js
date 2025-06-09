@@ -10,6 +10,7 @@ const uiSettings = {
 	layout: 4,
 	darkMode: false,
 	zoomLevel: 100,
+	tableView: false, // Neue Einstellung für die Tabellenansicht
 
 	// Lädt Einstellungen aus dem LocalStorage (beibehalten)
 	load: async function () {
@@ -21,13 +22,15 @@ const uiSettings = {
 				this.layout = settings.layout || 4;
 				this.darkMode = settings.darkMode || false;
 				this.zoomLevel = settings.zoomLevel || 100;
+				this.tableView = settings.tableView || false; // Neue Eigenschaft laden
 
 				// UI-Elemente aktualisieren
 				this.updateUIControls();
 
-				// Dark Mode und Zoom anwenden
+				// Dark Mode, Zoom und Tabellenansicht anwenden
 				this.applyDarkMode(this.darkMode);
 				this.applyZoomLevel(this.zoomLevel);
+				this.applyViewMode(this.tableView); // Neue Funktion anwenden
 
 				// Kachelwerte anwenden, falls vorhanden
 				if (settings.tileValues && Array.isArray(settings.tileValues)) {
@@ -65,6 +68,10 @@ const uiSettings = {
 			if (checkElement("darkModeToggle")) {
 				this.darkMode = document.getElementById("darkModeToggle").checked;
 			}
+			if (checkElement("viewModeToggle")) {
+				// Neue Eigenschaft auslesen
+				this.tableView = document.getElementById("viewModeToggle").checked;
+			}
 			if (checkElement("displayZoom")) {
 				this.zoomLevel =
 					parseInt(document.getElementById("displayZoom").value) || 100;
@@ -86,6 +93,7 @@ const uiSettings = {
 				layout: this.layout,
 				darkMode: this.darkMode,
 				zoomLevel: this.zoomLevel,
+				tableView: this.tableView, // Neue Eigenschaft speichern
 				tileValues: tileValues,
 				lastSaved: new Date().toISOString(),
 			};
@@ -174,6 +182,7 @@ const uiSettings = {
 			// Dark Mode und Zoom anwenden
 			this.applyDarkMode(this.darkMode);
 			this.applyZoomLevel(this.zoomLevel);
+			this.applyViewMode(this.tableView); // Neue Funktion anwenden
 
 			// Skalierung nach Layoutänderung neu berechnen
 			setTimeout(adjustScaling, 50);
@@ -198,6 +207,10 @@ const uiSettings = {
 		}
 		if (checkElement("darkModeToggle")) {
 			document.getElementById("darkModeToggle").checked = this.darkMode;
+		}
+		if (checkElement("viewModeToggle")) {
+			// Neues Element aktualisieren
+			document.getElementById("viewModeToggle").checked = this.tableView;
 		}
 		if (checkElement("displayZoom")) {
 			document.getElementById("displayZoom").value = this.zoomLevel;
@@ -258,160 +271,91 @@ const uiSettings = {
 		setTimeout(adjustScaling, 50);
 	},
 
-	// Hilfsmethode zum Sammeln von Kachelwerten
-	collectTileValues: function (containerSelector, tileValues, baseIndex) {
-		const container = document.querySelector(containerSelector);
-		if (!container) return;
+	// NEUE FUNKTION: Tabellenansicht umschalten
+	applyViewMode: function (tableViewEnabled) {
+		const body = document.body;
 
-		const cells = container.querySelectorAll(".hangar-cell");
-		const isSecondary = containerSelector === "#secondaryHangarGrid";
+		if (tableViewEnabled) {
+			body.classList.add("table-view");
+		} else {
+			body.classList.remove("table-view");
+		}
 
-		console.log(
-			`Sammle Daten aus ${containerSelector}: ${cells.length} Kacheln gefunden`
-		);
+		// Status speichern
+		this.tableView = tableViewEnabled;
 
-		cells.forEach((cell, index) => {
-			// Bei sekundären Kacheln immer zuerst das data-cell-id Attribut verwenden
-			let cellId;
-			if (isSecondary) {
-				// Wichtig: Immer zuerst das data-cell-id Attribut prüfen
-				const dataCellId = cell.getAttribute("data-cell-id");
-				if (dataCellId) {
-					cellId = parseInt(dataCellId);
-					console.log(
-						`Verwende data-cell-id=${dataCellId} für sekundäre Kachel ${index}`
-					);
-				} else {
-					// Nur als Fallback den Index verwenden
-					cellId = baseIndex + index;
-					console.warn(
-						`⚠️ Keine data-cell-id für sekundäre Kachel ${index} gefunden, verwende berechnete ID: ${cellId}`
-					);
-				}
+		// Layout nach Änderung des Anzeigemodus anpassen
+		setTimeout(() => {
+			adjustScaling();
+
+			// Spezielle Anpassungen für Tabellenansicht
+			if (tableViewEnabled) {
+				// Für Tabellenansicht die Zeilen etwas enger setzen
+				document.documentElement.style.setProperty("--grid-gap", "8px");
 			} else {
-				// Für primäre Kacheln kann die berechnete ID verwendet werden
-				cellId = baseIndex + index;
+				// Für Kachelansicht normale Abstände wiederherstellen
+				document.documentElement.style.setProperty("--grid-gap", "16px");
 			}
+		}, 50);
 
-			// Position-Input finden - immer über die spezifische ID
-			const positionInput = document.getElementById(
-				`hangar-position-${cellId}`
-			);
-
-			// Manuelles Eingabefeld finden - immer zuerst über die spezifische ID
-			const manualInput = document.getElementById(`manual-input-${cellId}`);
-
-			// Wenn manualInput nicht gefunden wurde, versuche es über Klassennamen/Attribut
-			const fallbackManualInput = !manualInput
-				? cell.querySelector('input[placeholder="Manual Input"]')
-				: null;
-
-			// Stelle sicher, dass wir tatsächlich einen Wert haben, bevor wir ihn speichern
-			const manualInputValue = manualInput
-				? manualInput.value
-				: fallbackManualInput
-				? fallbackManualInput.value
-				: "";
-
-			const positionValue = positionInput ? positionInput.value : "";
-
-			// Aircraft-ID für diese Kachel holen
-			const aircraftInput = document.getElementById(`aircraft-${cellId}`);
-			const aircraftValue = aircraftInput ? aircraftInput.value : "";
-
-			// Debug-Ausgabe zur Fehlersuche
+		// Debug-Ausgabe
+		if (localStorage.getItem("debugMode") === "true") {
 			console.log(
-				`Sammle Daten für Kachel ${cellId} (${
-					isSecondary ? "sekundär" : "primär"
-				}): ` +
-					`Position=${positionValue}, Manual=${manualInputValue}, Aircraft=${aircraftValue}`
+				`Ansichtsmodus auf "${tableViewEnabled ? "Tabelle" : "Kachel"}" gesetzt`
 			);
-
-			// Immer speichern, auch wenn keine Werte vorhanden sind
-			tileValues.push({
-				cellId: cellId,
-				position: positionValue || "",
-				manualInput: manualInputValue || "",
-				aircraftId: aircraftValue || "", // Wichtig: Aircraft-ID auch speichern
-			});
-		});
-
-		console.log(`${cells.length} Kacheln aus ${containerSelector} verarbeitet`);
-	},
-
-	// Wendet geladene Kachelwerte auf die UI an
-	applyTileValues: function (tileValues) {
-		// Für jede gespeicherte Kachel die Werte setzen
-		tileValues.forEach((tileValue) => {
-			// Position setzen
-			const positionInput = document.getElementById(
-				`hangar-position-${tileValue.cellId}`
-			);
-			if (positionInput) {
-				positionInput.value = tileValue.position || "";
-				// Debug-Ausgabe hinzufügen
-				debug(
-					`Position für Kachel ${tileValue.cellId} erfolgreich gesetzt: ${tileValue.position}`
-				);
-			} else {
-				// Wenn Element nicht gefunden, verzögert erneut versuchen
-				debug(
-					`Position für Kachel ${tileValue.cellId} konnte initial nicht gesetzt werden, versuche verzögert`
-				);
-				setTimeout(() => {
-					const delayedPositionInput = document.getElementById(
-						`hangar-position-${tileValue.cellId}`
-					);
-					if (delayedPositionInput) {
-						delayedPositionInput.value = tileValue.position || "";
-						debug(
-							`Position für Kachel ${tileValue.cellId} verzögert gesetzt: ${tileValue.position}`
-						);
-					} else {
-						console.warn(
-							`Positionsfeld für Kachel ${tileValue.cellId} nicht gefunden!`
-						);
-					}
-				}, 500);
-			}
-
-			// Manuelle Eingabe setzen - explizit über ID
-			const manualInput = document.getElementById(
-				`manual-input-${tileValue.cellId}`
-			);
-			if (manualInput) {
-				manualInput.value = tileValue.manualInput || "";
-				console.log(
-					`Manuelle Eingabe für Kachel ${tileValue.cellId} geladen: ${tileValue.manualInput}`
-				);
-			} else {
-				// Fallback: Suche nach dem manuellen Eingabefeld im jeweiligen Container
-				const container =
-					tileValue.cellId < 100 ? "#hangarGrid" : "#secondaryHangarGrid";
-				const index =
-					tileValue.cellId < 100 ? tileValue.cellId : tileValue.cellId - 100;
-
-				const cells = document.querySelectorAll(`${container} .hangar-cell`);
-				if (cells.length >= index) {
-					const fallbackManualInput = cells[index - 1].querySelector(
-						'input[placeholder="Manual Input"]'
-					);
-					if (fallbackManualInput) {
-						fallbackManualInput.value = tileValue.manualInput || "";
-						console.log(
-							`Fallback: Manuelle Eingabe für Kachel ${tileValue.cellId} geladen: ${tileValue.manualInput}`
-						);
-
-						// Gleich die ID setzen für zukünftige Verwendung
-						if (!fallbackManualInput.id) {
-							fallbackManualInput.id = `manual-input-${tileValue.cellId}`;
-						}
-					}
-				}
-			}
-		});
+		}
 	},
 };
+
+/**
+ * Formatiert die Aircraft ID:
+ * - Konvertiert zu Großbuchstaben
+ * - Fügt nach dem ersten Buchstaben einen Bindestrich ein, falls nicht vorhanden
+ *
+ * @param {string} input - Die eingegebene Aircraft ID
+ * @returns {string} - Die formatierte Aircraft ID
+ */
+function formatAircraftId(input) {
+	if (!input) return input;
+
+	// Zu Großbuchstaben konvertieren
+	input = input.toUpperCase();
+
+	// Prüfen, ob bereits ein Bindestrich vorhanden ist
+	if (input.length > 1 && !input.includes("-")) {
+		// Bindestrich nach dem ersten Buchstaben einfügen
+		input = input.charAt(0) + "-" + input.substring(1);
+	}
+
+	return input;
+}
+
+/**
+ * Fügt Event-Listener für die Formatierung der Aircraft ID zu allen entsprechenden Eingabefeldern hinzu
+ */
+function setupAircraftIdFormatting() {
+	const aircraftIdInputs = document.querySelectorAll(".aircraft-id");
+
+	aircraftIdInputs.forEach((input) => {
+		// Format bei Eingabe anwenden
+		input.addEventListener("input", function () {
+			const formattedValue = formatAircraftId(this.value);
+			// Nur aktualisieren, wenn sich der Wert tatsächlich geändert hat
+			if (formattedValue !== this.value) {
+				this.value = formattedValue;
+			}
+		});
+
+		// Format beim Verlassen des Feldes anwenden (für den Fall, dass die Eingabe anders erfolgt)
+		input.addEventListener("blur", function () {
+			this.value = formatAircraftId(this.value);
+		});
+	});
+
+	console.log(
+		`Aircraft ID-Formatierung für ${aircraftIdInputs.length} Eingabefelder eingerichtet`
+	);
+}
 
 /**
  * Aktualisiert die sekundären Kacheln basierend auf der eingestellten Anzahl
@@ -557,6 +501,9 @@ function updateSecondaryTiles(count, layout) {
 			if (typeof loadSecondaryTileValues === "function") {
 				loadSecondaryTileValues();
 			}
+
+			// Nach dem Erstellen von sekundären Kacheln auch die Aircraft ID-Formatierung anwenden
+			setupAircraftIdFormatting();
 		});
 	}
 }
@@ -1059,7 +1006,7 @@ function applyTileSizes(minWidth, maxWidth) {
 			// Kompaktere Schriftgrößen für Aircraft ID
 			const aircraftId = cell.querySelector(".aircraft-id");
 			if (aircraftId) {
-				aircraftId.style.fontSize = "1.1rem"; // Etwas kleiner (war 1.2rem)
+				aircraftId.style.fontSize = "1.5rem"; // Etwas kleiner (war 1.2rem)
 				aircraftId.style.fontWeight = "600"; // Etwas fettere Schrift
 				aircraftId.style.padding = "0.25rem"; // Reduziert (war 0.4rem)
 				aircraftId.style.marginBottom = "0.25rem"; // Reduziert (war 0.6rem)
@@ -1304,9 +1251,41 @@ window.hangarUI = {
 		}
 		initializeSidebarAccordion();
 	},
-	// Entferne diese Funktion aus dem Exportobjekt
-	// initializeSidebarToggle, <- ENTFERNEN
 	initializeSidebarAccordion,
+	// Füge die applyViewMode-Funktion direkt zum hangarUI-Objekt hinzu
+	applyViewMode: function (tableViewEnabled) {
+		return uiSettings.applyViewMode(tableViewEnabled);
+	},
+	// Füge auch die initializeDisplaySettings-Funktion direkt hinzu
+	initializeDisplaySettings: function () {
+		return initializeDisplaySettings();
+	},
+	// Direkte Funktion zum Umschalten der Ansicht - explizit exportiert
+	toggleTableView: function (enable) {
+		console.log("toggleTableView aufgerufen:", enable);
+
+		// Ansichtsmodus direkt anwenden
+		if (typeof uiSettings.applyViewMode === "function") {
+			uiSettings.applyViewMode(enable);
+
+			// Synchronisiere Toggle-Button
+			const viewModeToggle = document.getElementById("viewModeToggle");
+			if (viewModeToggle) viewModeToggle.checked = enable;
+
+			// Speichere Einstellung
+			if (typeof uiSettings.save === "function") {
+				setTimeout(() => uiSettings.save(), 100);
+			}
+
+			return `Ansicht auf ${enable ? "Tabelle" : "Kachel"} umgeschaltet`;
+		} else {
+			console.error("uiSettings.applyViewMode ist nicht definiert!");
+			return "Fehler: Funktion nicht gefunden";
+		}
+	},
+	// Füge die formatAircraftId-Funktion als Teil des hangarUI-Objekts hinzu
+	formatAircraftId: formatAircraftId,
+	setupAircraftIdFormatting: setupAircraftIdFormatting,
 };
 
 /**
@@ -1545,14 +1524,23 @@ function initializeUI() {
 
 	// Initalisiere den Flight Data-Bereich
 	initializeFlightDataSection();
+
+	// Formatierung für Aircraft IDs einrichten
+	setupAircraftIdFormatting();
 }
 
 /**
- * Setup event listeners für Dark Mode und Zoom-Einstellungen
+ * Setup event listeners für Dark Mode, Ansichtsmodus und Zoom-Einstellungen
+ * Mit vereinfachter direkter Verbindung zwischen Toggle und Funktion
  */
 function initializeDisplaySettings() {
 	const darkModeToggle = document.getElementById("darkModeToggle");
+	const viewModeToggle = document.getElementById("viewModeToggle"); // Neuer Toggle
 	const zoomSlider = document.getElementById("displayZoom");
+
+	// Debug-Ausgabe für die Fehlersuche
+	console.log("initializeDisplaySettings gestartet");
+	console.log("viewModeToggle gefunden:", viewModeToggle ? "ja" : "nein");
 
 	if (darkModeToggle) {
 		// Beim Laden den korrekten Status setzen
@@ -1570,6 +1558,35 @@ function initializeDisplaySettings() {
 			window.hangarUI.uiSettings.applyDarkMode(this.checked);
 			window.hangarUI.uiSettings.save();
 		});
+	}
+
+	// VEREINFACHT: Event Listener für den Ansichtsmodus-Toggle mit direktem Funktionsaufruf
+	if (viewModeToggle) {
+		console.log("Setze vereinfachten Event-Listener für viewModeToggle");
+
+		// Event-Handler maximal vereinfachen - direkt die Funktion aufrufen
+		viewModeToggle.addEventListener("change", function () {
+			// Direkt die Ansichtsfunktion aufrufen
+			uiSettings.applyViewMode(this.checked);
+
+			// Speichern nach Änderung
+			uiSettings.save();
+
+			console.log(
+				`Ansicht auf ${this.checked ? "Tabelle" : "Kachel"} umgeschaltet`
+			);
+		});
+
+		// Initialer Zustand aus den gespeicherten Einstellungen anwenden
+		const savedSettings = localStorage.getItem("hangarPlannerSettings");
+		if (savedSettings) {
+			try {
+				const settings = JSON.parse(savedSettings);
+				viewModeToggle.checked = settings.tableView || false;
+			} catch (e) {
+				console.error("Fehler beim Lesen der Tabellenansicht-Einstellung:", e);
+			}
+		}
 	}
 
 	if (zoomSlider) {
@@ -1600,16 +1617,19 @@ function initializeDisplaySettings() {
 	}
 }
 
-// Zur Initialisierungsfunktion hinzufügen
-function initializeUI() {
-	// ... existing code ...
+// Füge initializeDisplaySettings zum DOMContentLoaded-Event hinzu
+document.addEventListener("DOMContentLoaded", function () {
+	if (typeof initializeDisplaySettings === "function") {
+		setTimeout(initializeDisplaySettings, 100);
+	}
 
-	// Initialisiere Dark Mode und Zoom-Einstellungen
-	initializeDisplaySettings();
-}
+	// Aircraft ID-Formatierung beim Seitenaufbau einrichten
+	setupAircraftIdFormatting();
 
-// Exportiere neue Funktionen
-window.hangarUI.initializeDisplaySettings = initializeDisplaySettings;
+	// Sicherstellen, dass die Formatierung auch nach Zeitverzögerung angewendet wird
+	// (für dynamisch gerenderte Elemente)
+	setTimeout(setupAircraftIdFormatting, 500);
+});
 
 /**
  * Erstellt die sekundären Kacheln und fügt sie dem Grid hinzu
