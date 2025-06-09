@@ -1906,6 +1906,42 @@ document.addEventListener("secondaryTilesCreated", function () {
 	setupInputEventListeners();
 });
 
+// Auto-Sync Button Handling hinzufügen
+document.addEventListener("DOMContentLoaded", function () {
+	// Auto-Sync Toggle-Button Event-Handler
+	const autoSyncToggle = document.getElementById("autoSyncToggle");
+	if (autoSyncToggle) {
+		// Initial-Status aus localStorage laden
+		const autoSyncEnabled = localStorage.getItem("autoSyncEnabled") === "true";
+		autoSyncToggle.checked = autoSyncEnabled;
+
+		// Wenn aktiviert, Auto-Sync starten
+		if (autoSyncEnabled && window.autoSyncManager) {
+			window.autoSyncManager.startSync();
+		}
+
+		// Event-Handler für Änderungen
+		autoSyncToggle.addEventListener("change", function () {
+			if (this.checked) {
+				if (window.autoSyncManager) {
+					window.autoSyncManager.startSync();
+					localStorage.setItem("autoSyncEnabled", "true");
+
+					// Starten Sie auch die Dateianzeige
+					if (window.storageBrowser) {
+						window.storageBrowser.refreshFileList();
+					}
+				}
+			} else {
+				if (window.autoSyncManager) {
+					window.autoSyncManager.stopSync();
+					localStorage.setItem("autoSyncEnabled", "false");
+				}
+			}
+		});
+	}
+});
+
 // Exportiere Funktionen als globales Objekt
 window.hangarEvents = {
 	setupUIEventListeners,

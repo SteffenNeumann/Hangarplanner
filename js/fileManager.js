@@ -631,6 +631,156 @@ class FileManager {
 			console.error("Fehler bei der Synchronisation:", error);
 		}
 	}
+
+	/**
+	 * Erstellt eine Datei im festen Speicherort oder ersetzt sie
+	 * @param {string} fileName - Name der Datei (mit Erweiterung)
+	 * @param {Object|string} content - Inhalt der Datei (Objekt wird in JSON konvertiert)
+	 * @returns {Promise<boolean>} Erfolg des Speichervorgangs
+	 */
+	async createFileInFixedStorage(fileName, content) {
+		try {
+			// Inhalt in String umwandeln, falls es ein Objekt ist
+			const contentStr =
+				typeof content === "object"
+					? JSON.stringify(content, null, 2)
+					: String(content);
+
+			if (this.useLocalStorageEmulation) {
+				// Fallback auf localStorage
+				const storageKey = `fixedStorage_${fileName}`;
+				localStorage.setItem(storageKey, contentStr);
+
+				// Index aktualisieren
+				let fileIndex = JSON.parse(
+					localStorage.getItem("fixedStorage_fileIndex") || "[]"
+				);
+				if (!fileIndex.includes(fileName)) {
+					fileIndex.push(fileName);
+					localStorage.setItem(
+						"fixedStorage_fileIndex",
+						JSON.stringify(fileIndex)
+					);
+				}
+
+				console.log(
+					`Datei "${fileName}" im emulierten Speicher erstellt/aktualisiert`
+				);
+				return true;
+			} else if (this.fixedStorageDir) {
+				// Origin Private File System API verwenden
+				const fileHandle = await this.fixedStorageDir.getFileHandle(fileName, {
+					create: true,
+				});
+				const writable = await fileHandle.createWritable();
+				await writable.write(contentStr);
+				await writable.close();
+
+				console.log(
+					`Datei "${fileName}" im festen Speicherort erstellt/aktualisiert`
+				);
+				return true;
+			} else {
+				throw new Error("Fester Speicherort nicht verfügbar");
+			}
+		} catch (error) {
+			console.error("Fehler beim Erstellen/Aktualisieren der Datei:", error);
+			return false;
+		}
+	}
+
+	/**
+	 * Export-Funktion: Exportiert alle gespeicherten Dateien aus dem festen Speicherort
+	 * in einen herunterladbaren ZIP-Archiv
+	 */
+	async exportStoredFilesToZip() {
+		try {
+			// ZIP-Bibliothek dynamisch laden, wenn nicht vorhanden
+			if (!window.JSZip) {
+				// Benutzer über den Ladevorgang informieren
+				window.showNotification("Lade ZIP-Bibliothek...", "info");
+
+				// JSZip von CDN laden
+				await new Promise((resolve, reject) => {
+					const script = document.createElement("script");
+					script.src =
+						"https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
+					script.onload = resolve;
+					script.onerror = reject;
+					document.head.appendChild(script);
+				});
+			}
+
+			// Benachrichtigung anzeigen
+			window.showNotification("Erstelle ZIP-Archiv...", "info");
+
+			// Dateien auflisten
+			const files = await this.listProjectsInFixedLocation();
+			if (!files || files.length === 0) {
+				window.showNotification(
+					"Keine Dateien zum Exportieren vorhanden",
+					"warning"
+				);
+				return false;
+			}
+
+			// Neues ZIP-Archiv erstellen
+			const zip = new JSZip();
+
+			// Dateien zum Archiv hinzufügen
+			for (const fileName of files) {
+				let fileContent;
+
+				if (this.useLocalStorageEmulation) {
+					// Aus localStorage laden
+					fileContent = localStorage.getItem(`fixedStorage_${fileName}`);
+				} else if (this.fixedStorageDir) {
+					// Aus OPFS laden
+					const fileHandle = await this.fixedStorageDir.getFileHandle(
+						fileName,
+						{ create: false }
+					);
+					const file = await fileHandle.getFile();
+					fileContent = await file.text();
+				}
+
+				if (fileContent) {
+					zip.file(fileName, fileContent);
+				}
+			}
+
+			// ZIP generieren und herunterladen
+			const zipBlob = await zip.generateAsync({ type: "blob" });
+			const url = URL.createObjectURL(zipBlob);
+			const a = document.createElement("a");
+			a.href = url;
+			a.download = "hangarplanner-storage.zip";
+			document.body.appendChild(a);
+			a.click();
+
+			// Aufräumen
+			setTimeout(() => {
+				document.body.removeChild(a);
+				URL.revokeObjectURL(url);
+			}, 100);
+
+			window.showNotification(
+				`${files.length} Dateien erfolgreich exportiert`,
+				"success"
+			);
+			return true;
+		} catch (error) {
+			console.error(
+				"Fehler beim Exportieren der gespeicherten Dateien:",
+				error
+			);
+			window.showNotification(
+				`Export fehlgeschlagen: ${error.message}`,
+				"error"
+			);
+			return false;
+		}
+	}
 }
 
 // Erstelle globale Instanz des FileManagers
