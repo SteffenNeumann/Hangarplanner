@@ -9,6 +9,159 @@ class StorageBrowser {
 	}
 
 	/**
+	 * Stellt eine Synchronisationsfunktion bereit und registriert sie bei window.hangarData,
+	 * falls diese nicht vorhanden ist
+	 * @private
+	 */
+	ensureApplyFunction() {
+		if (window.hangarData) {
+			// Prüfe ob die Funktion fehlt und stelle sie bereit falls nötig
+			if (typeof window.hangarData.applyLoadedHangarPlan !== "function") {
+				console.log("applyLoadedHangarPlan-Funktion wird erstellt");
+				window.hangarData.applyLoadedHangarPlan = (projectData) => {
+					console.log("Wende geladene Daten auf Anwendung an...");
+
+					try {
+						// Positions- und Aircraft-Daten übernehmen
+						if (projectData.positions) {
+							window.hangarData.positions = projectData.positions;
+							console.log("Positionsdaten übernommen");
+						}
+
+						if (projectData.aircraft) {
+							window.hangarData.aircraft = projectData.aircraft;
+							console.log("Aircraft-Daten übernommen");
+						}
+
+						if (projectData.settings) {
+							window.hangarData.settings = projectData.settings;
+							console.log("Einstellungen übernommen");
+						}
+
+						// UI aktualisieren falls möglich
+						if (typeof window.updateUIFromData === "function") {
+							window.updateUIFromData(projectData);
+							console.log("UI mit neuen Daten aktualisiert");
+						} else {
+							// Versuche die Aktualisierungsfunktion zu finden
+							if (
+								typeof window.hangarUI !== "undefined" &&
+								typeof window.hangarUI.apply === "function"
+							) {
+								window.hangarUI.apply(projectData);
+								console.log("UI über hangarUI.apply aktualisiert");
+							} else {
+								console.warn("Keine UI-Aktualisierungsfunktion gefunden");
+							}
+						}
+
+						// Ereignis auslösen, um andere Komponenten zu informieren
+						const event = new CustomEvent("projectDataChanged", {
+							detail: projectData,
+						});
+						document.dispatchEvent(event);
+
+						return true;
+					} catch (error) {
+						console.error("Fehler beim Anwenden der Projektdaten:", error);
+						return false;
+					}
+				};
+				console.log("applyLoadedHangarPlan-Funktion erstellt und registriert");
+			} else {
+				console.log("applyLoadedHangarPlan-Funktion bereits vorhanden");
+			}
+		} else {
+			console.warn(
+				"hangarData-Objekt nicht verfügbar, kann Funktion nicht registrieren"
+			);
+		}
+	}
+
+	/**
+	 * Aktiviert die erweiterte Browser-übergreifende Synchronisierung
+	 * @param {boolean} activate - Aktiviert die erweiterte Sync-Funktion
+	 */
+	enableCrossBrowserSync(activate = true) {
+		// Stoppe bestehende Synchronisation falls vorhanden
+		if (this.syncInterval) {
+			clearInterval(this.syncInterval);
+			this.syncInterval = null;
+			console.log("Bestehende Cross-Browser-Synchronisation gestoppt");
+		}
+
+		if (!activate) return;
+
+		// Synchronisationsschlüssel für localStorage
+		const syncKey = "hangarplanner_sync_flag";
+
+		// Setze initiale Sync-Flagge
+		localStorage.setItem(syncKey, Date.now().toString());
+
+		// Prüfe regelmäßig auf Änderungen
+		this.syncInterval = setInterval(() => {
+			try {
+				const lastSyncTime = localStorage.getItem(syncKey);
+				const availableProjects =
+					window.fileManager.listProjectsInFixedLocation();
+
+				availableProjects
+					.then((projects) => {
+						if (projects && projects.length > 0) {
+							// Neues Projekt seit letzter Synchronisierung
+							const projectName = projects[0];
+
+							// Versuche das Projekt zu laden
+							window.fileManager
+								.loadProjectFromFixedLocation(projectName)
+								.then((projectData) => {
+									if (
+										projectData &&
+										projectData.metadata &&
+										projectData.metadata.lastSaved
+									) {
+										// Aktualisiere Sync-Flagge nur wenn neue Daten geladen wurden
+										localStorage.setItem(syncKey, Date.now().toString());
+
+										// Wende die Daten auf die aktuelle Anwendung an
+										this.ensureApplyFunction();
+
+										if (
+											window.hangarData &&
+											typeof window.hangarData.applyLoadedHangarPlan ===
+												"function"
+										) {
+											window.hangarData.applyLoadedHangarPlan(projectData);
+											console.log(
+												`Projekt "${projectName}" erfolgreich synchronisiert`
+											);
+
+											if (window.showNotification) {
+												window.showNotification(
+													`Projekt "${projectName}" synchronisiert`,
+													"success"
+												);
+											}
+										}
+									}
+								})
+								.catch((error) => {
+									console.error("Fehler beim Laden des Projekts:", error);
+								});
+						}
+					})
+					.catch((error) => {
+						console.error("Fehler beim Auflisten der Projekte:", error);
+					});
+			} catch (error) {
+				console.error("Fehler bei der Cross-Browser-Synchronisation:", error);
+			}
+		}, 5000); // Alle 5 Sekunden prüfen
+
+		console.log("Cross-Browser-Synchronisation aktiviert");
+	}
+
+	/**
 	 * Initialisiert den Storage-Browser in einem Container
 	 * @param {string} containerId - ID des Container-Elements für den Datei-Browser
 	 */
@@ -37,6 +190,12 @@ class StorageBrowser {
 
 		// Initial Dateien laden
 		this.refreshFileList();
+
+		// Stelle die Apply-Funktion bereit
+		this.ensureApplyFunction();
+
+		// Aktiviere Cross-Browser-Synchronisierung
+		this.enableCrossBrowserSync();
 
 		console.log("Storage Browser initialisiert");
 	}
@@ -291,6 +450,9 @@ class StorageBrowser {
 				fileName
 			);
 
+			// Stelle sicher, dass die Apply-Funktion verfügbar ist
+			this.ensureApplyFunction();
+
 			if (
 				projectData &&
 				window.hangarData &&
@@ -307,6 +469,9 @@ class StorageBrowser {
 				) {
 					projectNameInput.value = projectData.metadata.projectName;
 				}
+
+				// Aktualisiere den localStorage-Synchronisationsschlüssel
+				localStorage.setItem("hangarplanner_sync_flag", Date.now().toString());
 
 				// Erfolgsbenachrichtigung
 				if (window.showNotification) {
