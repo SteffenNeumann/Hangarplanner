@@ -258,8 +258,9 @@ class StorageBrowser {
 
 	/**
 	 * Ermöglicht die Synchronisation über einen Webserver
+	 * Verbessert mit einfacherem JSON-basierten Ansatz
 	 * @param {boolean} activate - Aktiviert die Server-Synchronisation
-	 * @param {string} serverUrl - URL zum Server-Endpunkt (z.B. "https://example.com/sync/")
+	 * @param {string} serverUrl - URL zum Server-Endpunkt (z.B. "https://example.com/sync/data.json")
 	 */
 	enableServerSync(activate = true, serverUrl = "") {
 		if (this.serverSyncInterval) {
@@ -275,51 +276,6 @@ class StorageBrowser {
 
 		// Synchronisations-Schlüssel
 		const syncKey = "hangarplanner_server_sync";
-
-		// Funktion zum Hochladen der Daten
-		const uploadData = async () => {
-			try {
-				if (!window.hangarData) return;
-
-				// Aktuelle Projektdaten sammeln
-				let projectData = {};
-				if (typeof window.hangarData.getCurrentData === "function") {
-					projectData = window.hangarData.getCurrentData();
-				} else if (typeof window.hangarData.getProjectData === "function") {
-					projectData = window.hangarData.getProjectData();
-				} else {
-					projectData = {
-						positions: window.hangarData.positions || {},
-						aircraft: window.hangarData.aircraft || {},
-						settings: window.hangarData.settings || {},
-					};
-				}
-
-				// Metadaten hinzufügen
-				if (!projectData.metadata) projectData.metadata = {};
-				projectData.metadata.timestamp = Date.now();
-				projectData.metadata.lastModified = new Date().toISOString();
-
-				// Daten an Server senden
-				const response = await fetch(serverUrl, {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify(projectData),
-				});
-
-				if (response.ok) {
-					console.log("Daten erfolgreich zum Server synchronisiert");
-					localStorage.setItem(syncKey, Date.now().toString());
-				} else {
-					console.error(
-						"Fehler beim Hochladen der Daten:",
-						await response.text()
-					);
-				}
-			} catch (error) {
-				console.error("Fehler bei der Server-Synchronisation:", error);
-			}
-		};
 
 		// Funktion zum Herunterladen der Daten
 		const downloadData = async () => {
@@ -348,7 +304,7 @@ class StorageBrowser {
 							setTimeout(() => this.updateUIElements(), 500);
 
 							// Timestamp aktualisieren
-							localStorage.setItem(syncKey, data.metadata.timestamp);
+							localStorage.setItem(syncKey, data.metadata.timestamp.toString());
 
 							if (window.showNotification) {
 								window.showNotification(
@@ -358,6 +314,8 @@ class StorageBrowser {
 							}
 						}
 					}
+				} else {
+					console.warn("Server-Abfrage fehlgeschlagen:", response.status);
 				}
 			} catch (error) {
 				console.error("Fehler beim Abrufen der Daten vom Server:", error);
@@ -371,11 +329,6 @@ class StorageBrowser {
 		this.serverSyncInterval = setInterval(() => {
 			downloadData();
 		}, 5000); // Alle 5 Sekunden prüfen
-
-		// Event-Listener für lokale Änderungen
-		document.addEventListener("projectDataChanged", () => {
-			uploadData();
-		});
 
 		console.log("Server-Synchronisation aktiviert mit URL:", serverUrl);
 	}
@@ -431,10 +384,10 @@ class StorageBrowser {
 	createUI() {
 		// Titel
 		const title = document.createElement("h3");
-		title.textContent = "Gespeicherte Dateien";
+		title.textContent = "Daten-Synchronisation";
 		title.className = "text-sm font-medium mb-2";
 
-		// Button-Container für bessere Anordnung
+		// Primäre Buttons (obere Reihe)
 		const buttonContainer = document.createElement("div");
 		buttonContainer.className = "flex justify-between items-center mb-2";
 
@@ -453,100 +406,59 @@ class StorageBrowser {
 		buttonContainer.appendChild(saveButton);
 		buttonContainer.appendChild(refreshButton);
 
-		// Container für die Dateiliste
-		this.fileListElement = document.createElement("div");
-		this.fileListElement.className =
-			"storage-file-list text-sm max-h-40 overflow-y-auto";
+		// Server-Synchronisations-Buttons (untere Reihe)
+		const syncButtonsContainer = document.createElement("div");
+		syncButtonsContainer.className = "flex justify-between items-center mt-2";
 
-		// Info-Text
-		const infoText = document.createElement("p");
-		infoText.textContent = "Dateien werden im Browser-Speicher gespeichert";
-		infoText.className = "text-xs text-gray-500 mt-2";
+		// JSON Export Button - volle Breite
+		const exportButton = document.createElement("button");
+		exportButton.textContent = "📤 JSON exportieren";
+		exportButton.className =
+			"sidebar-btn sidebar-btn-primary text-xs flex-grow";
+		exportButton.onclick = () => this.exportDataAsJson();
 
-		// Server-Sync-Konfiguration Button
+		// Server-Sync-Konfiguration Button - volle Breite
 		const syncConfigButton = document.createElement("button");
 		syncConfigButton.textContent = "🔄 Server-Sync";
 		syncConfigButton.className =
-			"sidebar-btn sidebar-btn-secondary text-xs mt-2";
+			"sidebar-btn sidebar-btn-secondary text-xs flex-grow ml-2";
 		syncConfigButton.onclick = () => this.configureServerSync();
+
+		syncButtonsContainer.appendChild(exportButton);
+		syncButtonsContainer.appendChild(syncConfigButton);
+
+		// Info-Text
+		const infoText = document.createElement("p");
+		infoText.textContent =
+			"Exportiere JSON und lade sie auf einen Webserver hoch";
+		infoText.className = "text-xs text-gray-500 mt-2";
 
 		// Alles zum Container hinzufügen
 		this.containerElement.innerHTML = ""; // Container leeren
 		this.containerElement.appendChild(title);
 		this.containerElement.appendChild(buttonContainer);
-		this.containerElement.appendChild(this.fileListElement);
+		this.containerElement.appendChild(syncButtonsContainer);
 		this.containerElement.appendChild(infoText);
-		this.containerElement.appendChild(syncConfigButton);
+
+		// Die Dateiliste wird nicht mehr angezeigt, da sie nicht benötigt wird
 	}
 
 	/**
 	 * Lädt die Dateiliste und zeigt sie an
+	 * (Funktion bleibt erhalten, aber die Liste wird nicht mehr angezeigt)
 	 */
 	async refreshFileList() {
 		if (!window.fileManager) {
 			console.error("fileManager ist nicht verfügbar");
-			this.showError("Datei-Manager nicht verfügbar");
 			return;
 		}
 
 		try {
-			// Lade-Animation anzeigen
-			this.fileListElement.innerHTML =
-				'<div class="text-center py-2"><span class="animate-pulse">Lade Dateien...</span></div>';
-
-			// Dateien abrufen
-			const files = await window.fileManager.listProjectsInFixedLocation();
-
-			if (files && files.length > 0) {
-				// Dateien anzeigen
-				this.fileListElement.innerHTML = "";
-				files.forEach((fileName) => {
-					const fileItem = document.createElement("div");
-					fileItem.className =
-						"storage-file-item py-1 px-2 hover:bg-gray-100 flex justify-between items-center";
-
-					// Linke Seite: Dateiname
-					const nameSpan = document.createElement("span");
-					nameSpan.textContent = fileName;
-					nameSpan.className = "file-name";
-					nameSpan.style.cursor = "pointer";
-					nameSpan.onclick = () => this.loadFile(fileName);
-
-					// Rechte Seite: Aktionen
-					const actionsDiv = document.createElement("div");
-					actionsDiv.className = "file-actions";
-
-					// Laden-Button
-					const loadBtn = document.createElement("button");
-					loadBtn.innerHTML = "📂";
-					loadBtn.title = "Datei laden";
-					loadBtn.className = "text-sm p-1 mr-1 hover:text-industrial-accent";
-					loadBtn.onclick = () => this.loadFile(fileName);
-
-					// Löschen-Button
-					const deleteBtn = document.createElement("button");
-					deleteBtn.innerHTML = "🗑️";
-					deleteBtn.title = "Datei löschen";
-					deleteBtn.className = "text-sm p-1 hover:text-status-red";
-					deleteBtn.onclick = (e) => {
-						e.stopPropagation();
-						this.deleteFile(fileName);
-					};
-
-					actionsDiv.appendChild(loadBtn);
-					actionsDiv.appendChild(deleteBtn);
-					fileItem.appendChild(nameSpan);
-					fileItem.appendChild(actionsDiv);
-
-					this.fileListElement.appendChild(fileItem);
-				});
-			} else {
-				this.fileListElement.innerHTML =
-					'<div class="text-center py-2 text-gray-500">Keine Dateien gefunden</div>';
-			}
+			// Dateien im Hintergrund aktualisieren ohne UI-Anzeige
+			await window.fileManager.listProjectsInFixedLocation();
+			console.log("Dateien im Hintergrund aktualisiert");
 		} catch (error) {
 			console.error("Fehler beim Laden der Dateien:", error);
-			this.showError("Fehler beim Laden: " + error.message);
 		}
 	}
 
@@ -741,13 +653,19 @@ class StorageBrowser {
 
 	/**
 	 * Füge eine Methode zum Konfigurieren der Server-URL hinzu
+	 * Erweitert mit Tipps für die einfache JSON-Datei-Synchronisierung
 	 */
 	configureServerSync() {
 		const currentUrl = localStorage.getItem("hangarplanner_server_url") || "";
-		const newUrl = prompt(
-			"URL für Server-Synchronisation eingeben:",
-			currentUrl
-		);
+
+		// Hilfetext für die JSON-basierte Synchronisation
+		const helpText =
+			"Gib die URL zur data.json auf deinem Webserver ein.\n" +
+			"Beispiel: https://meinewebsite.de/sync/data.json\n\n" +
+			"Für die Synchronisation: Exportiere die JSON-Datei und lade sie auf deinen Server hoch.";
+
+		// Dialog anzeigen mit zusätzlichem Hilfetext
+		const newUrl = prompt(helpText, currentUrl);
 
 		if (newUrl !== null) {
 			localStorage.setItem("hangarplanner_server_url", newUrl);
@@ -768,6 +686,71 @@ class StorageBrowser {
 				if (window.showNotification) {
 					window.showNotification("Server-Synchronisation deaktiviert", "info");
 				}
+			}
+		}
+	}
+
+	/**
+	 * Exportiert die aktuellen Daten als JSON-Datei zum Download
+	 * Basiert auf dem Computer A Ansatz zur einfachen Synchronisation
+	 */
+	async exportDataAsJson() {
+		try {
+			if (!window.hangarData) {
+				throw new Error("Keine Hangar-Daten verfügbar");
+			}
+
+			// Projektdaten sammeln (ähnlich wie bei saveCurrentProject)
+			let projectData = {};
+
+			if (typeof window.hangarData.getCurrentData === "function") {
+				projectData = window.hangarData.getCurrentData();
+			} else if (typeof window.hangarData.getProjectData === "function") {
+				projectData = window.hangarData.getProjectData();
+			} else {
+				projectData = {
+					positions: window.hangarData.positions || {},
+					aircraft: window.hangarData.aircraft || {},
+					settings: window.hangarData.settings || {},
+				};
+			}
+
+			// Metadaten hinzufügen
+			if (!projectData.metadata) {
+				projectData.metadata = {};
+			}
+
+			const projectNameInput = document.getElementById("projectName");
+			projectData.metadata.projectName = projectNameInput
+				? projectNameInput.value || "HangarPlan"
+				: "HangarPlan";
+			projectData.metadata.lastSaved = new Date().toISOString();
+			projectData.metadata.timestamp = Date.now();
+			projectData.metadata.lastModified = new Date().toLocaleString();
+
+			// JSON-Datei erzeugen und herunterladen
+			const dataStr = JSON.stringify(projectData, null, 2);
+			const blob = new Blob([dataStr], { type: "application/json" });
+			const url = URL.createObjectURL(blob);
+
+			const a = document.createElement("a");
+			a.href = url;
+			a.download = "data.json";
+			document.body.appendChild(a);
+			a.click();
+
+			setTimeout(() => {
+				document.body.removeChild(a);
+				URL.revokeObjectURL(url);
+			}, 100);
+
+			if (window.showNotification) {
+				window.showNotification("Daten als JSON exportiert", "success");
+			}
+		} catch (error) {
+			console.error("Fehler beim Exportieren als JSON:", error);
+			if (window.showNotification) {
+				window.showNotification("Export-Fehler: " + error.message, "error");
 			}
 		}
 	}
