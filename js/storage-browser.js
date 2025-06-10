@@ -50,11 +50,24 @@ class StorageBrowser {
 		title.textContent = "Gespeicherte Dateien";
 		title.className = "text-sm font-medium mb-2";
 
+		// Button-Container für bessere Anordnung
+		const buttonContainer = document.createElement("div");
+		buttonContainer.className = "flex justify-between items-center mb-2";
+
+		// Speichern-Button
+		const saveButton = document.createElement("button");
+		saveButton.textContent = "💾 Speichern";
+		saveButton.className = "sidebar-btn sidebar-btn-primary text-xs";
+		saveButton.onclick = () => this.saveCurrentProject();
+
 		// Aktualisieren-Button
 		const refreshButton = document.createElement("button");
 		refreshButton.textContent = "↻ Aktualisieren";
-		refreshButton.className = "sidebar-btn sidebar-btn-secondary text-xs mb-2";
+		refreshButton.className = "sidebar-btn sidebar-btn-secondary text-xs";
 		refreshButton.onclick = () => this.refreshFileList();
+
+		buttonContainer.appendChild(saveButton);
+		buttonContainer.appendChild(refreshButton);
 
 		// Container für die Dateiliste
 		this.fileListElement = document.createElement("div");
@@ -69,7 +82,7 @@ class StorageBrowser {
 		// Alles zum Container hinzufügen
 		this.containerElement.innerHTML = ""; // Container leeren
 		this.containerElement.appendChild(title);
-		this.containerElement.appendChild(refreshButton);
+		this.containerElement.appendChild(buttonContainer);
 		this.containerElement.appendChild(this.fileListElement);
 		this.containerElement.appendChild(infoText);
 	}
@@ -118,7 +131,18 @@ class StorageBrowser {
 					loadBtn.className = "text-sm p-1 mr-1 hover:text-industrial-accent";
 					loadBtn.onclick = () => this.loadFile(fileName);
 
+					// Löschen-Button
+					const deleteBtn = document.createElement("button");
+					deleteBtn.innerHTML = "🗑️";
+					deleteBtn.title = "Datei löschen";
+					deleteBtn.className = "text-sm p-1 hover:text-status-red";
+					deleteBtn.onclick = (e) => {
+						e.stopPropagation();
+						this.deleteFile(fileName);
+					};
+
 					actionsDiv.appendChild(loadBtn);
+					actionsDiv.appendChild(deleteBtn);
 					fileItem.appendChild(nameSpan);
 					fileItem.appendChild(actionsDiv);
 
@@ -131,6 +155,125 @@ class StorageBrowser {
 		} catch (error) {
 			console.error("Fehler beim Laden der Dateien:", error);
 			this.showError("Fehler beim Laden: " + error.message);
+		}
+	}
+
+	/**
+	 * Speichert das aktuelle Projekt in den festen Speicherort
+	 */
+	async saveCurrentProject() {
+		try {
+			if (!window.fileManager) {
+				throw new Error("Datei-Manager nicht verfügbar");
+			}
+
+			// Projektname aus Eingabefeld abrufen oder Standardwert verwenden
+			const projectNameInput = document.getElementById("projectName");
+			const projectName =
+				projectNameInput && projectNameInput.value
+					? projectNameInput.value.trim()
+					: "HangarPlan";
+
+			// Projektdaten sammeln
+			let projectData = {};
+
+			console.log("Versuche Projektdaten zu sammeln...");
+
+			// Prüfe alle möglichen Methoden, um Projektdaten zu erhalten
+			if (window.hangarData) {
+				console.log("hangarData verfügbar, prüfe Methoden...");
+
+				if (typeof window.hangarData.getCurrentData === "function") {
+					console.log("Verwende getCurrentData()...");
+					projectData = window.hangarData.getCurrentData();
+				} else if (typeof window.hangarData.getProjectData === "function") {
+					console.log("Verwende getProjectData()...");
+					projectData = window.hangarData.getProjectData();
+				} else if (typeof window.hangarData.collectProjectData === "function") {
+					console.log("Verwende collectProjectData()...");
+					projectData = window.hangarData.collectProjectData();
+				} else {
+					console.log("Verwende hangarData direkt...");
+					// Direkter Zugriff auf Daten als Fallback
+					projectData = {
+						positions: window.hangarData.positions || {},
+						aircraft: window.hangarData.aircraft || {},
+						settings: window.hangarData.settings || {},
+					};
+				}
+			} else {
+				throw new Error("Hangar-Daten nicht verfügbar");
+			}
+
+			// Prüfe, ob wir Daten haben
+			if (!projectData || Object.keys(projectData).length === 0) {
+				throw new Error("Keine Projektdaten gefunden");
+			}
+
+			// Metadaten hinzufügen
+			if (!projectData.metadata) {
+				projectData.metadata = {};
+			}
+			projectData.metadata.projectName = projectName;
+			projectData.metadata.lastSaved = new Date().toISOString();
+
+			// Korrektes Dateinamensformat sicherstellen
+			const fileName = projectName.endsWith(".json")
+				? projectName
+				: `${projectName}.json`;
+
+			// Tiefe Kopie der Daten erstellen
+			const projectDataCopy = JSON.parse(JSON.stringify(projectData));
+
+			console.log(`Speichere Projekt "${fileName}"...`);
+
+			// Verwende die korrekte Parameterreihenfolge (Daten zuerst, dann Dateiname)
+			await window.fileManager.saveProjectToFixedLocation(
+				projectDataCopy,
+				fileName
+			);
+			console.log(`Projekt "${fileName}" erfolgreich gespeichert.`);
+
+			// Aktualisieren
+			await this.refreshFileList();
+
+			if (window.showNotification) {
+				window.showNotification(
+					`Projekt "${projectName}" gespeichert`,
+					"success"
+				);
+			}
+		} catch (error) {
+			console.error("Fehler beim Speichern:", error);
+			if (window.showNotification) {
+				window.showNotification("Speicherfehler: " + error.message, "error");
+			}
+		}
+	}
+
+	/**
+	 * Löscht eine Datei aus dem Speicher
+	 * @param {string} fileName - Name der zu löschenden Datei
+	 */
+	async deleteFile(fileName) {
+		if (confirm(`Soll die Datei "${fileName}" wirklich gelöscht werden?`)) {
+			try {
+				if (!window.fileManager) {
+					throw new Error("Datei-Manager nicht verfügbar");
+				}
+
+				await window.fileManager.deleteProjectFromFixedLocation(fileName);
+				await this.refreshFileList();
+
+				if (window.showNotification) {
+					window.showNotification(`Datei "${fileName}" gelöscht`, "info");
+				}
+			} catch (error) {
+				console.error("Fehler beim Löschen der Datei:", error);
+				if (window.showNotification) {
+					window.showNotification("Löschfehler: " + error.message, "error");
+				}
+			}
 		}
 	}
 
@@ -164,10 +307,18 @@ class StorageBrowser {
 				) {
 					projectNameInput.value = projectData.metadata.projectName;
 				}
+
+				// Erfolgsbenachrichtigung
+				if (window.showNotification) {
+					window.showNotification(`Projekt "${fileName}" geladen`, "success");
+				}
 			} else {
 				console.error(
 					"Projekt konnte nicht geladen werden oder Anwendung ist nicht bereit"
 				);
+				if (window.showNotification) {
+					window.showNotification("Fehler beim Laden des Projekts", "error");
+				}
 			}
 		} catch (error) {
 			console.error("Fehler beim Laden der Datei:", error);
