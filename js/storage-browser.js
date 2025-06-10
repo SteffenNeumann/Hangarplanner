@@ -9,6 +9,93 @@ class StorageBrowser {
 	}
 
 	/**
+	 * Aktualisiert die UI-Elemente basierend auf den aktuellen Hangar-Daten
+	 * @private
+	 */
+	updateUIElements() {
+		console.log("Aktualisiere UI-Elemente...");
+
+		try {
+			// 1. Aktualisiere primäre Kacheln
+			if (window.hangarData && window.hangarData.positions) {
+				// Primäre Positionen aktualisieren
+				Object.keys(window.hangarData.positions).forEach((positionKey) => {
+					const positionValue = window.hangarData.positions[positionKey];
+					const positionInput = document.getElementById(
+						`hangar-position-${positionKey}`
+					);
+
+					if (positionInput && positionInput.value !== positionValue) {
+						console.log(
+							`Aktualisiere Position ${positionKey} auf ${positionValue}`
+						);
+						positionInput.value = positionValue;
+
+						// Löse ein Change-Event aus, damit event-Handler reagieren können
+						const event = new Event("change", { bubbles: true });
+						positionInput.dispatchEvent(event);
+					}
+				});
+
+				// 2. Aktualisiere Aircraft-IDs wenn vorhanden
+				if (window.hangarData.aircraft) {
+					Object.keys(window.hangarData.aircraft).forEach((aircraftKey) => {
+						const aircraftValue = window.hangarData.aircraft[aircraftKey];
+						const aircraftInput = document.getElementById(
+							`aircraft-id-${aircraftKey}`
+						);
+
+						if (aircraftInput && aircraftInput.value !== aircraftValue) {
+							console.log(
+								`Aktualisiere Aircraft ${aircraftKey} auf ${aircraftValue}`
+							);
+							aircraftInput.value = aircraftValue;
+
+							// Löse ein Change-Event aus
+							const event = new Event("change", { bubbles: true });
+							aircraftInput.dispatchEvent(event);
+						}
+					});
+				}
+
+				// 3. Aktualisiere sekundäre Kacheln
+				for (let i = 101; i <= 104; i++) {
+					const posInput = document.getElementById(`hangar-position-${i}`);
+					const acInput = document.getElementById(`aircraft-id-${i}`);
+
+					if (window.hangarData.positions[i] && posInput) {
+						console.log(
+							`Setze sekundäre Position ${i} auf ${window.hangarData.positions[i]}`
+						);
+						posInput.value = window.hangarData.positions[i];
+
+						const event = new Event("change", { bubbles: true });
+						posInput.dispatchEvent(event);
+					}
+
+					if (window.hangarData.aircraft[i] && acInput) {
+						console.log(
+							`Setze sekundäre Aircraft ${i} auf ${window.hangarData.aircraft[i]}`
+						);
+						acInput.value = window.hangarData.aircraft[i];
+
+						const event = new Event("change", { bubbles: true });
+						acInput.dispatchEvent(event);
+					}
+				}
+			}
+
+			// 4. Auslösen eines Event für die Gesamtaktualisierung
+			document.dispatchEvent(new CustomEvent("uiDataRefreshed"));
+			console.log("UI-Elemente wurden aktualisiert");
+			return true;
+		} catch (error) {
+			console.error("Fehler bei der UI-Aktualisierung:", error);
+			return false;
+		}
+	}
+
+	/**
 	 * Stellt eine Synchronisationsfunktion bereit und registriert sie bei window.hangarData,
 	 * falls diese nicht vorhanden ist
 	 * @private
@@ -51,7 +138,11 @@ class StorageBrowser {
 								window.hangarUI.apply(projectData);
 								console.log("UI über hangarUI.apply aktualisiert");
 							} else {
-								console.warn("Keine UI-Aktualisierungsfunktion gefunden");
+								// Neue UI-Aktualisierung verwenden
+								this.updateUIElements();
+								console.log(
+									"UI über StorageBrowser.updateUIElements aktualisiert"
+								);
 							}
 						}
 
@@ -132,6 +223,10 @@ class StorageBrowser {
 												"function"
 										) {
 											window.hangarData.applyLoadedHangarPlan(projectData);
+
+											// Sicherstellen, dass die UI aktualisiert wird
+											setTimeout(() => this.updateUIElements(), 500);
+
 											console.log(
 												`Projekt "${projectName}" erfolgreich synchronisiert`
 											);
@@ -159,6 +254,130 @@ class StorageBrowser {
 		}, 5000); // Alle 5 Sekunden prüfen
 
 		console.log("Cross-Browser-Synchronisation aktiviert");
+	}
+
+	/**
+	 * Ermöglicht die Synchronisation über einen Webserver
+	 * @param {boolean} activate - Aktiviert die Server-Synchronisation
+	 * @param {string} serverUrl - URL zum Server-Endpunkt (z.B. "https://example.com/sync/")
+	 */
+	enableServerSync(activate = true, serverUrl = "") {
+		if (this.serverSyncInterval) {
+			clearInterval(this.serverSyncInterval);
+			this.serverSyncInterval = null;
+			console.log("Server-Synchronisation gestoppt");
+		}
+
+		if (!activate || !serverUrl) return;
+
+		// Konfiguration speichern
+		this.serverSyncUrl = serverUrl;
+
+		// Synchronisations-Schlüssel
+		const syncKey = "hangarplanner_server_sync";
+
+		// Funktion zum Hochladen der Daten
+		const uploadData = async () => {
+			try {
+				if (!window.hangarData) return;
+
+				// Aktuelle Projektdaten sammeln
+				let projectData = {};
+				if (typeof window.hangarData.getCurrentData === "function") {
+					projectData = window.hangarData.getCurrentData();
+				} else if (typeof window.hangarData.getProjectData === "function") {
+					projectData = window.hangarData.getProjectData();
+				} else {
+					projectData = {
+						positions: window.hangarData.positions || {},
+						aircraft: window.hangarData.aircraft || {},
+						settings: window.hangarData.settings || {},
+					};
+				}
+
+				// Metadaten hinzufügen
+				if (!projectData.metadata) projectData.metadata = {};
+				projectData.metadata.timestamp = Date.now();
+				projectData.metadata.lastModified = new Date().toISOString();
+
+				// Daten an Server senden
+				const response = await fetch(serverUrl, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(projectData),
+				});
+
+				if (response.ok) {
+					console.log("Daten erfolgreich zum Server synchronisiert");
+					localStorage.setItem(syncKey, Date.now().toString());
+				} else {
+					console.error(
+						"Fehler beim Hochladen der Daten:",
+						await response.text()
+					);
+				}
+			} catch (error) {
+				console.error("Fehler bei der Server-Synchronisation:", error);
+			}
+		};
+
+		// Funktion zum Herunterladen der Daten
+		const downloadData = async () => {
+			try {
+				const lastSync = localStorage.getItem(syncKey) || "0";
+
+				// Daten vom Server abrufen mit Cache-Buster
+				const response = await fetch(`${serverUrl}?t=${Date.now()}`);
+
+				if (response.ok) {
+					const data = await response.json();
+
+					// Prüfen, ob Daten neuer sind
+					if (data.metadata && data.metadata.timestamp > parseInt(lastSync)) {
+						console.log("Neue Daten vom Server erhalten");
+
+						// Daten anwenden
+						this.ensureApplyFunction();
+						if (
+							window.hangarData &&
+							typeof window.hangarData.applyLoadedHangarPlan === "function"
+						) {
+							window.hangarData.applyLoadedHangarPlan(data);
+
+							// UI aktualisieren
+							setTimeout(() => this.updateUIElements(), 500);
+
+							// Timestamp aktualisieren
+							localStorage.setItem(syncKey, data.metadata.timestamp);
+
+							if (window.showNotification) {
+								window.showNotification(
+									"Neue Daten vom Server synchronisiert",
+									"info"
+								);
+							}
+						}
+					}
+				}
+			} catch (error) {
+				console.error("Fehler beim Abrufen der Daten vom Server:", error);
+			}
+		};
+
+		// Initiale Synchronisation
+		downloadData();
+
+		// Regelmäßige Synchronisation
+		this.serverSyncInterval = setInterval(() => {
+			downloadData();
+		}, 5000); // Alle 5 Sekunden prüfen
+
+		// Event-Listener für lokale Änderungen
+		document.addEventListener("projectDataChanged", () => {
+			uploadData();
+		});
+
+		console.log("Server-Synchronisation aktiviert mit URL:", serverUrl);
 	}
 
 	/**
@@ -196,6 +415,12 @@ class StorageBrowser {
 
 		// Aktiviere Cross-Browser-Synchronisierung
 		this.enableCrossBrowserSync();
+
+		// Optional: Server-Synchronisation aktivieren, wenn URL vorhanden
+		const serverSyncUrl = localStorage.getItem("hangarplanner_server_url");
+		if (serverSyncUrl) {
+			this.enableServerSync(true, serverSyncUrl);
+		}
 
 		console.log("Storage Browser initialisiert");
 	}
@@ -238,12 +463,20 @@ class StorageBrowser {
 		infoText.textContent = "Dateien werden im Browser-Speicher gespeichert";
 		infoText.className = "text-xs text-gray-500 mt-2";
 
+		// Server-Sync-Konfiguration Button
+		const syncConfigButton = document.createElement("button");
+		syncConfigButton.textContent = "🔄 Server-Sync";
+		syncConfigButton.className =
+			"sidebar-btn sidebar-btn-secondary text-xs mt-2";
+		syncConfigButton.onclick = () => this.configureServerSync();
+
 		// Alles zum Container hinzufügen
 		this.containerElement.innerHTML = ""; // Container leeren
 		this.containerElement.appendChild(title);
 		this.containerElement.appendChild(buttonContainer);
 		this.containerElement.appendChild(this.fileListElement);
 		this.containerElement.appendChild(infoText);
+		this.containerElement.appendChild(syncConfigButton);
 	}
 
 	/**
@@ -473,6 +706,9 @@ class StorageBrowser {
 				// Aktualisiere den localStorage-Synchronisationsschlüssel
 				localStorage.setItem("hangarplanner_sync_flag", Date.now().toString());
 
+				// Sicherstellen, dass die UI vollständig aktualisiert wird
+				setTimeout(() => this.updateUIElements(), 500);
+
 				// Erfolgsbenachrichtigung
 				if (window.showNotification) {
 					window.showNotification(`Projekt "${fileName}" geladen`, "success");
@@ -500,6 +736,39 @@ class StorageBrowser {
 	showError(message) {
 		if (this.fileListElement) {
 			this.fileListElement.innerHTML = `<div class="text-center py-2 text-status-red">${message}</div>`;
+		}
+	}
+
+	/**
+	 * Füge eine Methode zum Konfigurieren der Server-URL hinzu
+	 */
+	configureServerSync() {
+		const currentUrl = localStorage.getItem("hangarplanner_server_url") || "";
+		const newUrl = prompt(
+			"URL für Server-Synchronisation eingeben:",
+			currentUrl
+		);
+
+		if (newUrl !== null) {
+			localStorage.setItem("hangarplanner_server_url", newUrl);
+
+			if (newUrl) {
+				this.enableServerSync(true, newUrl);
+				if (window.showNotification) {
+					window.showNotification(
+						"Server-Synchronisation konfiguriert",
+						"success"
+					);
+				}
+			} else {
+				if (this.serverSyncInterval) {
+					clearInterval(this.serverSyncInterval);
+					this.serverSyncInterval = null;
+				}
+				if (window.showNotification) {
+					window.showNotification("Server-Synchronisation deaktiviert", "info");
+				}
+			}
 		}
 	}
 }
