@@ -340,3 +340,127 @@ document.addEventListener("DOMContentLoaded", function () {
 	// Anwendung initialisieren
 	initializeApp();
 });
+
+/**
+ * Synchronisiert den fetchStatus im Sidebar mit dem header-status im Header
+ * Wird als MutationObserver implementiert, um alle Änderungen zu erfassen
+ */
+function setupStatusSync() {
+	const fetchStatus = document.getElementById("fetchStatus");
+	const headerStatus = document.getElementById("header-status");
+
+	if (!fetchStatus || !headerStatus) {
+		console.warn(
+			"Status-Elemente nicht gefunden, Synchronisation nicht möglich"
+		);
+		return;
+	}
+
+	// Initiale Synchronisation
+	headerStatus.textContent = fetchStatus.textContent || "Bereit";
+	// Wichtig: Sowohl title als auch data-tooltip Attribute synchronisieren
+	headerStatus.title = fetchStatus.textContent || "Bereit";
+	headerStatus.setAttribute(
+		"data-tooltip",
+		fetchStatus.textContent || "Status-Informationen werden hier angezeigt"
+	);
+
+	// Status-Klassen übertragen
+	if (fetchStatus.classList.contains("success")) {
+		headerStatus.className = "success";
+	} else if (fetchStatus.classList.contains("error")) {
+		headerStatus.className = "error";
+	} else if (fetchStatus.classList.contains("warning")) {
+		headerStatus.className = "warning";
+	}
+
+	// MutationObserver für automatische Synchronisation einrichten
+	const observer = new MutationObserver((mutations) => {
+		mutations.forEach((mutation) => {
+			if (mutation.type === "childList" || mutation.type === "characterData") {
+				const newText = fetchStatus.textContent || "Bereit";
+				headerStatus.textContent = newText;
+				headerStatus.title = newText; // Tooltip-Inhalt aktualisieren
+				headerStatus.setAttribute("data-tooltip", newText); // Zusätzliches Tooltip-Attribut aktualisieren
+			} else if (
+				mutation.type === "attributes" &&
+				mutation.attributeName === "class"
+			) {
+				// Status-Klassen übernehmen
+				headerStatus.className = "";
+				if (fetchStatus.classList.contains("success")) {
+					headerStatus.className = "success";
+				} else if (fetchStatus.classList.contains("error")) {
+					headerStatus.className = "error";
+				} else if (fetchStatus.classList.contains("warning")) {
+					headerStatus.className = "warning";
+				}
+			}
+		});
+	});
+
+	// Beobachte Änderungen an Text und Attributen
+	observer.observe(fetchStatus, {
+		childList: true,
+		characterData: true,
+		subtree: true,
+		attributes: true,
+		attributeFilter: ["class"],
+	});
+
+	console.log(
+		"Status-Synchronisation zwischen fetchStatus und header-status eingerichtet"
+	);
+}
+
+// Führe die Statussynchornisation nach dem initialen Laden aus
+document.addEventListener("DOMContentLoaded", function () {
+	// Zuerst die App normal initialisieren lassen
+	// ...existing code...
+
+	// Dann nach kurzer Verzögerung den Status-Sync einrichten
+	setTimeout(() => {
+		setupStatusSync();
+	}, 500);
+});
+
+// Alternativ: Auch beim Laden/Speichern von Projekten den Status aktualisieren
+document.addEventListener("projectLoaded", function () {
+	setTimeout(() => {
+		const headerStatus = document.getElementById("header-status");
+		if (headerStatus) {
+			const statusText = "Projekt geladen";
+			headerStatus.textContent = statusText;
+			headerStatus.title = statusText; // Tooltip-Inhalt aktualisieren
+			headerStatus.setAttribute("data-tooltip", statusText); // Zusätzliches Tooltip-Attribut aktualisieren
+			headerStatus.className = "success";
+			// Nach 3 Sekunden zurücksetzen
+			setTimeout(() => {
+				const resetText = "Bereit";
+				headerStatus.textContent = resetText;
+				headerStatus.title = resetText; // Tooltip-Inhalt aktualisieren
+				headerStatus.className = "";
+			}, 3000);
+		}
+	}, 100);
+});
+
+document.addEventListener("projectSaved", function () {
+	setTimeout(() => {
+		const headerStatus = document.getElementById("header-status");
+		if (headerStatus) {
+			const statusText = "Projekt gespeichert";
+			headerStatus.textContent = statusText;
+			headerStatus.title = statusText; // Tooltip-Inhalt aktualisieren
+			headerStatus.setAttribute("data-tooltip", statusText); // Zusätzliches Tooltip-Attribut aktualisieren
+			headerStatus.className = "success";
+			// Nach 3 Sekunden zurücksetzen
+			setTimeout(() => {
+				const resetText = "Bereit";
+				headerStatus.textContent = resetText;
+				headerStatus.title = resetText; // Tooltip-Inhalt aktualisieren
+				headerStatus.className = "";
+			}, 3000);
+		}
+	}, 100);
+});

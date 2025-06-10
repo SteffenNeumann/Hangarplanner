@@ -2,11 +2,12 @@
 #weather-widget {
 	display: flex;
 	flex-direction: column;
-	min-width: 200px; /* Erhöhte Breite */
-	background: rgba(255, 255, 255, 0.97); /* Mehr Deckkraft */
-	padding: 8px 14px; /* Erhöhtes Padding */
+	width: auto; /* Anpassung an Inhalt */
+	min-width: 220px; /* Etwas vergrößert für bessere Darstellung */
+	background: rgba(255, 255, 255, 0.97);
+	padding: 8px 14px;
 	border-radius: 10px;
-	/*box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);  */
+	border: 1px solid rgba(93, 107, 137, 0.15);
 	font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
 		sans-serif;
 	transition: all 0.3s ease;
@@ -17,8 +18,8 @@
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	margin-bottom: 4px; /* Mehr Abstand */
-	border-bottom: 1px solid rgba(93, 107, 137, 0.15); /* Subtile Trennlinie */
+	margin-bottom: 4px;
+	border-bottom: 1px solid rgba(93, 107, 137, 0.15);
 	padding-bottom: 4px;
 }
 
@@ -26,64 +27,78 @@
 .weather-secondary {
 	display: flex;
 	align-items: center;
-	font-size: 0.875rem; /* Etwas größer */
+	justify-content: space-between; /* Gleichmäßige Verteilung */
+	font-size: 0.875rem;
 	color: #64748b;
 	margin-top: 4px;
-	flex-wrap: nowrap; /* Verhindert Umbruch */
-	height: 1.2em; /* Einheitliche Höhe */
-	line-height: 1.2; /* Einheitliche Zeilenhöhe */
+	flex-wrap: nowrap;
+	height: 1.2em;
+	line-height: 1.2;
+	width: 100%; /* Volle Breite nutzen */
+}
+
+/* Gemeinsame Basisstile für alle Elemente in der zweiten Zeile */
+.weather-secondary > span {
+	display: inline-block;
+	white-space: nowrap;
+	font-size: 0.875rem;
+	font-weight: normal;
+	color: #64748b;
 }
 
 /* Airport Code */
 .weather-airport {
-	font-weight: 700; /* Fetter */
+	font-weight: 700;
 	color: #3a4354;
-	font-size: 1rem; /* Größer */
-	min-width: 40px; /* Genug Platz für IATA Code */
+	font-size: 1rem;
+	min-width: 40px;
 }
 
 /* Temperatur Container */
 .weather-data {
 	display: flex;
 	align-items: center;
-	gap: 6px; /* Mehr Abstand */
+	gap: 6px;
 }
 
 #weather-temp {
-	font-weight: 600; /* Fetter */
-	font-size: 1.125rem; /* Noch größer für bessere Sichtbarkeit */
-	min-width: 45px; /* Genug Platz für Temperatur inkl. °C */
+	font-weight: 600;
+	font-size: 1.125rem;
+	min-width: 45px;
 	text-align: right;
 	margin-right: 8px;
-	color: #3a4354; /* Dunkler für besseren Kontrast */
+	color: #3a4354;
 }
 
 #weather-icon {
-	width: 24px; /* Größer */
-	height: 24px; /* Größer */
+	width: 24px;
+	height: 24px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	color: #64748b;
 }
 
+/* Korrektur für den "Clear" Text im Wetter-Widget */
+.weather-description-text {
+	text-align: center;
+	margin: 0 auto;
+	padding: 0 2px;
+	/* WICHTIG: kein opacity hier */
+}
+
 /* Wind-Informationen */
 #weather-wind {
-	display: inline-block;
-	align-items: center;
-	white-space: nowrap;
-	font-size: 0.8rem; /* Größer für bessere Lesbarkeit */
-	margin-right: 10px;
-	color: #3a4354; /* Dunklere Farbe für besseren Kontrast */
+	margin-right: 12px;
 }
 
 .weather-wind-icon {
 	display: inline-block;
-	font-size: 1.25rem; /* Noch größerer Pfeil */
-	margin-right: 3px; /* Mehr Abstand */
+	font-size: 1.25rem;
+	margin-right: 3px;
 	transform-origin: center;
 	transition: transform 0.3s ease;
-	font-weight: bold; /* Fetterer Pfeil für bessere Sichtbarkeit */
+	font-weight: bold;
 }
 
 /* Wind-Tooltips */
@@ -108,20 +123,17 @@
 
 /* Sichtweite-Informationen */
 #weather-visibility {
-	display: inline-block;
-	font-size: 0.75rem;
-	white-space: nowrap;
-	margin-left: 10px;
+	margin-left: 12px;
 }
 
 /* Wetterbeschreibung */
 #weather-description {
 	flex: 1;
-	font-size: 0.75rem;
-	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	max-width: 160px;
+	max-width: none; /* Kein festes Maximum mehr */
+	position: relative;
+	text-align: center; /* Zentriert den Text */
 }
 
 /* Lade-Anzeige */
@@ -142,6 +154,41 @@
 	animation: pulse 1.5s infinite;
 }
 
+/* Laden-Animation - nutzt nun eine CSS-Klasse statt eines Inline-Styles */
+#weather-description.loading {
+	opacity: 0.7;
+	animation: pulse 1.5s infinite;
+}
+
+/* Verstecktes Element */
+.weather-secondary > span.hidden {
+	display: none !important;
+}
+
+/* Responsive Anpassungen */
+@media (max-width: 768px) {
+	.weather-secondary {
+		flex-direction: column;
+		gap: 2px;
+	}
+}
+
+@media (max-width: 640px) {
+	#weather-widget {
+		width: auto; /* Automatische Breite */
+		min-width: 160px;
+		padding: 6px 10px;
+	}
+
+	.weather-airport {
+		font-size: 0.9rem;
+	}
+
+	#weather-temp {
+		font-size: 0.9rem;
+	}
+}
+
 /* Dark Mode Unterstützung */
 .dark-mode #weather-widget {
 	background: rgba(58, 67, 84, 0.9);
@@ -155,27 +202,4 @@
 .dark-mode .weather-secondary,
 .dark-mode #weather-icon {
 	color: #9ca3af;
-}
-
-/* Responsive Anpassung */
-@media (max-width: 768px) {
-	.weather-secondary {
-		flex-direction: column;
-		gap: 2px;
-	}
-}
-
-@media (max-width: 640px) {
-	#weather-widget {
-		min-width: 160px;
-		padding: 6px 10px;
-	}
-
-	.weather-airport {
-		font-size: 0.9rem;
-	}
-
-	#weather-temp {
-		font-size: 0.9rem;
-	}
 }

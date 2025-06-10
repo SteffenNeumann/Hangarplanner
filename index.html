@@ -31,6 +31,8 @@
 		<link rel="stylesheet" href="css/hangarplanner-ui.css" />
 		<link rel="stylesheet" href="css/dark-mode-zoom.css" />
 		<link rel="stylesheet" href="css/weather-widget.css" />
+		<link rel="stylesheet" href="css/info-widget.css" />
+		<!-- Neue separate CSS-Datei -->
 		<style>
 			.status-neutral {
 				background-color: white;
@@ -56,7 +58,7 @@
 						<div class="weather-primary">
 							<div class="weather-airport">MUC</div>
 							<div class="weather-data">
-								<span id="weather-temp">--°C</span>
+								<span id="weather-temp">12°C</span>
 								<div id="weather-icon">
 									<svg
 										class="w-5 h-5"
@@ -74,18 +76,53 @@
 							</div>
 						</div>
 						<div class="weather-secondary">
-							<span
-								id="weather-wind"
-								class="weather-wind-tooltip"
-								style="display: none"
-								>→ S 7</span
+							<span id="weather-wind" class="weather-wind-tooltip">
+								<span class="weather-wind-icon" style="transform: rotate(0deg)"
+									>→</span
+								>
+								S 9 km/h
+							</span>
+							<span id="weather-description" class="weather-description-text"
+								>Clear</span
 							>
-							<span id="weather-description">Laden...</span>
-							<span id="weather-visibility" style="display: none"
-								>Sicht: 10km</span
+							<span id="weather-visibility">Vis: 9.7km</span>
+						</div>
+					</div>
+
+					<!-- Info-Widget mit optimierter Struktur -->
+					<div id="info-widget">
+						<!-- Icon schwebt über dem Inhalt -->
+						<div id="info-icon">
+							<svg
+								class="w-5 h-5"
+								xmlns="http://www.w3.org/2000/svg"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+							</svg>
+						</div>
+
+						<!-- Primärer Inhaltsbereich -->
+						<div class="info-primary">
+							<span id="primary-status">Hangar Planner Status</span>
+						</div>
+
+						<!-- Sekundärer Inhaltsbereich -->
+						<div class="info-secondary">
+							<span
+								id="header-status"
+								title="Bereit"
+								data-tooltip="Status-Informationen werden hier angezeigt"
+								>Bereit</span
 							>
 						</div>
 					</div>
+
 					<div class="flex-grow flex justify-end">
 						<!-- Vereinfachter Toggle-Button -->
 						<button

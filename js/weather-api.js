@@ -140,7 +140,8 @@ const weatherAPI = {
 		const weatherDesc = document.getElementById("weather-description");
 		if (weatherDesc) {
 			weatherDesc.textContent = "Verbinde...";
-			weatherDesc.style.opacity = "0.7";
+			// Keine inline opacity mehr verwenden
+			weatherDesc.classList.add("loading");
 		}
 
 		const url = `https://aerodatabox.p.rapidapi.com/airports/iata/${this.currentAirport}/weather`;
@@ -196,8 +197,8 @@ const weatherAPI = {
 		const temp = Math.round(weatherData.airTemperature.c);
 		weatherTemp.textContent = `${temp}°C`;
 
-		// Prominentere Positionierung der Temperatur
-		weatherTemp.style.visibility = "visible";
+		// Keine Inline-Stile mehr für Temperatur
+		weatherTemp.classList.remove("hidden");
 
 		// Wind-Informationen extrahieren und anzeigen
 		if (
@@ -213,22 +214,21 @@ const weatherAPI = {
 			// Windrichtungspfeil und Geschwindigkeit klarer darstellen
 			const windElement = document.getElementById("weather-wind");
 			if (windElement) {
-				// Korrigierte Zuordnungstabelle - dein Standardpfeil zeigt nach rechts (→)
-				// Für Wind aus Westen (W) muss Pfeil nach Osten (rechts) zeigen = 0° Rotation
+				// Korrigierte Zuordnungstabelle
 				const windDirectionToRotation = {
-					N: 180, // Wind aus Norden, Pfeil zeigt nach Süden
-					NNO: 202.5,
-					NO: 225,
-					ONO: 247.5,
-					O: 270, // Wind aus Osten, Pfeil zeigt nach Westen
-					OSO: 292.5,
-					SO: 315,
-					SSO: 337.5,
-					S: 0, // Wind aus Süden, Pfeil zeigt nach Norden
-					SSW: 22.5,
-					SW: 45,
-					WSW: 67.5,
-					W: 0, // Wind aus Westen, Pfeil zeigt nach Osten (KORRIGIERT)
+					N: 90, // Wind aus Norden, Pfeil zeigt nach Süden
+					NNO: 112.5,
+					NO: 135,
+					ONO: 157.5,
+					O: 180, // Wind aus Osten, Pfeil zeigt nach Westen
+					OSO: 202.5,
+					SO: 225,
+					SSO: 247.5,
+					S: 270, // Wind aus Süden, Pfeil zeigt nach Norden
+					SSW: 292.5,
+					SW: 315,
+					WSW: 337.5,
+					W: 0, // Wind aus Westen, Pfeil zeigt nach Osten
 					WNW: 22.5,
 					NW: 45,
 					NNW: 67.5,
@@ -250,20 +250,15 @@ const weatherAPI = {
 					);
 				}
 
-				// Einheitlicher Stil für alle Elemente der zweiten Zeile
+				// Nur die transform-Eigenschaft als Inline-Style setzen, alles andere über CSS
 				windElement.innerHTML = `
 					<span class="weather-wind-icon" style="transform: rotate(${cssRotation}deg)">→</span>
 					${windDirection} ${windSpeed} km/h
 				`;
-				windElement.style.display = "inline-block";
-				windElement.style.marginRight = "12px";
-				windElement.style.whiteSpace = "nowrap";
-				windElement.style.fontSize = "0.875rem";
-				windElement.style.fontWeight = "normal";
-				windElement.style.color = "#64748b";
+				windElement.classList.remove("hidden");
 			}
 		} else if (document.getElementById("weather-wind")) {
-			document.getElementById("weather-wind").style.display = "none";
+			document.getElementById("weather-wind").classList.add("hidden");
 		}
 
 		// Sichtweite-Informationen - auf Englisch (Vis.)
@@ -272,19 +267,14 @@ const weatherAPI = {
 
 			// Nur anzeigen, wenn die Sicht eingeschränkt ist (<10km)
 			if (visibility < 10 && weatherVisibility) {
-				// Auf Englisch (Vis.) und mit einheitlichem Stil
+				// Auf Englisch (Vis.)
 				weatherVisibility.textContent = `Vis: ${visibility}km`;
-				weatherVisibility.style.display = "inline-block";
-				weatherVisibility.style.marginLeft = "12px";
-				weatherVisibility.style.whiteSpace = "nowrap";
-				weatherVisibility.style.fontSize = "0.875rem";
-				weatherVisibility.style.fontWeight = "normal";
-				weatherVisibility.style.color = "#64748b";
+				weatherVisibility.classList.remove("hidden");
 			} else if (weatherVisibility) {
-				weatherVisibility.style.display = "none";
+				weatherVisibility.classList.add("hidden");
 			}
 		} else if (weatherVisibility) {
-			weatherVisibility.style.display = "none";
+			weatherVisibility.classList.add("hidden");
 		}
 
 		// Wetterbeschreibung setzen
@@ -301,12 +291,8 @@ const weatherAPI = {
 		}
 
 		weatherDesc.textContent = description;
-		// Einheitlicher Stil für Wetterbeschreibung
-		weatherDesc.style.display = "inline-block";
-		weatherDesc.style.whiteSpace = "nowrap";
-		weatherDesc.style.fontSize = "0.875rem";
-		weatherDesc.style.fontWeight = "normal";
-		weatherDesc.style.color = "#64748b";
+		// Entferne loading class und alle inline styles
+		weatherDesc.classList.remove("loading");
 
 		// Icon basierend auf Bedingungen aktualisieren
 		let iconKey = "default";
@@ -413,8 +399,8 @@ const weatherAPI = {
 
 		if (weatherTemp) weatherTemp.textContent = `--°C`;
 		if (weatherDesc) weatherDesc.textContent = "Wetterdaten nicht verfügbar";
-		if (weatherWind) weatherWind.style.display = "none";
-		if (weatherVisibility) weatherVisibility.style.display = "none";
+		if (weatherWind) weatherWind.classList.add("hidden");
+		if (weatherVisibility) weatherVisibility.classList.add("hidden");
 
 		if (weatherIcon) {
 			weatherIcon.innerHTML =
