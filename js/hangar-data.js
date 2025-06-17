@@ -932,6 +932,8 @@ function generateDefaultProjectName() {
 window.hangarData = window.hangarData || {};
 window.hangarData.saveProjectToFile = saveProjectToFile;
 window.hangarData.loadProjectFromFile = loadProjectFromFile;
+window.hangarData.applyLoadedHangarPlan = applyLoadedHangarPlan;
+window.collectAllHangarData = collectAllHangarData; // Neue Zeile
 window.hangarData.saveCurrentStateToLocalStorage = function () {
 	// Aktuelle Daten im localStorage speichern
 	const projectData = {

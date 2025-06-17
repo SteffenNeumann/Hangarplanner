@@ -48,12 +48,17 @@ class StorageBrowser {
 		}
 
 		// Prüfe ob die Funktion fehlt und stelle sie bereit falls nötig
+		// Überschreibe nicht die existierende Funktion aus hangar-data.js
 		if (typeof window.hangarData.applyLoadedHangarPlan !== "function") {
 			console.log("applyLoadedHangarPlan-Funktion wird erstellt");
 			window.hangarData.applyLoadedHangarPlan = (projectData) => {
 				return this.applyProjectData(projectData);
 			};
 			console.log("applyLoadedHangarPlan-Funktion erstellt und registriert");
+		} else {
+			console.log(
+				"applyLoadedHangarPlan-Funktion bereits vorhanden, verwende bestehende"
+			);
 		}
 	}
 
@@ -64,17 +69,31 @@ class StorageBrowser {
 	 */
 	applyProjectData(projectData) {
 		try {
-			console.log("Wende geladene Daten auf Anwendung an...");
+			console.log("Wende geladene Daten auf Anwendung an...", projectData);
 
 			if (!projectData) {
 				throw new Error("Keine Projektdaten übergeben");
 			}
+
+			// Prüfe, ob die hangarData.applyLoadedHangarPlan Funktion existiert
+			if (
+				window.hangarData &&
+				typeof window.hangarData.applyLoadedHangarPlan === "function" &&
+				window.hangarData.applyLoadedHangarPlan !== this.applyProjectData
+			) {
+				console.log("Verwende hangarData.applyLoadedHangarPlan");
+				return window.hangarData.applyLoadedHangarPlan(projectData);
+			}
+
+			// Fallback: Manuelle Anwendung der Daten
+			console.log("Verwende Fallback-Implementierung");
 
 			// Projektname setzen
 			if (projectData.metadata && projectData.metadata.projectName) {
 				const projectNameInput = document.getElementById("projectName");
 				if (projectNameInput) {
 					projectNameInput.value = projectData.metadata.projectName;
+					console.log("Projektname gesetzt:", projectData.metadata.projectName);
 				}
 			}
 
@@ -83,8 +102,15 @@ class StorageBrowser {
 				this.applySettings(projectData.settings);
 			}
 
-			// Kacheldaten anwenden
-			if (projectData.tilesData && Array.isArray(projectData.tilesData)) {
+			// Kacheldaten anwenden (unterstützt beide Formate)
+			if (projectData.primaryTiles || projectData.secondaryTiles) {
+				// Neues Format mit separaten Arrays
+				this.applyTilesData(projectData);
+			} else if (
+				projectData.tilesData &&
+				Array.isArray(projectData.tilesData)
+			) {
+				// Altes Format mit einem Array
 				this.applyTilesData(projectData.tilesData);
 			}
 
@@ -98,6 +124,11 @@ class StorageBrowser {
 			document.dispatchEvent(event);
 
 			console.log("Projektdaten erfolgreich angewendet");
+
+			if (window.showNotification) {
+				window.showNotification("Daten vom Server synchronisiert", "success");
+			}
+
 			return true;
 		} catch (error) {
 			console.error("Fehler beim Anwenden der Projektdaten:", error);
@@ -110,77 +141,162 @@ class StorageBrowser {
 	 * @param {Object} settings - Einstellungsobjekt
 	 */
 	applySettings(settings) {
-		if (settings.tilesCount && document.getElementById("tilesCount")) {
-			document.getElementById("tilesCount").value = settings.tilesCount;
-		}
-		if (
-			settings.secondaryTilesCount &&
-			document.getElementById("secondaryTilesCount")
-		) {
-			document.getElementById("secondaryTilesCount").value =
-				settings.secondaryTilesCount;
-		}
-		if (settings.layout && document.getElementById("layoutType")) {
-			document.getElementById("layoutType").value = settings.layout;
-		}
+		try {
+			console.log("Wende Einstellungen an:", settings);
 
-		// UI-Einstellungen anwenden falls hangarUI verfügbar
-		if (window.hangarUI && window.hangarUI.uiSettings) {
-			window.hangarUI.uiSettings.tilesCount = settings.tilesCount || 8;
-			window.hangarUI.uiSettings.secondaryTilesCount =
-				settings.secondaryTilesCount || 0;
-			window.hangarUI.uiSettings.layout = settings.layout || 4;
-			if (typeof window.hangarUI.uiSettings.apply === "function") {
-				window.hangarUI.uiSettings.apply();
+			// Kachelanzahl setzen
+			if (settings.tilesCount) {
+				const tilesCountInput = document.getElementById("tilesCount");
+				if (tilesCountInput) {
+					tilesCountInput.value = settings.tilesCount;
+				}
 			}
+
+			// Sekundäre Kachelanzahl setzen
+			if (settings.secondaryTilesCount !== undefined) {
+				const secondaryTilesCountInput = document.getElementById(
+					"secondaryTilesCount"
+				);
+				if (secondaryTilesCountInput) {
+					secondaryTilesCountInput.value = settings.secondaryTilesCount;
+				}
+			}
+
+			// Layout-Typ setzen
+			if (settings.layout) {
+				const layoutTypeInput = document.getElementById("layoutType");
+				if (layoutTypeInput) {
+					layoutTypeInput.value = settings.layout;
+				}
+			}
+
+			// UI-Einstellungen anwenden, falls hangarUI verfügbar ist
+			if (window.hangarUI && window.hangarUI.uiSettings) {
+				if (settings.tilesCount)
+					window.hangarUI.uiSettings.tilesCount = settings.tilesCount;
+				if (settings.secondaryTilesCount !== undefined)
+					window.hangarUI.uiSettings.secondaryTilesCount =
+						settings.secondaryTilesCount;
+				if (settings.layout)
+					window.hangarUI.uiSettings.layout = settings.layout;
+
+				if (typeof window.hangarUI.uiSettings.apply === "function") {
+					window.hangarUI.uiSettings.apply();
+				}
+			}
+
+			console.log("Einstellungen erfolgreich angewendet");
+		} catch (error) {
+			console.error("Fehler beim Anwenden der Einstellungen:", error);
 		}
 	}
 
 	/**
 	 * Wendet Kacheldaten an
-	 * @param {Array} tilesData - Array mit Kacheldaten
+	 * @param {Array|Object} tilesData - Array mit Kacheldaten oder Objekt mit primaryTiles/secondaryTiles
 	 */
 	applyTilesData(tilesData) {
-		tilesData.forEach((tileData) => {
-			if (!tileData || !tileData.id) return;
+		try {
+			console.log("Wende Kacheldaten an:", tilesData);
 
-			const { id, position, aircraftId, status, towStatus, notes } = tileData;
+			// Format prüfen und normalisieren
+			let tilesToApply = [];
 
-			// Position setzen
-			const posInput = document.getElementById(`hangar-position-${id}`);
-			if (posInput) {
-				posInput.value = position || "";
-				// Change-Event auslösen
-				posInput.dispatchEvent(new Event("change", { bubbles: true }));
+			// Neues Format: Objekt mit primaryTiles/secondaryTiles
+			if (
+				tilesData &&
+				typeof tilesData === "object" &&
+				!Array.isArray(tilesData)
+			) {
+				if (tilesData.primaryTiles && Array.isArray(tilesData.primaryTiles)) {
+					tilesToApply.push(...tilesData.primaryTiles);
+				}
+				if (
+					tilesData.secondaryTiles &&
+					Array.isArray(tilesData.secondaryTiles)
+				) {
+					tilesToApply.push(...tilesData.secondaryTiles);
+				}
+			}
+			// Altes Format: Direkt ein Array
+			else if (Array.isArray(tilesData)) {
+				tilesToApply = tilesData;
 			}
 
-			// Aircraft ID setzen
-			const aircraftInput = document.getElementById(`aircraft-${id}`);
-			if (aircraftInput) {
-				aircraftInput.value = aircraftId || "";
-				aircraftInput.dispatchEvent(new Event("change", { bubbles: true }));
+			if (tilesToApply.length === 0) {
+				console.warn("Keine anwendbaren Kacheldaten gefunden");
+				return;
 			}
 
-			// Status setzen
-			const statusSelect = document.getElementById(`status-${id}`);
-			if (statusSelect) {
-				statusSelect.value = status || "ready";
-				statusSelect.dispatchEvent(new Event("change", { bubbles: true }));
-			}
+			// Durch alle Kacheldaten iterieren
+			tilesToApply.forEach((tileData) => {
+				if (!tileData.tileId) return;
 
-			// Tow-Status setzen
-			const towStatusSelect = document.getElementById(`tow-status-${id}`);
-			if (towStatusSelect) {
-				towStatusSelect.value = towStatus || "initiated";
-				towStatusSelect.dispatchEvent(new Event("change", { bubbles: true }));
-			}
+				// Position setzen
+				if (tileData.position) {
+					const positionInput = document.getElementById(
+						`hangar-position-${tileData.tileId}`
+					);
+					if (positionInput) {
+						positionInput.value = tileData.position;
+					}
+				}
 
-			// Notizen setzen
-			const notesTextarea = document.getElementById(`notes-${id}`);
-			if (notesTextarea) {
-				notesTextarea.value = notes || "";
-			}
-		});
+				// Aircraft ID setzen
+				if (tileData.aircraftId) {
+					const aircraftInput = document.getElementById(
+						`aircraft-${tileData.tileId}`
+					);
+					if (aircraftInput) {
+						aircraftInput.value = tileData.aircraftId;
+					}
+				}
+
+				// Manuelle Eingabe setzen
+				if (tileData.manualInput) {
+					const manualInput = document.getElementById(
+						`manual-input-${tileData.tileId}`
+					);
+					if (manualInput) {
+						manualInput.value = tileData.manualInput;
+					}
+				}
+
+				// Notizen setzen
+				if (tileData.notes) {
+					const notesInput = document.getElementById(
+						`notes-${tileData.tileId}`
+					);
+					if (notesInput) {
+						notesInput.value = tileData.notes;
+					}
+				}
+
+				// Status setzen
+				if (tileData.status) {
+					const statusInput = document.getElementById(
+						`status-${tileData.tileId}`
+					);
+					if (statusInput) {
+						statusInput.value = tileData.status;
+					}
+				}
+
+				// Schlepp-Status setzen
+				if (tileData.towStatus) {
+					const towInput = document.getElementById(
+						`tow-status-${tileData.tileId}`
+					);
+					if (towInput) {
+						towInput.value = tileData.towStatus;
+					}
+				}
+			});
+
+			console.log("Kacheldaten erfolgreich angewendet");
+		} catch (error) {
+			console.error("Fehler beim Anwenden der Kacheldaten:", error);
+		}
 	}
 
 	/**
@@ -207,6 +323,11 @@ class StorageBrowser {
 		const downloadData = async () => {
 			try {
 				const lastSync = localStorage.getItem(syncKey) || "0";
+				console.log(
+					`Prüfe Server-Daten, letzter Sync: ${new Date(
+						parseInt(lastSync)
+					).toLocaleString()}`
+				);
 
 				// Daten vom Server abrufen mit Cache-Buster
 				const response = await fetch(`${serverUrl}?t=${Date.now()}`, {
@@ -218,6 +339,7 @@ class StorageBrowser {
 
 				if (response.ok) {
 					const data = await response.json();
+					console.log("Server-Daten erhalten:", data);
 
 					// Prüfen, ob es sich um Fehlerdaten handelt
 					if (data.error || !data.metadata) {
@@ -227,8 +349,18 @@ class StorageBrowser {
 
 					// Prüfen, ob Daten neuer sind
 					const serverTimestamp = data.metadata.timestamp || 0;
-					if (serverTimestamp > parseInt(lastSync)) {
-						console.log("Neue Daten vom Server erhalten");
+					const lastSyncTimestamp = parseInt(lastSync);
+
+					console.log(
+						`Zeitstempel-Vergleich: Server=${new Date(
+							serverTimestamp
+						).toLocaleString()}, Lokal=${new Date(
+							lastSyncTimestamp
+						).toLocaleString()}`
+					);
+
+					if (serverTimestamp > lastSyncTimestamp) {
+						console.log("Neue Daten vom Server erkannt, wende sie an...");
 
 						// Daten anwenden
 						this.ensureApplyFunction();
@@ -241,6 +373,7 @@ class StorageBrowser {
 							if (success) {
 								// Timestamp aktualisieren
 								localStorage.setItem(syncKey, serverTimestamp.toString());
+								console.log("Synchronisation erfolgreich abgeschlossen");
 
 								if (window.showNotification) {
 									window.showNotification(
@@ -248,12 +381,23 @@ class StorageBrowser {
 										"info"
 									);
 								}
+							} else {
+								console.error("Fehler beim Anwenden der Server-Daten");
 							}
+						} else {
+							console.error("applyLoadedHangarPlan-Funktion nicht verfügbar");
 						}
+					} else {
+						console.log("Server-Daten sind nicht neuer als lokale Daten");
 					}
-				} else if (response.status !== 404) {
-					// 404 ist normal wenn noch keine Daten gespeichert wurden
-					console.warn("Server-Abfrage fehlgeschlagen:", response.status);
+				} else if (response.status === 404) {
+					console.log("Noch keine Daten auf dem Server gespeichert");
+				} else {
+					console.warn(
+						"Server-Abfrage fehlgeschlagen:",
+						response.status,
+						response.statusText
+					);
 				}
 			} catch (error) {
 				// Netzwerkfehler sind normal und sollten nicht störend sein
@@ -405,6 +549,7 @@ class StorageBrowser {
 					data.metadata.lastSaved = new Date().toISOString();
 					data.metadata.timestamp = Date.now();
 				}
+				console.log("Projektdaten gesammelt über collectAllHangarData:", data);
 				return data;
 			}
 
@@ -416,9 +561,11 @@ class StorageBrowser {
 					timestamp: Date.now(),
 				},
 				settings: this.collectSettingsData(),
-				tilesData: this.collectAllTilesData(),
+				primaryTiles: this.collectPrimaryTilesData(),
+				secondaryTiles: this.collectSecondaryTilesData(),
 			};
 
+			console.log("Projektdaten gesammelt über Fallback-Methode:", projectData);
 			return projectData;
 		} catch (error) {
 			console.error("Fehler beim Sammeln der Projektdaten:", error);
@@ -443,12 +590,21 @@ class StorageBrowser {
 
 	/**
 	 * Sammelt alle Kacheldaten
-	 * @returns {Array} Array mit allen Kacheldaten
+	 * @returns {Array} Array mit allen Kacheldaten (für Backward Compatibility)
 	 */
 	collectAllTilesData() {
 		const tiles = [];
+		tiles.push(...this.collectPrimaryTilesData());
+		tiles.push(...this.collectSecondaryTilesData());
+		return tiles;
+	}
 
-		// Primäre Kacheln sammeln
+	/**
+	 * Sammelt Daten der primären Kacheln
+	 * @returns {Array} Array mit primären Kacheldaten
+	 */
+	collectPrimaryTilesData() {
+		const tiles = [];
 		document
 			.querySelectorAll("#hangarGrid .hangar-cell")
 			.forEach((cell, index) => {
@@ -456,8 +612,15 @@ class StorageBrowser {
 				const tileData = this.collectSingleTileData(cellId, false);
 				if (tileData) tiles.push(tileData);
 			});
+		return tiles;
+	}
 
-		// Sekundäre Kacheln sammeln
+	/**
+	 * Sammelt Daten der sekundären Kacheln
+	 * @returns {Array} Array mit sekundären Kacheldaten
+	 */
+	collectSecondaryTilesData() {
+		const tiles = [];
 		document
 			.querySelectorAll("#secondaryHangarGrid .hangar-cell")
 			.forEach((cell, index) => {
@@ -465,7 +628,6 @@ class StorageBrowser {
 				const tileData = this.collectSingleTileData(cellId, true);
 				if (tileData) tiles.push(tileData);
 			});
-
 		return tiles;
 	}
 
@@ -478,14 +640,24 @@ class StorageBrowser {
 	collectSingleTileData(cellId, isSecondary = false) {
 		try {
 			return {
-				id: cellId,
+				tileId: cellId,
+				aircraftId: document.getElementById(`aircraft-${cellId}`)?.value || "",
 				position:
 					document.getElementById(`hangar-position-${cellId}`)?.value || "",
-				aircraftId: document.getElementById(`aircraft-${cellId}`)?.value || "",
+				manualInput:
+					document.querySelector(`#manual-input-${cellId}`)?.value || "",
+				notes: document.getElementById(`notes-${cellId}`)?.value || "",
 				status: document.getElementById(`status-${cellId}`)?.value || "ready",
 				towStatus:
 					document.getElementById(`tow-status-${cellId}`)?.value || "initiated",
-				notes: document.getElementById(`notes-${cellId}`)?.value || "",
+				arrivalTime:
+					document
+						.getElementById(`arrival-time-${cellId}`)
+						?.textContent?.trim() || "--:--",
+				departureTime:
+					document
+						.getElementById(`departure-time-${cellId}`)
+						?.textContent?.trim() || "--:--",
 				isSecondary: isSecondary,
 			};
 		} catch (error) {
@@ -525,7 +697,7 @@ class StorageBrowser {
 			// URL im localStorage speichern
 			localStorage.setItem("hangarplanner_server_url", serverUrl);
 
-			// Server-Synchronisierung aktivieren
+			// Server-Synchronisation aktivieren
 			this.enableServerSync(true, serverUrl);
 
 			// Status-Anzeige aktualisieren
@@ -652,9 +824,46 @@ class StorageBrowser {
 	}
 
 	/**
-	 * Entfernte Dummy-Methode - nicht mehr benötigt für Server-Synchronisation
+	 * Debug-Funktion: Testet die Synchronisierungsfunktionalität manuell
 	 */
+	testSync() {
+		console.log("=== SYNC DEBUG TEST ===");
+
+		// 1. Prüfe verfügbare Funktionen
+		console.log("Verfügbare Funktionen:");
+		console.log(
+			"- window.collectAllHangarData:",
+			typeof window.collectAllHangarData
+		);
+		console.log(
+			"- window.hangarData.applyLoadedHangarPlan:",
+			typeof window.hangarData?.applyLoadedHangarPlan
+		);
+
+		// 2. Sammle aktuelle Daten
+		console.log("Sammle aktuelle Projektdaten...");
+		const projectData = this.collectCurrentProjectData();
+		console.log("Gesammelte Daten:", projectData);
+
+		// 3. Teste Anwendung der Daten
+		console.log("Teste Anwendung der Daten...");
+		if (projectData) {
+			const success = this.applyProjectData(projectData);
+			console.log("Anwendung erfolgreich:", success);
+		}
+
+		console.log("=== SYNC DEBUG TEST ENDE ===");
+	}
 }
+
+// Debug-Funktionen global verfügbar machen
+window.debugSync = () => {
+	if (window.storageBrowser) {
+		window.storageBrowser.testSync();
+	} else {
+		console.error("Storage Browser nicht verfügbar");
+	}
+};
 
 // Globale Instanz erstellen
 window.storageBrowser = new StorageBrowser();
@@ -663,8 +872,9 @@ window.storageBrowser = new StorageBrowser();
 document.addEventListener("DOMContentLoaded", () => {
 	// Verzögert initialisieren, um sicherzustellen dass andere Komponenten geladen sind
 	setTimeout(() => {
+		console.log("Initialisiere Storage Browser...");
 		if (window.storageBrowser) {
 			window.storageBrowser.initialize();
 		}
-	}, 1000);
+	}, 2000); // Erhöht auf 2 Sekunden für bessere Kompatibilität
 });
