@@ -154,6 +154,74 @@ const uiSettings = {
 		}
 	},
 
+	/**
+	 * Sammelt Werte von Kacheln in einem bestimmten Container
+	 * @param {string} containerSelector - CSS-Selektor für den Container
+	 * @param {Array} tileValues - Array zum Sammeln der Werte
+	 * @param {number} startIndex - Startindex für die Kachel-IDs
+	 */
+	collectTileValues: function (containerSelector, tileValues, startIndex) {
+		try {
+			const container = document.querySelector(containerSelector);
+			if (!container) {
+				console.warn(`Container ${containerSelector} nicht gefunden`);
+				return;
+			}
+
+			const cells = container.querySelectorAll(".hangar-cell");
+			cells.forEach((cell, index) => {
+				if (cell.classList.contains("hidden")) return;
+
+				const cellId = startIndex + index;
+
+				// Position sammeln
+				const positionInput = document.getElementById(
+					`hangar-position-${cellId}`
+				);
+				const position = positionInput ? positionInput.value : "";
+
+				// Aircraft ID sammeln
+				const aircraftInput = document.getElementById(`aircraft-${cellId}`);
+				const aircraftId = aircraftInput ? aircraftInput.value : "";
+
+				// Manuelle Eingabe sammeln
+				const manualInput = document.getElementById(`manual-input-${cellId}`);
+				const manualInputValue = manualInput ? manualInput.value : "";
+
+				// Status sammeln
+				const statusSelect = document.getElementById(`status-${cellId}`);
+				const status = statusSelect ? statusSelect.value : "ready";
+
+				// Notizen sammeln
+				const notesTextarea = document.getElementById(`notes-${cellId}`);
+				const notes = notesTextarea ? notesTextarea.value : "";
+
+				// Nur hinzufügen wenn mindestens ein Wert vorhanden ist
+				if (
+					position ||
+					aircraftId ||
+					manualInputValue ||
+					notes ||
+					status !== "ready"
+				) {
+					tileValues.push({
+						cellId: cellId,
+						position: position,
+						aircraftId: aircraftId,
+						manualInput: manualInputValue,
+						status: status,
+						notes: notes,
+					});
+				}
+			});
+		} catch (error) {
+			console.error(
+				`Fehler beim Sammeln der Kachelwerte für ${containerSelector}:`,
+				error
+			);
+		}
+	},
+
 	// Wendet die Einstellungen auf die UI an
 	apply: function () {
 		try {
@@ -488,7 +556,7 @@ function updateSecondaryTiles(count, layout) {
 
 			// Speichern im localStorage verzögern, um alle DOM-Änderungen abzuwarten
 			setTimeout(() => {
-				window.hangarUI.uiSettings.save();
+				window.hangarUI.uiSettings.save.call(window.hangarUI.uiSettings);
 			}, 300);
 		}
 	}, 200);
@@ -708,7 +776,11 @@ function updateCellAttributes(cell, cellId) {
 							}
 
 							// Aktualisierte Einstellungen im localStorage speichern
-							helpers.storageHelper.set("hangarPlannerSettings", settings);
+							const updatedSettingsData = JSON.stringify(settings);
+							localStorage.setItem(
+								"hangarPlannerSettings",
+								updatedSettingsData
+							);
 							console.log(
 								`Position für Kachel ${cellId} direkt im localStorage aktualisiert`
 							);
@@ -722,7 +794,11 @@ function updateCellAttributes(cell, cellId) {
 				}
 
 				// Vollständiges Speichern mit allen Daten
-				setTimeout(() => window.hangarUI.uiSettings.save(), 50);
+				setTimeout(
+					() =>
+						window.hangarUI.uiSettings.save.call(window.hangarUI.uiSettings),
+					50
+				);
 			}
 		};
 
@@ -756,7 +832,13 @@ function updateCellAttributes(cell, cellId) {
 						`Position in neuer Kachel ${cellId} geändert: ${this.value}`
 					);
 					if (typeof window.hangarUI.uiSettings.save === "function") {
-						setTimeout(() => window.hangarUI.uiSettings.save(), 100);
+						setTimeout(
+							() =>
+								window.hangarUI.uiSettings.save.call(
+									window.hangarUI.uiSettings
+								),
+							100
+						);
 					}
 				});
 
@@ -785,7 +867,11 @@ function updateCellAttributes(cell, cellId) {
 			);
 			// Automatisches Speichern auslösen
 			if (typeof window.hangarUI.uiSettings.save === "function") {
-				setTimeout(() => window.hangarUI.uiSettings.save(), 100);
+				setTimeout(
+					() =>
+						window.hangarUI.uiSettings.save.call(window.hangarUI.uiSettings),
+					100
+				);
 			}
 		});
 	}
@@ -823,7 +909,11 @@ function setupSecondaryTileEventListeners() {
 					`Position in sekundärer Kachel ${cellId} geändert: ${this.value}`
 				);
 				if (typeof window.hangarUI.uiSettings.save === "function") {
-					setTimeout(() => window.hangarUI.uiSettings.save(), 100);
+					setTimeout(
+						() =>
+							window.hangarUI.uiSettings.save.call(window.hangarUI.uiSettings),
+						100
+					);
 				}
 			});
 		});
@@ -847,7 +937,11 @@ function setupSecondaryTileEventListeners() {
 					`Manuelle Eingabe in sekundärer Kachel ${cellId} geändert: ${this.value}`
 				);
 				if (typeof window.hangarUI.uiSettings.save === "function") {
-					setTimeout(() => window.hangarUI.uiSettings.save(), 100);
+					setTimeout(
+						() =>
+							window.hangarUI.uiSettings.save.call(window.hangarUI.uiSettings),
+						100
+					);
 				}
 			});
 		});
@@ -918,7 +1012,7 @@ function adjustScaling() {
 		const gridConfig = {
 			transform: "none",
 			width: "100%",
-			gridTemplateColumns: `repeat(${layout}, minmax(${cardMinWidth}px, auto))`, // auto statt fit-content für konsistentere Breiten
+			gridTemplateColumns: `repeat(${layout}, minmax(${cardMinWidth}px, auto))`, // auto statt fit-content für konsistenterer Breiten
 			gap: `16px`, // Explizit 16px
 			display: "grid",
 			justifyContent: "center", // Wichtig: Explizite Zentrierung
@@ -1544,10 +1638,7 @@ function initializeDisplaySettings() {
 
 	if (darkModeToggle) {
 		// Beim Laden den korrekten Status setzen
-		const savedSettings = helpers.storageHelper.get(
-			"hangarPlannerSettings",
-			true
-		);
+		const savedSettings = storageHelper.get("hangarPlannerSettings", true);
 		if (savedSettings && savedSettings.darkMode !== undefined) {
 			darkModeToggle.checked = savedSettings.darkMode;
 			window.hangarUI.uiSettings.applyDarkMode(savedSettings.darkMode);
@@ -1556,7 +1647,7 @@ function initializeDisplaySettings() {
 		// Event Listener für Änderungen
 		darkModeToggle.addEventListener("change", function () {
 			window.hangarUI.uiSettings.applyDarkMode(this.checked);
-			window.hangarUI.uiSettings.save();
+			window.hangarUI.uiSettings.save.call(window.hangarUI.uiSettings);
 		});
 	}
 
@@ -1612,7 +1703,7 @@ function initializeDisplaySettings() {
 
 		// Speichern beim Loslassen des Sliders
 		zoomSlider.addEventListener("change", function () {
-			window.hangarUI.uiSettings.save();
+			window.hangarUI.uiSettings.save.call(window.hangarUI.uiSettings);
 		});
 	}
 }

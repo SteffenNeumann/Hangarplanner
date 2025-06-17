@@ -832,7 +832,7 @@ function createAutoSave(saveFunction, options = {}) {
  * Stellt eine optimierte Version der localStorage API bereit
  * @type {Object}
  */
-const storageHelper = {
+const storageHelperExtended = {
 	/**
 	 * Speichert Daten im localStorage mit Fehlerbehandlung
 	 * @param {string} key - Der Schlüssel unter dem gespeichert wird
