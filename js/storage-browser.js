@@ -8,6 +8,9 @@ class StorageBrowser {
 		this.containerElement = null;
 		this.serverSyncInterval = null;
 		this.serverSyncUrl = null;
+		this.isApplyingServerData = false; // Flag um UI-Überschreibung zu verhindern
+		this.lastDataChecksum = null; // Für Change-Detection
+		this.autoSaveTimeout = null; // Für verzögertes Auto-Save
 	}
 
 	/**
@@ -362,6 +365,9 @@ class StorageBrowser {
 					if (serverTimestamp > lastSyncTimestamp) {
 						console.log("Neue Daten vom Server erkannt, wende sie an...");
 
+						// Flag setzen um zu verhindern, dass Auto-Sync diese Änderung wieder überschreibt
+						this.isApplyingServerData = true;
+
 						// Daten anwenden
 						this.ensureApplyFunction();
 						if (
@@ -375,17 +381,27 @@ class StorageBrowser {
 								localStorage.setItem(syncKey, serverTimestamp.toString());
 								console.log("Synchronisation erfolgreich abgeschlossen");
 
+								// Checksum der aktuellen Daten aktualisieren
+								this.updateDataChecksum();
+
 								if (window.showNotification) {
 									window.showNotification(
 										"Neue Daten vom Server synchronisiert",
 										"info"
 									);
 								}
+
+								// Flag nach kurzer Verzögerung zurücksetzen
+								setTimeout(() => {
+									this.isApplyingServerData = false;
+								}, 2000);
 							} else {
 								console.error("Fehler beim Anwenden der Server-Daten");
+								this.isApplyingServerData = false;
 							}
 						} else {
 							console.error("applyLoadedHangarPlan-Funktion nicht verfügbar");
+							this.isApplyingServerData = false;
 						}
 					} else {
 						console.log("Server-Daten sind nicht neuer als lokale Daten");
@@ -408,11 +424,16 @@ class StorageBrowser {
 			}
 		};
 
-		// Initiale Synchronisation
-		downloadData();
+		// Initiale Synchronisation nur wenn Auto-Sync aktiv
+		if (localStorage.getItem("hangarplanner_auto_sync") === "true") {
+			downloadData();
 
-		// Regelmäßige Synchronisation (reduziert auf 30 Sekunden für bessere Performance)
-		this.serverSyncInterval = setInterval(downloadData, 30000);
+			// Regelmäßige Synchronisation (reduziert auf 30 Sekunden für bessere Performance)
+			this.serverSyncInterval = setInterval(downloadData, 30000);
+			console.log("Automatische Server-Synchronisation aktiviert");
+		} else {
+			console.log("Server-URL konfiguriert, aber Auto-Sync ist deaktiviert");
+		}
 
 		console.log("Server-Synchronisation aktiviert mit URL:", serverUrl);
 	}
@@ -502,6 +523,20 @@ class StorageBrowser {
 	 */
 	async saveCurrentProject() {
 		try {
+			// Prüfen, ob gerade Server-Daten angewendet werden
+			if (this.isApplyingServerData) {
+				console.log(
+					"Speichern übersprungen: Server-Daten werden gerade angewendet"
+				);
+				return;
+			}
+
+			// Prüfen, ob sich die Daten tatsächlich geändert haben
+			if (!this.hasDataChanged()) {
+				console.log("Speichern übersprungen: Keine Datenänderung erkannt");
+				return;
+			}
+
 			// Projektdaten mit der zentralen Sammelfunktion abrufen
 			const projectData = this.collectCurrentProjectData();
 
@@ -512,6 +547,8 @@ class StorageBrowser {
 			// Wenn Auto-Sync aktiviert ist, zum Server hochladen
 			if (localStorage.getItem("hangarplanner_auto_sync") === "true") {
 				await this.saveToServer(projectData);
+				// Prüfsumme nach erfolgreichem Speichern aktualisieren
+				this.updateDataChecksum();
 			}
 
 			if (window.showNotification) {
@@ -777,6 +814,63 @@ class StorageBrowser {
 	}
 
 	/**
+	 * Erstellt eine Prüfsumme der aktuellen Daten für Change-Detection
+	 * @returns {string} MD5-ähnliche Prüfsumme
+	 */
+	createDataChecksum() {
+		try {
+			const projectData = this.collectCurrentProjectData();
+			if (!projectData) return null;
+
+			// Timestamp entfernen für Vergleich (weil sich dieser immer ändert)
+			const dataForChecksum = { ...projectData };
+			if (dataForChecksum.metadata) {
+				delete dataForChecksum.metadata.timestamp;
+				delete dataForChecksum.metadata.lastSaved;
+			}
+
+			const dataString = JSON.stringify(dataForChecksum);
+			// Einfache Hash-Funktion
+			let hash = 0;
+			for (let i = 0; i < dataString.length; i++) {
+				const char = dataString.charCodeAt(i);
+				hash = (hash << 5) - hash + char;
+				hash = hash & hash; // 32-bit integer
+			}
+			return hash.toString();
+		} catch (error) {
+			console.error("Fehler beim Erstellen der Prüfsumme:", error);
+			return null;
+		}
+	}
+
+	/**
+	 * Aktualisiert die gespeicherte Prüfsumme der aktuellen Daten
+	 */
+	updateDataChecksum() {
+		this.lastDataChecksum = this.createDataChecksum();
+		console.log("Daten-Prüfsumme aktualisiert:", this.lastDataChecksum);
+	}
+
+	/**
+	 * Prüft, ob sich die Daten seit dem letzten Check geändert haben
+	 * @returns {boolean} true wenn sich Daten geändert haben
+	 */
+	hasDataChanged() {
+		const currentChecksum = this.createDataChecksum();
+		const hasChanged = currentChecksum !== this.lastDataChecksum;
+		if (hasChanged) {
+			console.log(
+				"Datenänderung erkannt - Alte Prüfsumme:",
+				this.lastDataChecksum,
+				"Neue Prüfsumme:",
+				currentChecksum
+			);
+		}
+		return hasChanged;
+	}
+
+	/**
 	 * Initialisiert den Storage-Browser in einem Container
 	 * @param {string} containerId - ID des Container-Elements für den Datei-Browser
 	 */
@@ -806,6 +900,15 @@ class StorageBrowser {
 		// Stelle die Apply-Funktion bereit
 		this.ensureApplyFunction();
 
+		// Initiale Prüfsumme setzen
+		setTimeout(() => {
+			this.updateDataChecksum();
+			console.log("Initiale Daten-Prüfsumme gesetzt");
+		}, 1000);
+
+		// Auto-Save Event-Listener einrichten
+		this.setupAutoSaveListeners();
+
 		// Auto-Sync aktivieren, wenn eingestellt
 		if (localStorage.getItem("hangarplanner_auto_sync") === "true") {
 			this.detectAndEnableServerSync();
@@ -820,7 +923,45 @@ class StorageBrowser {
 			this.enableServerSync(true, serverSyncUrl);
 		}
 
+		// Automatische Event-Listener für Daten-Speicherung einrichten
+		this.setupAutoSaveListeners();
+
 		console.log("Storage Browser initialisiert");
+	}
+
+	/**
+	 * Richtet Event-Listener ein für automatische Datenspeiicherung
+	 */
+	setupAutoSaveListeners() {
+		// Event-Listener für Eingabefelder
+		const setupFieldListener = (selector) => {
+			document.addEventListener("input", (event) => {
+				if (event.target.matches(selector)) {
+					// Verzögert speichern um häufige Aufrufe zu vermeiden
+					clearTimeout(this.autoSaveTimeout);
+					this.autoSaveTimeout = setTimeout(() => {
+						if (localStorage.getItem("hangarplanner_auto_sync") === "true") {
+							console.log(
+								"Auto-Save ausgelöst durch:",
+								event.target.id || event.target.className
+							);
+							this.saveCurrentProject();
+						}
+					}, 2000); // 2 Sekunden Verzögerung
+				}
+			});
+		};
+
+		// Verschiedene Eingabefeld-Typen überwachen
+		setupFieldListener('input[id^="aircraft-"]');
+		setupFieldListener('input[id^="hangar-position-"]');
+		setupFieldListener('input[id^="manual-input-"]');
+		setupFieldListener('textarea[id^="notes-"]');
+		setupFieldListener('select[id^="status-"]');
+		setupFieldListener('select[id^="tow-status-"]');
+		setupFieldListener("#projectName");
+
+		console.log("Auto-Save Event-Listener eingerichtet");
 	}
 
 	/**
@@ -840,12 +981,18 @@ class StorageBrowser {
 			typeof window.hangarData?.applyLoadedHangarPlan
 		);
 
-		// 2. Sammle aktuelle Daten
+		// 2. Prüfe aktuellen Zustand
+		console.log("Aktueller Zustand:");
+		console.log("- isApplyingServerData:", this.isApplyingServerData);
+		console.log("- lastDataChecksum:", this.lastDataChecksum);
+		console.log("- hasDataChanged:", this.hasDataChanged());
+
+		// 3. Sammle aktuelle Daten
 		console.log("Sammle aktuelle Projektdaten...");
 		const projectData = this.collectCurrentProjectData();
 		console.log("Gesammelte Daten:", projectData);
 
-		// 3. Teste Anwendung der Daten
+		// 4. Teste Anwendung der Daten
 		console.log("Teste Anwendung der Daten...");
 		if (projectData) {
 			const success = this.applyProjectData(projectData);
@@ -860,6 +1007,36 @@ class StorageBrowser {
 window.debugSync = () => {
 	if (window.storageBrowser) {
 		window.storageBrowser.testSync();
+	} else {
+		console.error("Storage Browser nicht verfügbar");
+	}
+};
+
+// Zusätzliche Debug-Funktion für Checksum-Tests
+window.debugChecksum = () => {
+	if (window.storageBrowser) {
+		console.log("=== CHECKSUM DEBUG ===");
+		console.log("Aktuelle Prüfsumme:", window.storageBrowser.lastDataChecksum);
+		console.log("Neue Prüfsumme:", window.storageBrowser.createDataChecksum());
+		console.log(
+			"Haben sich Daten geändert:",
+			window.storageBrowser.hasDataChanged()
+		);
+		console.log("=== CHECKSUM DEBUG ENDE ===");
+	} else {
+		console.error("Storage Browser nicht verfügbar");
+	}
+};
+
+// Funktion zum manuellen Reset der Synchronisation
+window.resetSync = () => {
+	if (window.storageBrowser) {
+		console.log("=== SYNC RESET ===");
+		localStorage.removeItem("hangarplanner_server_sync");
+		window.storageBrowser.lastDataChecksum = null;
+		window.storageBrowser.isApplyingServerData = false;
+		console.log("Synchronisations-Status zurückgesetzt");
+		console.log("=== SYNC RESET ENDE ===");
 	} else {
 		console.error("Storage Browser nicht verfügbar");
 	}
