@@ -586,6 +586,14 @@ function updateSecondaryTiles(count, layout) {
  * Lädt speziell die Positionswerte für sekundäre Kacheln
  */
 function loadSecondaryTileValues() {
+	// Nicht während einer Server-Synchronisation ausführen
+	if (window.isApplyingServerData) {
+		console.log(
+			"loadSecondaryTileValues übersprungen: Server-Synchronisation läuft"
+		);
+		return;
+	}
+
 	const savedSettingsJSON = localStorage.getItem("hangarPlannerSettings");
 	if (!savedSettingsJSON) return;
 

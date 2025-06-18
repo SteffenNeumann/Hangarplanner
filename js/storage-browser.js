@@ -263,6 +263,10 @@ class StorageBrowser {
 						secondaryTilesCountInput.value = secondaryTilesCount;
 					}
 
+					// Temporär die localStorage-Wiederherstellung deaktivieren während UI-Update
+					const originalFlag = window.isApplyingServerData;
+					window.isApplyingServerData = true;
+
 					// UI neu aufbauen falls hangarUI verfügbar
 					if (
 						window.hangarUI &&
@@ -270,6 +274,9 @@ class StorageBrowser {
 					) {
 						window.hangarUI.updateSecondaryTiles();
 					}
+
+					// Flag nach UI-Update zurücksetzen
+					window.isApplyingServerData = originalFlag;
 
 					// Kurz warten bis UI erstellt ist, dann erneut versuchen
 					setTimeout(() => {
