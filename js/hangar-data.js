@@ -48,8 +48,12 @@ function collectAllHangarData() {
 		const primaryTiles = collectTileData("#hangarGrid");
 		const secondaryTiles = collectTileData("#secondaryHangarGrid");
 
+		// Debug: Zeige was in den Tiles enthalten ist
+		console.log("DEBUG: Gesammelte primäre Kacheln:", primaryTiles);
+		console.log("DEBUG: Gesammelte sekundäre Kacheln:", secondaryTiles);
+
 		// Gesamtdaten zusammenstellen
-		return {
+		const finalData = {
 			id: projectId,
 			metadata: {
 				projectName: projectName,
@@ -60,6 +64,9 @@ function collectAllHangarData() {
 			primaryTiles: primaryTiles,
 			secondaryTiles: secondaryTiles,
 		};
+
+		console.log("DEBUG: Finale gesammelte Daten:", finalData);
+		return finalData;
 	} catch (error) {
 		console.error("Fehler beim Sammeln der Hangardaten:", error);
 		return null;
@@ -348,7 +355,7 @@ function collectTileData(containerSelector) {
 
 			console.log(`Tow-Status für Kachel ${tileId} gesammelt: ${towStatus}`);
 
-			tileData.push({
+			const tileDataObject = {
 				tileId: tileId,
 				aircraftId: aircraftId,
 				position: position,
@@ -358,7 +365,12 @@ function collectTileData(containerSelector) {
 				towStatus: towStatus,
 				arrivalTime: arrivalTime,
 				departureTime: departureTime,
-			});
+			};
+
+			// Debug: Zeige die gesammelten Daten für diese Kachel
+			console.log(`Gesammelte Daten für Kachel ${tileId}:`, tileDataObject);
+
+			tileData.push(tileDataObject);
 		});
 
 		return tileData;
@@ -405,6 +417,12 @@ function applyTileData(tileData, isSecondary = false) {
 	try {
 		const tileId = tileData.tileId;
 		const container = isSecondary ? "#secondaryHangarGrid" : "#hangarGrid";
+
+		// Debug: Zeige empfangene Daten
+		console.log(`DEBUG: Anwenden von Daten für Kachel ${tileId}:`, tileData);
+		console.log(
+			`DEBUG: Tow-Status in empfangenen Daten: ${tileData.towStatus}`
+		);
 
 		// Aircraft ID setzen
 		const aircraftInput = document.querySelector(
