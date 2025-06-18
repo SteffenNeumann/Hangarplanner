@@ -308,6 +308,13 @@ class StorageBrowser {
 
 		console.log(`Wende Daten für Tile ${tileData.tileId} an:`, tileData);
 
+		// Debug: Spezifisches Logging für Tow Status
+		if (tileData.towStatus) {
+			console.log(
+				`Debug: Tile ${tileData.tileId} hat towStatus: ${tileData.towStatus}`
+			);
+		}
+
 		// Position setzen
 		if (tileData.position) {
 			const positionInput = document.getElementById(
@@ -366,11 +373,20 @@ class StorageBrowser {
 			}
 		}
 
-		// Schlepp-Status setzen
-		if (tileData.towStatus) {
+		// Schlepp-Status setzen (auch für neutrale oder leere Werte)
+		if (tileData.towStatus !== undefined) {
 			const towInput = document.getElementById(`tow-status-${tileData.tileId}`);
 			if (towInput) {
-				towInput.value = tileData.towStatus;
+				towInput.value = tileData.towStatus || "neutral";
+				// Auch die visuellen Styles aktualisieren
+				if (typeof updateTowStatusStyles === "function") {
+					updateTowStatusStyles(towInput);
+				}
+				console.log(
+					`Tow Status für Tile ${tileData.tileId} gesetzt: ${
+						tileData.towStatus || "neutral"
+					}`
+				);
 			} else {
 				console.warn(
 					`Tow Status Input für Tile ${tileData.tileId} nicht gefunden`
@@ -801,7 +817,7 @@ class StorageBrowser {
 				notes: document.getElementById(`notes-${cellId}`)?.value || "",
 				status: document.getElementById(`status-${cellId}`)?.value || "ready",
 				towStatus:
-					document.getElementById(`tow-status-${cellId}`)?.value || "initiated",
+					document.getElementById(`tow-status-${cellId}`)?.value || "neutral",
 				arrivalTime:
 					document
 						.getElementById(`arrival-time-${cellId}`)
