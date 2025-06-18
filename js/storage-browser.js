@@ -203,7 +203,8 @@ class StorageBrowser {
 			console.log("Wende Kacheldaten an:", tilesData);
 
 			// Format prüfen und normalisieren
-			let tilesToApply = [];
+			let primaryTiles = [];
+			let secondaryTiles = [];
 
 			// Neues Format: Objekt mit primaryTiles/secondaryTiles
 			if (
@@ -212,93 +213,179 @@ class StorageBrowser {
 				!Array.isArray(tilesData)
 			) {
 				if (tilesData.primaryTiles && Array.isArray(tilesData.primaryTiles)) {
-					tilesToApply.push(...tilesData.primaryTiles);
+					primaryTiles = tilesData.primaryTiles;
 				}
 				if (
 					tilesData.secondaryTiles &&
 					Array.isArray(tilesData.secondaryTiles)
 				) {
-					tilesToApply.push(...tilesData.secondaryTiles);
+					secondaryTiles = tilesData.secondaryTiles;
 				}
 			}
-			// Altes Format: Direkt ein Array
+			// Altes Format: Direkt ein Array - aufteilen nach Tile IDs
 			else if (Array.isArray(tilesData)) {
-				tilesToApply = tilesData;
+				tilesData.forEach((tile) => {
+					if (tile.tileId >= 101) {
+						secondaryTiles.push(tile);
+					} else {
+						primaryTiles.push(tile);
+					}
+				});
 			}
 
-			if (tilesToApply.length === 0) {
-				console.warn("Keine anwendbaren Kacheldaten gefunden");
-				return;
-			}
+			console.log("Primary tiles zu anwenden:", primaryTiles.length);
+			console.log("Secondary tiles zu anwenden:", secondaryTiles.length);
 
-			// Durch alle Kacheldaten iterieren
-			tilesToApply.forEach((tileData) => {
-				if (!tileData.tileId) return;
-
-				// Position setzen
-				if (tileData.position) {
-					const positionInput = document.getElementById(
-						`hangar-position-${tileData.tileId}`
-					);
-					if (positionInput) {
-						positionInput.value = tileData.position;
-					}
-				}
-
-				// Aircraft ID setzen
-				if (tileData.aircraftId) {
-					const aircraftInput = document.getElementById(
-						`aircraft-${tileData.tileId}`
-					);
-					if (aircraftInput) {
-						aircraftInput.value = tileData.aircraftId;
-					}
-				}
-
-				// Manuelle Eingabe setzen
-				if (tileData.manualInput) {
-					const manualInput = document.getElementById(
-						`manual-input-${tileData.tileId}`
-					);
-					if (manualInput) {
-						manualInput.value = tileData.manualInput;
-					}
-				}
-
-				// Notizen setzen
-				if (tileData.notes) {
-					const notesInput = document.getElementById(
-						`notes-${tileData.tileId}`
-					);
-					if (notesInput) {
-						notesInput.value = tileData.notes;
-					}
-				}
-
-				// Status setzen
-				if (tileData.status) {
-					const statusInput = document.getElementById(
-						`status-${tileData.tileId}`
-					);
-					if (statusInput) {
-						statusInput.value = tileData.status;
-					}
-				}
-
-				// Schlepp-Status setzen
-				if (tileData.towStatus) {
-					const towInput = document.getElementById(
-						`tow-status-${tileData.tileId}`
-					);
-					if (towInput) {
-						towInput.value = tileData.towStatus;
-					}
-				}
+			// Primary Tiles anwenden
+			primaryTiles.forEach((tileData) => {
+				this.applySingleTileData(tileData);
 			});
+
+			// Secondary Tiles - sicherstellen, dass sie existieren, bevor wir sie anwenden
+			if (secondaryTiles.length > 0) {
+				// Prüfen ob Secondary Grid existiert
+				const secondaryGrid = document.getElementById("secondaryHangarGrid");
+				if (!secondaryGrid || secondaryGrid.children.length === 0) {
+					console.log("Secondary tiles existieren noch nicht, erstelle sie...");
+
+					// Anzahl der secondary tiles in den Einstellungen setzen
+					const secondaryTilesCount = Math.max(
+						secondaryTiles.length,
+						parseInt(document.getElementById("secondaryTilesCount")?.value) || 0
+					);
+					const secondaryTilesCountInput = document.getElementById(
+						"secondaryTilesCount"
+					);
+					if (secondaryTilesCountInput) {
+						secondaryTilesCountInput.value = secondaryTilesCount;
+					}
+
+					// UI neu aufbauen falls hangarUI verfügbar
+					if (
+						window.hangarUI &&
+						typeof window.hangarUI.updateSecondaryTiles === "function"
+					) {
+						window.hangarUI.updateSecondaryTiles();
+					}
+
+					// Kurz warten bis UI erstellt ist, dann erneut versuchen
+					setTimeout(() => {
+						console.log("Versuche Secondary Tiles erneut anzuwenden...");
+						secondaryTiles.forEach((tileData) => {
+							this.applySingleTileData(tileData);
+						});
+					}, 500);
+				} else {
+					// Secondary tiles direkt anwenden
+					secondaryTiles.forEach((tileData) => {
+						this.applySingleTileData(tileData);
+					});
+				}
+			}
 
 			console.log("Kacheldaten erfolgreich angewendet");
 		} catch (error) {
 			console.error("Fehler beim Anwenden der Kacheldaten:", error);
+		}
+	}
+
+	/**
+	 * Anwenden einer einzelnen Kachel-Daten
+	 * @param {Object} tileData - Die Daten einer einzelnen Kachel
+	 */
+	applySingleTileData(tileData) {
+		if (!tileData.tileId) return;
+
+		console.log(`Wende Daten für Tile ${tileData.tileId} an:`, tileData);
+
+		// Position setzen
+		if (tileData.position) {
+			const positionInput = document.getElementById(
+				`hangar-position-${tileData.tileId}`
+			);
+			if (positionInput) {
+				positionInput.value = tileData.position;
+			} else {
+				console.warn(
+					`Position Input für Tile ${tileData.tileId} nicht gefunden`
+				);
+			}
+		}
+
+		// Aircraft ID setzen
+		if (tileData.aircraftId) {
+			const aircraftInput = document.getElementById(
+				`aircraft-${tileData.tileId}`
+			);
+			if (aircraftInput) {
+				aircraftInput.value = tileData.aircraftId;
+			} else {
+				console.warn(
+					`Aircraft Input für Tile ${tileData.tileId} nicht gefunden`
+				);
+			}
+		}
+
+		// Manuelle Eingabe setzen
+		if (tileData.manualInput) {
+			const manualInput = document.getElementById(
+				`manual-input-${tileData.tileId}`
+			);
+			if (manualInput) {
+				manualInput.value = tileData.manualInput;
+			}
+		}
+
+		// Notizen setzen
+		if (tileData.notes) {
+			const notesInput = document.getElementById(`notes-${tileData.tileId}`);
+			if (notesInput) {
+				notesInput.value = tileData.notes;
+			} else {
+				console.warn(`Notes Input für Tile ${tileData.tileId} nicht gefunden`);
+			}
+		}
+
+		// Status setzen
+		if (tileData.status) {
+			const statusInput = document.getElementById(`status-${tileData.tileId}`);
+			if (statusInput) {
+				statusInput.value = tileData.status;
+			} else {
+				console.warn(`Status Input für Tile ${tileData.tileId} nicht gefunden`);
+			}
+		}
+
+		// Schlepp-Status setzen
+		if (tileData.towStatus) {
+			const towInput = document.getElementById(`tow-status-${tileData.tileId}`);
+			if (towInput) {
+				towInput.value = tileData.towStatus;
+			} else {
+				console.warn(
+					`Tow Status Input für Tile ${tileData.tileId} nicht gefunden`
+				);
+			}
+		}
+
+		// Arrival Time setzen
+		if (tileData.arrivalTime && tileData.arrivalTime !== "--:--") {
+			const arrivalElement = document.getElementById(
+				`arrival-time-${tileData.tileId}`
+			);
+			if (arrivalElement) {
+				arrivalElement.textContent = tileData.arrivalTime;
+			}
+		}
+
+		// Departure Time setzen
+		if (tileData.departureTime && tileData.departureTime !== "--:--") {
+			const departureElement = document.getElementById(
+				`departure-time-${tileData.tileId}`
+			);
+			if (departureElement) {
+				departureElement.textContent = tileData.departureTime;
+			}
 		}
 	}
 
@@ -459,14 +546,29 @@ class StorageBrowser {
 
 		buttonContainer.appendChild(saveButton);
 
-		// Auto-Sync Checkbox in der UI hinzufügen
+		// Auto-Sync Checkbox in der UI hinzufügen (Zwei-Spalten-Design)
 		const autoSyncContainer = document.createElement("div");
-		autoSyncContainer.className = "flex items-center mt-2 mb-2";
+		autoSyncContainer.className = "flex justify-between items-center mt-2 mb-2";
+
+		// Linke Spalte: Label
+		const autoSyncLabelContainer = document.createElement("div");
+		autoSyncLabelContainer.className = "flex-1";
+
+		const autoSyncLabel = document.createElement("label");
+		autoSyncLabel.htmlFor = "server-auto-sync";
+		autoSyncLabel.textContent = "Auto-Sync:";
+		autoSyncLabel.className = "text-xs font-medium";
+
+		autoSyncLabelContainer.appendChild(autoSyncLabel);
+
+		// Rechte Spalte: Checkbox
+		const autoSyncInputContainer = document.createElement("div");
+		autoSyncInputContainer.className = "flex-1 flex justify-end";
 
 		const autoSyncCheckbox = document.createElement("input");
 		autoSyncCheckbox.type = "checkbox";
 		autoSyncCheckbox.id = "server-auto-sync";
-		autoSyncCheckbox.className = "mr-2";
+		autoSyncCheckbox.className = "mr-0";
 		autoSyncCheckbox.checked =
 			localStorage.getItem("hangarplanner_auto_sync") === "true";
 		autoSyncCheckbox.onchange = () => {
@@ -478,13 +580,10 @@ class StorageBrowser {
 			}
 		};
 
-		const autoSyncLabel = document.createElement("label");
-		autoSyncLabel.htmlFor = "server-auto-sync";
-		autoSyncLabel.textContent = "Auto-Sync";
-		autoSyncLabel.className = "text-xs";
+		autoSyncInputContainer.appendChild(autoSyncCheckbox);
 
-		autoSyncContainer.appendChild(autoSyncCheckbox);
-		autoSyncContainer.appendChild(autoSyncLabel);
+		autoSyncContainer.appendChild(autoSyncLabelContainer);
+		autoSyncContainer.appendChild(autoSyncInputContainer);
 
 		// Status-Anzeige für Server-Synchronisation
 		const serverSyncStatus = document.createElement("div");
