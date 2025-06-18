@@ -337,12 +337,16 @@ function collectTileData(containerSelector) {
 				tile.querySelector('input[placeholder="Manual Input"]')?.value || "";
 			const notes = tile.querySelector(`[id^="notes-"]`)?.value || "";
 			const status = tile.querySelector(`[id^="status-"]`)?.value || "ready";
+			const towStatus =
+				tile.querySelector(`[id^="tow-status-"]`)?.value || "neutral";
 			const arrivalTime =
 				tile.querySelector(`[id^="arrival-time-"]`)?.textContent.trim() ||
 				"--:--";
 			const departureTime =
 				tile.querySelector(`[id^="departure-time-"]`)?.textContent.trim() ||
 				"--:--";
+
+			console.log(`Tow-Status für Kachel ${tileId} gesammelt: ${towStatus}`);
 
 			tileData.push({
 				tileId: tileId,
@@ -351,6 +355,7 @@ function collectTileData(containerSelector) {
 				manualInput: manualInput,
 				notes: notes,
 				status: status,
+				towStatus: towStatus,
 				arrivalTime: arrivalTime,
 				departureTime: departureTime,
 			});
@@ -490,6 +495,24 @@ function applyTileData(tileData, isSecondary = false) {
 		if (statusSelect) {
 			statusSelect.value = tileData.status || "ready";
 			window.hangarUI.updateStatusLights(tileId);
+		}
+
+		// Tow-Status setzen
+		const towStatusSelect = document.querySelector(
+			`${container} #tow-status-${tileId}`
+		);
+		if (towStatusSelect) {
+			towStatusSelect.value = tileData.towStatus || "neutral";
+			console.log(
+				`Tow-Status für Kachel ${tileId} angewendet: ${tileData.towStatus}`
+			);
+			// Stil-Update für Tow-Status auslösen
+			if (
+				window.hangarUI &&
+				typeof window.hangarUI.updateTowStatus === "function"
+			) {
+				window.hangarUI.updateTowStatus(tileId);
+			}
 		}
 
 		// Weitere Felder aktualisieren
