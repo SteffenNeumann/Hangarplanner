@@ -518,30 +518,36 @@ function updateSecondaryTiles(count, layout) {
 
 	// Verzögertes Anwenden der gespeicherten Werte auf sekundäre Kacheln
 	setTimeout(() => {
-		// Gesicherte Daten wiederherstellen
+		// Gesicherte Daten wiederherstellen - ABER NICHT während einer Server-Synchronisation
 		if (existingData.length > 0) {
-			console.log("Stelle gesicherte sekundäre Kacheldaten wieder her");
-			existingData.forEach((data) => {
-				// Nur wiederherstellen, wenn der Index noch gültig ist (im Bereich der neuen Anzahl)
-				if (data.index < count) {
-					const posInput = document.getElementById(
-						`hangar-position-${data.cellId}`
-					);
-					const aircraftInput = document.getElementById(
-						`aircraft-${data.cellId}`
-					);
-					const manualInput = document.getElementById(
-						`manual-input-${data.cellId}`
-					);
+			if (!window.isApplyingServerData) {
+				console.log("Stelle gesicherte sekundäre Kacheldaten wieder her");
+				existingData.forEach((data) => {
+					// Nur wiederherstellen, wenn der Index noch gültig ist (im Bereich der neuen Anzahl)
+					if (data.index < count) {
+						const posInput = document.getElementById(
+							`hangar-position-${data.cellId}`
+						);
+						const aircraftInput = document.getElementById(
+							`aircraft-${data.cellId}`
+						);
+						const manualInput = document.getElementById(
+							`manual-input-${data.cellId}`
+						);
 
-					if (posInput) posInput.value = data.position;
-					if (aircraftInput) aircraftInput.value = data.aircraftId;
-					if (manualInput) manualInput.value = data.manualInput;
-					console.log(
-						`Wiederhergestellt: Kachel ${data.cellId}, Position=${data.position}, Aircraft=${data.aircraftId}`
-					);
-				}
-			});
+						if (posInput) posInput.value = data.position;
+						if (aircraftInput) aircraftInput.value = data.aircraftId;
+						if (manualInput) manualInput.value = data.manualInput;
+						console.log(
+							`Wiederhergestellt: Kachel ${data.cellId}, Position=${data.position}, Aircraft=${data.aircraftId}`
+						);
+					}
+				});
+			} else {
+				console.log(
+					"Wiederherstellung sekundärer Kacheldaten übersprungen: Server-Synchronisation läuft"
+				);
+			}
 		}
 
 		// CustomEvent auslösen, um andere Komponenten zu informieren

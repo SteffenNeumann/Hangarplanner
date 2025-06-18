@@ -11,6 +11,9 @@ class StorageBrowser {
 		this.isApplyingServerData = false; // Flag um UI-Überschreibung zu verhindern
 		this.lastDataChecksum = null; // Für Change-Detection
 		this.autoSaveTimeout = null; // Für verzögertes Auto-Save
+
+		// Global verfügbar machen
+		window.isApplyingServerData = false;
 	}
 
 	/**
@@ -455,6 +458,9 @@ class StorageBrowser {
 						// Flag setzen um zu verhindern, dass Auto-Sync diese Änderung wieder überschreibt
 						this.isApplyingServerData = true;
 
+						// Global verfügbar machen für andere Module
+						window.isApplyingServerData = true;
+
 						// Daten anwenden
 						this.ensureApplyFunction();
 						if (
@@ -481,14 +487,17 @@ class StorageBrowser {
 								// Flag nach kurzer Verzögerung zurücksetzen
 								setTimeout(() => {
 									this.isApplyingServerData = false;
+									window.isApplyingServerData = false;
 								}, 2000);
 							} else {
 								console.error("Fehler beim Anwenden der Server-Daten");
 								this.isApplyingServerData = false;
+								window.isApplyingServerData = false;
 							}
 						} else {
 							console.error("applyLoadedHangarPlan-Funktion nicht verfügbar");
 							this.isApplyingServerData = false;
+							window.isApplyingServerData = false;
 						}
 					} else {
 						console.log("Server-Daten sind nicht neuer als lokale Daten");
