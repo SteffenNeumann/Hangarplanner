@@ -269,7 +269,19 @@ const weatherAPI = {
 		}
 
 		// Temperatur aktualisieren (neue API-Struktur)
-		const temp = Math.round(data.main.temp - 273.15); // Kelvin zu Celsius
+		// API liefert Temperatur in Kelvin (z.B. 304.05K = 30.9°C)
+		let temp;
+		if (data.main.temp > 200) {
+			// Eindeutig Kelvin (normale Temperaturen sind > 273K)
+			temp = Math.round(data.main.temp - 273.15);
+		} else {
+			// Bereits Celsius
+			temp = Math.round(data.main.temp);
+		}
+
+		console.log(
+			`Rohe Temperatur von API: ${data.main.temp}K, Berechnete Temperatur: ${temp}°C`
+		);
 		weatherTemp.textContent = `${temp}°C`;
 
 		// Keine Inline-Stile mehr für Temperatur
