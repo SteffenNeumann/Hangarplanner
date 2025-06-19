@@ -179,6 +179,37 @@ select.status-selector {
 	font-size: 0.8rem;
 }
 
+.info-input {
+	color: #2d3142;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-weight: 500;
+	font-size: 0.8rem;
+	background: transparent;
+	border: none;
+	padding: 2px 4px;
+	border-radius: 3px;
+	transition: background-color 0.2s ease;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.info-input:focus {
+	outline: none;
+	background-color: rgba(255, 112, 67, 0.1);
+	border: 1px solid #ff7043;
+}
+
+.info-input:hover {
+	background-color: rgba(0, 0, 0, 0.05);
+}
+
+.info-input::placeholder {
+	color: #9ca3af;
+	font-style: italic;
+}
+
 .notes-container {
 	display: flex;
 	flex-direction: column;
@@ -1142,4 +1173,23 @@ input:checked + .toggle-slider:before {
 
 .dark-mode.table-view .card-header {
 	background-color: var(--card-header-bg);
+}
+
+.dark-mode .info-input {
+	background-color: var(--input-bg);
+	color: var(--text-primary);
+	border: 1px solid var(--border-color);
+}
+
+.dark-mode .info-input:focus {
+	background-color: rgba(255, 112, 67, 0.2);
+	border-color: #ff7043;
+}
+
+.dark-mode .info-input:hover {
+	background-color: var(--hover-bg);
+}
+
+.dark-mode .info-input::placeholder {
+	color: var(--text-secondary);
 }

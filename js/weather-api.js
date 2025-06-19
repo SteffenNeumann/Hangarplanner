@@ -1,6 +1,6 @@
 /**
  * weather-api.js
- * Handhabt das Abrufen und Anzeigen von Wetterdaten von der AeroDataBox API
+ * Handhabt das Abrufen und Anzeigen von Wetterdaten von der Open Weather API (RapidAPI)
  */
 
 const weatherAPI = {
@@ -144,12 +144,94 @@ const weatherAPI = {
 			weatherDesc.classList.add("loading");
 		}
 
-		const url = `https://aerodatabox.p.rapidapi.com/airports/iata/${this.currentAirport}/weather`;
+		// Flughafen zu Stadt/Ort Mapping für die neue API
+		const airportToCityMapping = {
+			MUC: "munich",
+			FRA: "frankfurt",
+			HAM: "hamburg",
+			DUS: "dusseldorf",
+			BER: "berlin",
+			STR: "stuttgart",
+			CGN: "cologne",
+			NUE: "nuremberg",
+			HAJ: "hannover",
+			LEJ: "leipzig",
+			LHR: "london",
+			CDG: "paris",
+			AMS: "amsterdam",
+			FCO: "rome",
+			MAD: "madrid",
+			BCN: "barcelona",
+			VIE: "vienna",
+			ZUR: "zurich",
+			JFK: "new york",
+			LAX: "los angeles",
+			SFO: "san francisco",
+			ORD: "chicago",
+			DFW: "dallas",
+			ATL: "atlanta",
+			MIA: "miami",
+			BOS: "boston",
+			SEA: "seattle",
+			DEN: "denver",
+			LAS: "las vegas",
+			PHX: "phoenix",
+			MSP: "minneapolis",
+			DTW: "detroit",
+			CLT: "charlotte",
+			PHL: "philadelphia",
+			LGA: "new york",
+			IAD: "washington",
+			DCA: "washington",
+			BWI: "baltimore",
+			SAN: "san diego",
+			TPA: "tampa",
+			PDX: "portland",
+			IAH: "houston",
+			HOU: "houston",
+			AUS: "austin",
+			SLC: "salt lake city",
+			STL: "st louis",
+			CLE: "cleveland",
+			PIT: "pittsburgh",
+			MCI: "kansas city",
+			IND: "indianapolis",
+			CMH: "columbus",
+			MKE: "milwaukee",
+			BNA: "nashville",
+			MEM: "memphis",
+			RDU: "raleigh",
+			JAX: "jacksonville",
+			ORL: "orlando",
+			FLL: "fort lauderdale",
+			RSW: "fort myers",
+			SRQ: "sarasota",
+			TYS: "knoxville",
+			CHS: "charleston",
+			SAV: "savannah",
+			RIC: "richmond",
+			NFK: "norfolk",
+			GSO: "greensboro",
+			ROC: "rochester",
+			SYR: "syracuse",
+			ALB: "albany",
+			BUF: "buffalo",
+			PVD: "providence",
+			BDL: "hartford",
+			BGR: "bangor",
+			PWM: "portland",
+			BTV: "burlington",
+			ACK: "nantucket",
+			MVY: "marthas vineyard",
+		};
+
+		const cityName = airportToCityMapping[this.currentAirport] || "munich";
+		const url = `https://open-weather13.p.rapidapi.com/city?city=${cityName}&lang=EN`;
 		const options = {
 			method: "GET",
 			headers: {
-				"x-rapidapi-key": "b76afbf516mshf864818d919de86p10475ejsna65b718a8602",
-				"x-rapidapi-host": "aerodatabox.p.rapidapi.com",
+				"x-rapidapi-key": "b051f99303msh92025a689f821d8p148911jsn8b40d9711134",
+				"x-rapidapi-host": "open-weather13.p.rapidapi.com",
 			},
 		};
 
@@ -179,37 +261,24 @@ const weatherAPI = {
 		const weatherDesc = document.getElementById("weather-description");
 		const weatherVisibility = document.getElementById("weather-visibility");
 
-		// Datenstruktur validieren - API gibt ein Array zurück
-		if (
-			!data ||
-			!Array.isArray(data) ||
-			data.length === 0 ||
-			!data[0].airTemperature
-		) {
+		// Datenstruktur validieren - neue API gibt direktes Objekt zurück
+		if (!data || !data.main || !data.main.temp) {
 			console.error("Unerwartete API-Antwortstruktur:", data);
 			this.showErrorState();
 			return;
 		}
 
-		const weatherData = data[0]; // Erstes Element des Arrays verwenden
-
-		// Temperatur aktualisieren (korrekte Pfadstruktur)
-		const temp = Math.round(weatherData.airTemperature.c);
+		// Temperatur aktualisieren (neue API-Struktur)
+		const temp = Math.round(data.main.temp - 273.15); // Kelvin zu Celsius
 		weatherTemp.textContent = `${temp}°C`;
 
 		// Keine Inline-Stile mehr für Temperatur
 		weatherTemp.classList.remove("hidden");
 
 		// Wind-Informationen extrahieren und anzeigen
-		if (
-			weatherData.wind &&
-			weatherData.wind.speed &&
-			weatherData.wind.direction
-		) {
-			const windSpeed = Math.round(weatherData.wind.speed.kmPerHour);
-			const windDirection = this.formatWindDirection(
-				weatherData.wind.direction.deg
-			);
+		if (data.wind && data.wind.speed && data.wind.deg !== undefined) {
+			const windSpeed = Math.round(data.wind.speed * 3.6); // m/s zu km/h
+			const windDirection = this.formatWindDirection(data.wind.deg);
 
 			// Windrichtungspfeil und Geschwindigkeit klarer darstellen
 			const windElement = document.getElementById("weather-wind");
@@ -244,9 +313,9 @@ const weatherAPI = {
 					);
 				} else {
 					// Alternative Berechnungsmethode als Fallback
-					cssRotation = (360 - weatherData.wind.direction.deg + 90) % 360;
+					cssRotation = (360 - data.wind.deg + 90) % 360;
 					console.log(
-						`Fallback-Berechnung für ${windDirection} (${weatherData.wind.direction.deg}°): ${cssRotation}°`
+						`Fallback-Berechnung für ${windDirection} (${data.wind.deg}°): ${cssRotation}°`
 					);
 				}
 
@@ -261,9 +330,9 @@ const weatherAPI = {
 			document.getElementById("weather-wind").classList.add("hidden");
 		}
 
-		// Sichtweite-Informationen - auf Englisch (Vis.)
-		if (weatherData.visibility && weatherData.visibility.km) {
-			const visibility = Math.round(weatherData.visibility.km * 10) / 10;
+		// Sichtweite-Informationen - neue API-Struktur
+		if (data.visibility) {
+			const visibility = Math.round(data.visibility / 100) / 10; // Meter zu km
 
 			// Nur anzeigen, wenn die Sicht eingeschränkt ist (<10km)
 			if (visibility < 10 && weatherVisibility) {
@@ -277,12 +346,14 @@ const weatherAPI = {
 			weatherVisibility.classList.add("hidden");
 		}
 
-		// Wetterbeschreibung setzen
-		let description = weatherData.cloudCover || "";
-		if (weatherData.phenomenaGroups && weatherData.phenomenaGroups.length > 0) {
-			if (description) description += ", ";
-			description += weatherData.phenomenaGroups.join(", ");
+		// Wetterbeschreibung setzen - neue API-Struktur
+		let description = "";
+		if (data.weather && data.weather.length > 0) {
+			description = data.weather[0].description;
+			// Ersten Buchstaben groß schreiben
+			description = description.charAt(0).toUpperCase() + description.slice(1);
 		}
+
 		if (!description) description = "Unbekannt";
 
 		// Beschreibung kürzen, wenn sie zu lang ist
@@ -294,40 +365,33 @@ const weatherAPI = {
 		// Entferne loading class und alle inline styles
 		weatherDesc.classList.remove("loading");
 
-		// Icon basierend auf Bedingungen aktualisieren
+		// Icon basierend auf Bedingungen aktualisieren - neue API-Struktur
 		let iconKey = "default";
-		const conditions = description.toLowerCase();
+		if (data.weather && data.weather.length > 0) {
+			const weatherCondition = data.weather[0];
+			const mainCondition = weatherCondition.main.toLowerCase();
+			const descCondition = weatherCondition.description.toLowerCase();
 
-		// CloudCover-basierte Bedingungen prüfen
-		if (conditions.includes("clear")) {
-			iconKey = "clear";
-		} else if (conditions.includes("scattered") || conditions.includes("few")) {
-			iconKey = "partlyCloudy";
-		} else if (
-			conditions.includes("cloud") ||
-			conditions.includes("overcast")
-		) {
-			iconKey = "cloudy";
-		}
-
-		// PhenomenaGroups prüfen, welche Priorität über CloudCover haben
-		if (weatherData.phenomenaGroups) {
-			if (
-				weatherData.phenomenaGroups.some(
-					(p) =>
-						p.toLowerCase().includes("rain") ||
-						p.toLowerCase().includes("shower") ||
-						p.toLowerCase().includes("drizzle")
-				)
-			) {
+			// Hauptwetterbedingungen prüfen
+			if (mainCondition === "clear") {
+				iconKey = "clear";
+			} else if (mainCondition === "clouds") {
+				if (
+					descCondition.includes("few") ||
+					descCondition.includes("scattered")
+				) {
+					iconKey = "partlyCloudy";
+				} else {
+					iconKey = "cloudy";
+				}
+			} else if (mainCondition === "rain" || mainCondition === "drizzle") {
 				iconKey = "rain";
-			} else if (
-				weatherData.phenomenaGroups.some(
-					(p) =>
-						p.toLowerCase().includes("snow") || p.toLowerCase().includes("ice")
-				)
-			) {
+			} else if (mainCondition === "snow") {
 				iconKey = "snow";
+			} else if (mainCondition === "thunderstorm") {
+				iconKey = "rain"; // Gewitter als Regen-Icon
+			} else if (mainCondition === "mist" || mainCondition === "fog") {
+				iconKey = "cloudy"; // Nebel als bewölkt
 			}
 		}
 

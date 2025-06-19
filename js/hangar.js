@@ -159,6 +159,12 @@ function initialize() {
 		}, 500);
 	}
 
+	// Initialisiere APIs
+	if (window.AeroDataBoxAPI) {
+		window.AeroDataBoxAPI.init();
+		console.log("AeroDataBox API initialisiert");
+	}
+
 	console.log("HangarPlanner-Anwendung erfolgreich initialisiert!");
 }
 
