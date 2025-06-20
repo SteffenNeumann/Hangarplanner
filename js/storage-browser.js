@@ -547,8 +547,8 @@ class StorageBrowser {
 		if (localStorage.getItem("hangarplanner_auto_sync") === "true") {
 			downloadData();
 
-			// Regelmäßige Synchronisation (reduziert auf 30 Sekunden für bessere Performance)
-			this.serverSyncInterval = setInterval(downloadData, 30000);
+			// Regelmäßige Synchronisation (reduziert auf 10 Sekunden für bessere Responsivität)
+			this.serverSyncInterval = setInterval(downloadData, 10000);
 			console.log("Automatische Server-Synchronisation aktiviert");
 		} else {
 			console.log("Server-URL konfiguriert, aber Auto-Sync ist deaktiviert");
