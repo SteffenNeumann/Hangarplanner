@@ -711,6 +711,19 @@ function savePositionValueToLocalStorage(cellId, value) {
 			JSON.stringify(savedSettings)
 		);
 
+		// Auto-Save auslösen, wenn Server-Sync aktiviert ist
+		if (
+			localStorage.getItem("hangarplanner_auto_sync") === "true" &&
+			window.storageBrowser
+		) {
+			// Kurze Verzögerung, um mehrere schnelle Änderungen zu gruppieren
+			clearTimeout(window.storageBrowser.autoSaveTimeout);
+			window.storageBrowser.autoSaveTimeout = setTimeout(() => {
+				console.log("Auto-Save ausgelöst durch Position-Änderung");
+				window.storageBrowser.saveCurrentProject();
+			}, 1000);
+		}
+
 		return true;
 	} catch (error) {
 		console.error(
@@ -1973,6 +1986,34 @@ function saveDataToLocalStorage() {
 	}
 }
 
+// Debug-Logging für Auto-Save Funktionalität
+function debugAutoSave() {
+	console.log("=== AUTO-SAVE DEBUG ===");
+	console.log(
+		"Auto-Sync aktiviert:",
+		localStorage.getItem("hangarplanner_auto_sync")
+	);
+	console.log("Storage Browser verfügbar:", !!window.storageBrowser);
+	console.log("Server URL:", localStorage.getItem("hangarplanner_server_url"));
+
+	if (window.storageBrowser) {
+		console.log("Letzte Prüfsumme:", window.storageBrowser.lastDataChecksum);
+		console.log(
+			"Aktuelle Prüfsumme:",
+			window.storageBrowser.createDataChecksum()
+		);
+		console.log("Daten geändert:", window.storageBrowser.hasDataChanged());
+		console.log(
+			"Applying Server Data Flag:",
+			window.storageBrowser.isApplyingServerData
+		);
+	}
+	console.log("=== AUTO-SAVE DEBUG ENDE ===");
+}
+
+// Global verfügbar machen
+window.debugAutoSave = debugAutoSave;
+
 // Event-Listener für secondaryTilesCreated einrichten, um Event-Handler nach Erstellung zu aktualisieren
 document.addEventListener("secondaryTilesCreated", function () {
 	console.log("Sekundäre Kacheln wurden erstellt, aktualisiere Event-Handler");
@@ -2014,6 +2055,41 @@ document.addEventListener("DOMContentLoaded", function () {
 		});
 	}
 });
+
+// Manuelle Test-Funktion für Synchronisation
+function testSyncNow() {
+	console.log("=== MANUELLER SYNC-TEST ===");
+
+	if (!window.storageBrowser) {
+		console.error("Storage Browser nicht verfügbar");
+		return;
+	}
+
+	// Daten sammeln
+	const projectData = window.storageBrowser.collectCurrentProjectData();
+	console.log("Gesammelte Projektdaten:", projectData);
+
+	// Prüfsumme vor Speicherung
+	const checksumBefore = window.storageBrowser.createDataChecksum();
+	console.log("Prüfsumme vor Speicherung:", checksumBefore);
+
+	// Manuell speichern
+	window.storageBrowser
+		.saveCurrentProject()
+		.then(() => {
+			console.log("Manueller Sync abgeschlossen");
+			const checksumAfter = window.storageBrowser.createDataChecksum();
+			console.log("Prüfsumme nach Speicherung:", checksumAfter);
+		})
+		.catch((error) => {
+			console.error("Fehler beim manuellen Sync:", error);
+		});
+
+	console.log("=== MANUELLER SYNC-TEST ENDE ===");
+}
+
+// Global verfügbar machen
+window.testSyncNow = testSyncNow;
 
 // Exportiere Funktionen als globales Objekt
 window.hangarEvents = {
@@ -2318,6 +2394,19 @@ function saveFlightTimesToLocalStorage(cellId, arrivalTime, departureTime) {
 		console.log(
 			`Flugzeiten für Kachel ${cellId} gespeichert - Ankunft: ${arrivalTime}, Abflug: ${departureTime}`
 		);
+
+		// Auto-Save auslösen, wenn Server-Sync aktiviert ist
+		if (
+			localStorage.getItem("hangarplanner_auto_sync") === "true" &&
+			window.storageBrowser
+		) {
+			// Kurze Verzögerung, um mehrere schnelle Änderungen zu gruppieren
+			clearTimeout(window.storageBrowser.autoSaveTimeout);
+			window.storageBrowser.autoSaveTimeout = setTimeout(() => {
+				console.log("Auto-Save ausgelöst durch Flugzeiten-Änderung");
+				window.storageBrowser.saveCurrentProject();
+			}, 1000); // Reduziert auf 1 Sekunde für bessere Reaktivität
+		}
 	} catch (error) {
 		console.error(
 			`Fehler beim Speichern der Flugzeiten für Kachel ${cellId}:`,

@@ -677,6 +677,8 @@ class StorageBrowser {
 				return;
 			}
 
+			console.log("Datenänderung erkannt, starte Speichervorgang...");
+
 			// Projektdaten mit der zentralen Sammelfunktion abrufen
 			const projectData = this.collectCurrentProjectData();
 
@@ -684,11 +686,24 @@ class StorageBrowser {
 				throw new Error("Keine Projektdaten gefunden");
 			}
 
+			console.log("Projektdaten gesammelt für Speicherung:", projectData);
+
 			// Wenn Auto-Sync aktiviert ist, zum Server hochladen
 			if (localStorage.getItem("hangarplanner_auto_sync") === "true") {
-				await this.saveToServer(projectData);
-				// Prüfsumme nach erfolgreichem Speichern aktualisieren
+				console.log("Auto-Sync ist aktiviert, lade zum Server hoch...");
+				const serverSaveSuccess = await this.saveToServer(projectData);
+
+				if (serverSaveSuccess) {
+					// Prüfsumme nach erfolgreichem Speichern aktualisieren
+					this.updateDataChecksum();
+					console.log("Server-Speicherung erfolgreich, Prüfsumme aktualisiert");
+				} else {
+					console.warn("Server-Speicherung fehlgeschlagen");
+				}
+			} else {
+				// Auch ohne Server-Sync die Prüfsumme aktualisieren
 				this.updateDataChecksum();
+				console.log("Lokale Prüfsumme aktualisiert (kein Server-Sync)");
 			}
 
 			if (window.showNotification) {
@@ -705,6 +720,7 @@ class StorageBrowser {
 		}
 	}
 
+	/**
 	/**
 	 * Zentrale Funktion zum Sammeln aller aktuellen Projektdaten
 	 * @returns {Object|null} Projektdaten oder null bei Fehler
@@ -962,22 +978,35 @@ class StorageBrowser {
 			const projectData = this.collectCurrentProjectData();
 			if (!projectData) return null;
 
-			// Timestamp entfernen für Vergleich (weil sich dieser immer ändert)
-			const dataForChecksum = { ...projectData };
+			// Timestamp und andere zeitabhängige Felder entfernen für Vergleich
+			const dataForChecksum = JSON.parse(JSON.stringify(projectData)); // Deep copy
 			if (dataForChecksum.metadata) {
 				delete dataForChecksum.metadata.timestamp;
 				delete dataForChecksum.metadata.lastSaved;
+				delete dataForChecksum.id; // ID kann sich bei jedem Sammeln ändern
+			}
+
+			// Sortiere Arrays für konsistente Prüfsummen
+			if (dataForChecksum.primaryTiles) {
+				dataForChecksum.primaryTiles.sort((a, b) => a.tileId - b.tileId);
+			}
+			if (dataForChecksum.secondaryTiles) {
+				dataForChecksum.secondaryTiles.sort((a, b) => a.tileId - b.tileId);
 			}
 
 			const dataString = JSON.stringify(dataForChecksum);
-			// Einfache Hash-Funktion
+
+			// Verbesserte Hash-Funktion
 			let hash = 0;
+			if (dataString.length === 0) return hash.toString();
+
 			for (let i = 0; i < dataString.length; i++) {
 				const char = dataString.charCodeAt(i);
 				hash = (hash << 5) - hash + char;
 				hash = hash & hash; // 32-bit integer
 			}
-			return hash.toString();
+
+			return Math.abs(hash).toString();
 		} catch (error) {
 			console.error("Fehler beim Erstellen der Prüfsumme:", error);
 			return null;
@@ -999,6 +1028,7 @@ class StorageBrowser {
 	hasDataChanged() {
 		const currentChecksum = this.createDataChecksum();
 		const hasChanged = currentChecksum !== this.lastDataChecksum;
+
 		if (hasChanged) {
 			console.log(
 				"Datenänderung erkannt - Alte Prüfsumme:",
@@ -1006,7 +1036,10 @@ class StorageBrowser {
 				"Neue Prüfsumme:",
 				currentChecksum
 			);
+		} else {
+			console.log("Keine Datenänderung erkannt, Prüfsumme:", currentChecksum);
 		}
+
 		return hasChanged;
 	}
 
@@ -1087,7 +1120,23 @@ class StorageBrowser {
 							);
 							this.saveCurrentProject();
 						}
-					}, 2000); // 2 Sekunden Verzögerung
+					}, 500); // Reduziert auf 500ms für bessere Reaktivität
+				}
+			});
+		};
+
+		// Event-Listener für Change-Events (für Dropdowns)
+		const setupChangeListener = (selector) => {
+			document.addEventListener("change", (event) => {
+				if (event.target.matches(selector)) {
+					// Sofortiges Speichern für Dropdown-Änderungen
+					if (localStorage.getItem("hangarplanner_auto_sync") === "true") {
+						console.log(
+							"Auto-Save ausgelöst durch Dropdown-Änderung:",
+							event.target.id || event.target.className
+						);
+						setTimeout(() => this.saveCurrentProject(), 100); // Sehr kurze Verzögerung
+					}
 				}
 			});
 		};
@@ -1097,9 +1146,50 @@ class StorageBrowser {
 		setupFieldListener('input[id^="hangar-position-"]');
 		setupFieldListener('input[id^="manual-input-"]');
 		setupFieldListener('textarea[id^="notes-"]');
-		setupFieldListener('select[id^="status-"]');
-		setupFieldListener('select[id^="tow-status-"]');
 		setupFieldListener("#projectName");
+
+		// Dropdown-Felder mit Change-Events überwachen
+		setupChangeListener('select[id^="status-"]');
+		setupChangeListener('select[id^="tow-status-"]');
+
+		// Zusätzliche Event-Listener für Flugzeit-Änderungen
+		const observer = new MutationObserver((mutations) => {
+			mutations.forEach((mutation) => {
+				if (
+					mutation.type === "childList" ||
+					mutation.type === "characterData"
+				) {
+					const target = mutation.target;
+					if (
+						target.id &&
+						(target.id.includes("arrival-time-") ||
+							target.id.includes("departure-time-"))
+					) {
+						if (localStorage.getItem("hangarplanner_auto_sync") === "true") {
+							clearTimeout(this.autoSaveTimeout);
+							this.autoSaveTimeout = setTimeout(() => {
+								console.log(
+									"Auto-Save ausgelöst durch Flugzeit-Textänderung:",
+									target.id
+								);
+								this.saveCurrentProject();
+							}, 1000);
+						}
+					}
+				}
+			});
+		});
+
+		// Observer für Flugzeit-Elemente starten
+		document
+			.querySelectorAll('[id^="arrival-time-"], [id^="departure-time-"]')
+			.forEach((element) => {
+				observer.observe(element, {
+					childList: true,
+					characterData: true,
+					subtree: true,
+				});
+			});
 
 		console.log("Auto-Save Event-Listener eingerichtet");
 	}
