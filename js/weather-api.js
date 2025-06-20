@@ -1,6 +1,6 @@
 /**
  * weather-api.js
- * Handhabt das Abrufen und Anzeigen von Wetterdaten von der Open Weather API (RapidAPI)
+ * Handhabt das Abrufen und Anzeigen von Wetterdaten von der OpenWeatherMap API
  */
 
 const weatherAPI = {
@@ -226,13 +226,9 @@ const weatherAPI = {
 		};
 
 		const cityName = airportToCityMapping[this.currentAirport] || "munich";
-		const url = `https://open-weather13.p.rapidapi.com/city?city=${cityName}&lang=EN`;
+		const url = `https://api.openweathermap.org/data/2.5/weather?q=${cityName}&appid=005ac90bb2dbc96c334c0fd4c51d100d&units=metric&lang=en`;
 		const options = {
 			method: "GET",
-			headers: {
-				"x-rapidapi-key": "b051f99303msh92025a689f821d8p148911jsn8b40d9711134",
-				"x-rapidapi-host": "open-weather13.p.rapidapi.com",
-			},
 		};
 
 		try {
@@ -240,7 +236,13 @@ const weatherAPI = {
 			const response = await fetch(url, options);
 
 			if (!response.ok) {
-				throw new Error(`HTTP error! Status: ${response.status}`);
+				if (response.status === 429) {
+					throw new Error(
+						`API-Limit erreicht (429). Nächster Versuch in 2 Stunden.`
+					);
+				} else {
+					throw new Error(`HTTP error! Status: ${response.status}`);
+				}
 			}
 
 			const data = await response.json();
@@ -250,7 +252,15 @@ const weatherAPI = {
 			this.displayWeatherData(data);
 		} catch (error) {
 			console.error("Fehler beim Abrufen der Wetterdaten:", error);
-			this.showErrorState(error.message);
+
+			// Spezielle Behandlung für API-Limit-Fehler
+			if (error.message.includes("429")) {
+				this.showErrorState(
+					"API-Limit erreicht. Daten werden später aktualisiert."
+				);
+			} else {
+				this.showErrorState(error.message);
+			}
 		}
 	},
 
@@ -262,96 +272,108 @@ const weatherAPI = {
 		const weatherVisibility = document.getElementById("weather-visibility");
 
 		// Datenstruktur validieren - neue API gibt direktes Objekt zurück
-		if (!data || !data.main || !data.main.temp) {
+		console.log(
+			"Debug - Vollständige API-Antwort:",
+			JSON.stringify(data, null, 2)
+		);
+
+		if (!data || typeof data !== "object") {
 			console.error("Unerwartete API-Antwortstruktur:", data);
 			this.showErrorState();
 			return;
 		}
 
-		// Temperatur aktualisieren (neue API-Struktur)
-		// API liefert Temperatur in Kelvin (z.B. 304.05K = 30.9°C)
-		let temp;
-		if (data.main.temp > 200) {
-			// Eindeutig Kelvin (normale Temperaturen sind > 273K)
-			temp = Math.round(data.main.temp - 273.15);
-		} else {
-			// Bereits Celsius
+		// Temperatur aktualisieren - OpenWeatherMap liefert direkt Celsius mit units=metric
+		let temp = "N/A";
+
+		if (data.main && data.main.temp !== undefined) {
+			// OpenWeatherMap mit units=metric liefert direkt Celsius
 			temp = Math.round(data.main.temp);
+			console.log(`Temperatur: ${data.main.temp}°C (gerundet: ${temp}°C)`);
+		} else {
+			console.warn(
+				"Keine Temperatur-Daten in der OpenWeatherMap API-Antwort gefunden"
+			);
 		}
 
-		console.log(
-			`Rohe Temperatur von API: ${data.main.temp}K, Berechnete Temperatur: ${temp}°C`
-		);
 		weatherTemp.textContent = `${temp}°C`;
 
 		// Keine Inline-Stile mehr für Temperatur
 		weatherTemp.classList.remove("hidden");
 
-		// Wind-Informationen extrahieren und anzeigen
-		if (data.wind && data.wind.speed && data.wind.deg !== undefined) {
+		// Wind-Informationen - OpenWeatherMap Standard-Struktur
+		if (data.wind && data.wind.speed !== undefined) {
+			// OpenWeatherMap liefert Wind in m/s und Richtung in Grad
 			const windSpeed = Math.round(data.wind.speed * 3.6); // m/s zu km/h
-			const windDirection = this.formatWindDirection(data.wind.deg);
+			const windDegrees = data.wind.deg !== undefined ? data.wind.deg : 0;
+			const windDirection = this.formatWindDirection(windDegrees);
 
-			// Windrichtungspfeil und Geschwindigkeit klarer darstellen
 			const windElement = document.getElementById("weather-wind");
-			if (windElement) {
+			if (windElement && windSpeed > 0) {
 				// Korrigierte Zuordnungstabelle
 				const windDirectionToRotation = {
-					N: 90, // Wind aus Norden, Pfeil zeigt nach Süden
+					N: 90,
 					NNO: 112.5,
 					NO: 135,
 					ONO: 157.5,
-					O: 180, // Wind aus Osten, Pfeil zeigt nach Westen
+					O: 180,
 					OSO: 202.5,
 					SO: 225,
 					SSO: 247.5,
-					S: 270, // Wind aus Süden, Pfeil zeigt nach Norden
+					S: 270,
 					SSW: 292.5,
 					SW: 315,
 					WSW: 337.5,
-					W: 0, // Wind aus Westen, Pfeil zeigt nach Osten
+					W: 0,
 					WNW: 22.5,
 					NW: 45,
 					NNW: 67.5,
 				};
 
-				// Pfeilrotation bestimmen: Primär aus der Tabelle, Fallback auf Formel
+				// Pfeilrotation bestimmen
 				let cssRotation;
 				if (windDirectionToRotation[windDirection] !== undefined) {
-					// Verwende die Tabellenwerte für präzise Pfeilrichtung
 					cssRotation = windDirectionToRotation[windDirection];
 					console.log(
 						`Windrichtung ${windDirection}: Pfeil rotiert um ${cssRotation}°`
 					);
 				} else {
-					// Alternative Berechnungsmethode als Fallback
-					cssRotation = (360 - data.wind.deg + 90) % 360;
+					cssRotation = (360 - windDegrees + 90) % 360;
 					console.log(
-						`Fallback-Berechnung für ${windDirection} (${data.wind.deg}°): ${cssRotation}°`
+						`Fallback-Berechnung für ${windDirection} (${windDegrees}°): ${cssRotation}°`
 					);
 				}
 
-				// Nur die transform-Eigenschaft als Inline-Style setzen, alles andere über CSS
+				// Wind-Display
 				windElement.innerHTML = `
 					<span class="weather-wind-icon" style="transform: rotate(${cssRotation}deg)">→</span>
 					${windDirection} ${windSpeed} km/h
 				`;
 				windElement.classList.remove("hidden");
+
+				console.log(
+					`Wind angezeigt: ${windDirection} ${windSpeed} km/h (${data.wind.speed} m/s, ${windDegrees}°)`
+				);
+			} else if (windElement) {
+				windElement.classList.add("hidden");
+				console.log(
+					"Wind-Element ausgeblendet (Windgeschwindigkeit zu niedrig)"
+				);
 			}
 		} else if (document.getElementById("weather-wind")) {
 			document.getElementById("weather-wind").classList.add("hidden");
+			console.log("Keine Wind-Daten in OpenWeatherMap API-Antwort gefunden");
 		}
 
-		// Sichtweite-Informationen - neue API-Struktur
-		if (data.visibility) {
-			const visibility = Math.round(data.visibility / 100) / 10; // Meter zu km
+		// Sichtweite-Informationen - OpenWeatherMap liefert Meter
+		if (data.visibility && weatherVisibility) {
+			const visibility = Math.round((data.visibility / 1000) * 10) / 10; // Meter zu km
 
 			// Nur anzeigen, wenn die Sicht eingeschränkt ist (<10km)
-			if (visibility < 10 && weatherVisibility) {
-				// Auf Englisch (Vis.)
+			if (visibility < 10) {
 				weatherVisibility.textContent = `Vis: ${visibility}km`;
 				weatherVisibility.classList.remove("hidden");
-			} else if (weatherVisibility) {
+			} else {
 				weatherVisibility.classList.add("hidden");
 			}
 		} else if (weatherVisibility) {
