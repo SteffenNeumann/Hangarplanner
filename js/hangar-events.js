@@ -1367,16 +1367,16 @@ function resetAllFlightDataFields() {
 
 			// Arrival Time zurücksetzen
 			const arrivalTimeEl = document.getElementById(`arrival-time-${cellId}`);
-			if (arrivalTimeEl) arrivalTimeEl.value = "";
+			if (arrivalTimeEl) arrivalTimeEl.textContent = "--:--";
 
 			// Departure Time zurücksetzen
 			const departureTimeEl = document.getElementById(
 				`departure-time-${cellId}`
 			);
-			if (departureTimeEl) departureTimeEl.value = "";
+			if (departureTimeEl) departureTimeEl.textContent = "--:--";
 
 			// Position zurücksetzen
-			const positionEl = document.getElementById(`position-${cellId}`);
+			const positionEl = document.getElementById(`hangar-position-${cellId}`);
 			if (positionEl) positionEl.value = "";
 		});
 
@@ -1864,18 +1864,18 @@ function applyFlightDataToCell(cellId, flightData, preferredAirport) {
 		// UI-Elemente aktualisieren
 		const arrivalTimeEl = document.getElementById(`arrival-time-${cellId}`);
 		const departureTimeEl = document.getElementById(`departure-time-${cellId}`);
-		const positionEl = document.getElementById(`position-${cellId}`);
+		const positionEl = document.getElementById(`hangar-position-${cellId}`);
 
 		// Zeiten mit UTC-Kennzeichnung eintragen, wenn sie gültig sind
 		if (arrivalTimeEl && arrivalTime !== "--:--")
-			arrivalTimeEl.value = arrivalTime + " UTC"; // GEÄNDERT: UTC-Kennzeichnung hinzugefügt
+			arrivalTimeEl.textContent = arrivalTime + " UTC"; // GEÄNDERT: UTC-Kennzeichnung hinzugefügt
 
 		// Departure Time nur eintragen, wenn es ein Folgetags-Flug ist, nun mit UTC-Kennzeichnung
 		if (departureTimeEl) {
 			if (isNextDayFlight && departureTime !== "--:--") {
-				departureTimeEl.value = departureTime + " UTC"; // GEÄNDERT: UTC-Kennzeichnung hinzugefügt
+				departureTimeEl.textContent = departureTime + " UTC"; // GEÄNDERT: UTC-Kennzeichnung hinzugefügt
 			} else {
-				departureTimeEl.value = "";
+				departureTimeEl.textContent = "--:--";
 			}
 		}
 
@@ -1886,6 +1886,15 @@ function applyFlightDataToCell(cellId, flightData, preferredAirport) {
 			// Wenn nur ein Code gültig ist, zeige nur diesen an
 			positionEl.value = originCode !== "---" ? originCode : destCode;
 		}
+
+		// Flugzeiten automatisch im localStorage speichern
+		const finalArrivalTime = arrivalTimeEl
+			? arrivalTimeEl.textContent
+			: "--:--";
+		const finalDepartureTime = departureTimeEl
+			? departureTimeEl.textContent
+			: "--:--";
+		saveFlightTimesToLocalStorage(cellId, finalArrivalTime, finalDepartureTime);
 
 		console.log(
 			`Kachel ${cellId} mit Flugdaten aktualisiert: ${originCode}→${destCode}, Abflug: ${departureTime}, Ankunft: ${arrivalTime}, Folgetags-Flug: ${isNextDayFlight}`
@@ -2084,6 +2093,7 @@ function initSidebarAccordion() {
 		header.addEventListener("click", header._clickHandler);
 
 		// Sicherstellen, dass die Icon-Ausrichtung korrekt ist
+
 		const iconContainer = header.querySelector(".sidebar-header-content");
 		if (iconContainer) {
 			iconContainer.style.display = "flex";
@@ -2187,8 +2197,8 @@ function applyFlightTimeValuesFromLocalStorage() {
 			// Arrival-Time setzen
 			if (arrival && arrival.trim() !== "") {
 				const arrivalEl = document.getElementById(`arrival-time-${cellId}`);
-				if (arrivalEl && arrivalEl.value !== arrival) {
-					arrivalEl.value = arrival;
+				if (arrivalEl && arrivalEl.textContent !== arrival) {
+					arrivalEl.textContent = arrival;
 					console.log(
 						`Arrival-Time für Kachel ${cellId} wiederhergestellt: ${arrival}`
 					);
@@ -2198,8 +2208,8 @@ function applyFlightTimeValuesFromLocalStorage() {
 			// Departure-Time setzen
 			if (departure && departure.trim() !== "") {
 				const departureEl = document.getElementById(`departure-time-${cellId}`);
-				if (departureEl && departureEl.value !== departure) {
-					departureEl.value = departure;
+				if (departureEl && departureEl.textContent !== departure) {
+					departureEl.textContent = departure;
 					console.log(
 						`Departure-Time für Kachel ${cellId} wiederhergestellt: ${departure}`
 					);
@@ -2208,7 +2218,7 @@ function applyFlightTimeValuesFromLocalStorage() {
 
 			// Position setzen
 			if (position && position.trim() !== "") {
-				const positionEl = document.getElementById(`position-${cellId}`);
+				const positionEl = document.getElementById(`hangar-position-${cellId}`);
 				if (positionEl && positionEl.value !== position) {
 					positionEl.value = position;
 					console.log(
@@ -2228,82 +2238,45 @@ function applyFlightTimeValuesFromLocalStorage() {
 }
 
 /**
- * Initialisiert die Event-Handler für die Arrival- und Departure-Eingabefelder
- * Diese Funktion stellt sicher, dass die Flugzeitenwerte korrekt im localStorage gespeichert werden
+ * Initialisiert die Event-Handler für die Position-Eingabefelder
+ * Diese Funktion stellt sicher, dass die Position-Werte korrekt im localStorage gespeichert werden
  */
 function setupFlightTimeEventListeners() {
-	// Event-Listener für Arrival-Time-Eingabefelder
-	document.querySelectorAll('input[id^="arrival-time-"]').forEach((input) => {
-		const cellId = parseInt(input.id.split("-")[2]);
-		console.log(
-			`Event-Handler für Arrival-Time in Kachel ${cellId} eingerichtet`
-		);
+	// Event-Listener für Position-Eingabefelder (hangar-position)
+	document
+		.querySelectorAll('input[id^="hangar-position-"]')
+		.forEach((input) => {
+			const cellId = parseInt(input.id.split("-")[2]);
+			console.log(
+				`Event-Handler für Position in Kachel ${cellId} eingerichtet`
+			);
 
-		// Alte Event-Handler entfernen, um doppelte Aufrufe zu vermeiden
-		input.removeEventListener("blur", input._arrivalSaveHandler);
-		input.removeEventListener("change", input._arrivalSaveHandler);
+			// Alte Event-Handler entfernen, um doppelte Aufrufe zu vermeiden
+			input.removeEventListener("blur", input._positionSaveHandler);
+			input.removeEventListener("change", input._positionSaveHandler);
 
-		// Neuen Handler für sofortiges Speichern bei Änderung hinzufügen
-		input._arrivalSaveHandler = function () {
-			const newValue = this.value;
-			console.log(`Speichere Arrival-Time für Kachel ${cellId}: ${newValue}`);
-			saveFlightTimeValueToLocalStorage(cellId, "arrival", newValue);
-		};
+			// Neuen Handler für sofortiges Speichern bei Änderung hinzufügen
+			input._positionSaveHandler = function () {
+				const newValue = this.value;
+				console.log(`Speichere Position für Kachel ${cellId}: ${newValue}`);
+				saveFlightTimeValueToLocalStorage(cellId, "position", newValue);
+			};
 
-		// Event-Handler für Änderungen und Blur-Events hinzufügen
-		input.addEventListener("blur", input._arrivalSaveHandler);
-		input.addEventListener("change", input._arrivalSaveHandler);
-	});
+			// Event-Handler für Änderungen und Blur-Events hinzufügen
+			input.addEventListener("blur", input._positionSaveHandler);
+			input.addEventListener("change", input._positionSaveHandler);
+		});
 
-	// Event-Listener für Departure-Time-Eingabefelder
-	document.querySelectorAll('input[id^="departure-time-"]').forEach((input) => {
-		const cellId = parseInt(input.id.split("-")[2]);
-		console.log(
-			`Event-Handler für Departure-Time in Kachel ${cellId} eingerichtet`
-		);
-
-		// Alte Event-Handler entfernen, um doppelte Aufrufe zu vermeiden
-		input.removeEventListener("blur", input._departureSaveHandler);
-		input.removeEventListener("change", input._departureSaveHandler);
-
-		// Neuen Handler für sofortiges Speichern bei Änderung hinzufügen
-		input._departureSaveHandler = function () {
-			const newValue = this.value;
-			console.log(`Speichere Departure-Time für Kachel ${cellId}: ${newValue}`);
-			saveFlightTimeValueToLocalStorage(cellId, "departure", newValue);
-		};
-
-		// Event-Handler für Änderungen und Blur-Events hinzufügen
-		input.addEventListener("blur", input._departureSaveHandler);
-		input.addEventListener("change", input._departureSaveHandler);
-	});
-
-	// Event-Listener für Position-Eingabefelder (die neuen info-input position Felder)
-	document.querySelectorAll('input[id^="position-"]').forEach((input) => {
-		const cellId = parseInt(input.id.split("-")[1]);
-		console.log(`Event-Handler für Position in Kachel ${cellId} eingerichtet`);
-
-		// Alte Event-Handler entfernen, um doppelte Aufrufe zu vermeiden
-		input.removeEventListener("blur", input._positionSaveHandler);
-		input.removeEventListener("change", input._positionSaveHandler);
-
-		// Neuen Handler für sofortiges Speichern bei Änderung hinzufügen
-		input._positionSaveHandler = function () {
-			const newValue = this.value;
-			console.log(`Speichere Position für Kachel ${cellId}: ${newValue}`);
-			saveFlightTimeValueToLocalStorage(cellId, "position", newValue);
-		};
-
-		// Event-Handler für Änderungen und Blur-Events hinzufügen
-		input.addEventListener("blur", input._positionSaveHandler);
-		input.addEventListener("change", input._positionSaveHandler);
-	});
+	console.log("Flight Time Event-Listeners eingerichtet");
 }
 
 /**
- * Speichert einen Flugzeiten-Wert direkt im localStorage
+ * Speichert Flugzeiten automatisch im localStorage wenn sie programmgesteuert gesetzt werden
+ * @param {number} cellId - ID der Kachel
+ * @param {string} arrivalTime - Ankunftszeit
+ * @param {string} departureTime - Abflugzeit
  */
-function saveFlightTimeValueToLocalStorage(cellId, fieldType, value) {
+function saveFlightTimesToLocalStorage(cellId, arrivalTime, departureTime) {
 	try {
 		// Aktuelle Einstellungen aus localStorage holen
 		const savedSettings = JSON.parse(
@@ -2328,8 +2301,13 @@ function saveFlightTimeValueToLocalStorage(cellId, fieldType, value) {
 			tileIndex = savedSettings.flightTimes.length - 1;
 		}
 
-		// Wert aktualisieren
-		savedSettings.flightTimes[tileIndex][fieldType] = value;
+		// Werte aktualisieren wenn sie gültig sind
+		if (arrivalTime && arrivalTime !== "--:--") {
+			savedSettings.flightTimes[tileIndex].arrival = arrivalTime;
+		}
+		if (departureTime && departureTime !== "--:--") {
+			savedSettings.flightTimes[tileIndex].departure = departureTime;
+		}
 
 		// Zurück in localStorage speichern
 		localStorage.setItem(
@@ -2338,12 +2316,15 @@ function saveFlightTimeValueToLocalStorage(cellId, fieldType, value) {
 		);
 
 		console.log(
-			`${fieldType} für Kachel ${cellId} erfolgreich gespeichert: ${value}`
+			`Flugzeiten für Kachel ${cellId} gespeichert - Ankunft: ${arrivalTime}, Abflug: ${departureTime}`
 		);
 	} catch (error) {
 		console.error(
-			`Fehler beim Speichern des ${fieldType}-Werts für Kachel ${cellId}:`,
+			`Fehler beim Speichern der Flugzeiten für Kachel ${cellId}:`,
 			error
 		);
 	}
 }
+
+// Funktion global verfügbar machen
+window.saveFlightTimesToLocalStorage = saveFlightTimesToLocalStorage;

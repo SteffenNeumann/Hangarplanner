@@ -413,6 +413,15 @@ class StorageBrowser {
 				departureElement.textContent = tileData.departureTime;
 			}
 		}
+
+		// Flugzeiten automatisch im localStorage speichern
+		if (typeof window.saveFlightTimesToLocalStorage === "function") {
+			window.saveFlightTimesToLocalStorage(
+				tileData.tileId,
+				tileData.arrivalTime || "--:--",
+				tileData.departureTime || "--:--"
+			);
+		}
 	}
 
 	/**
