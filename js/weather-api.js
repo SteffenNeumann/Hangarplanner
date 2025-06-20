@@ -132,8 +132,28 @@ const weatherAPI = {
 		);
 	},
 
+	// Aktuellen Flughafencode aus Input-Feld lesen
+	updateAirportFromInput: function () {
+		const airportInput = document.getElementById("airportCodeInput");
+		if (airportInput && airportInput.value && airportInput.value.length === 3) {
+			const newCode = airportInput.value.toUpperCase();
+			if (newCode !== this.currentAirport) {
+				this.currentAirport = newCode;
+				// Airport-Display aktualisieren
+				const airportDisplay = document.querySelector(".weather-airport");
+				if (airportDisplay) {
+					airportDisplay.textContent = this.currentAirport;
+				}
+				console.log(`Flughafencode aktualisiert auf: ${this.currentAirport}`);
+			}
+		}
+	},
+
 	// Wetterdaten von API abrufen
 	fetchWeatherData: async function () {
+		// Immer den aktuellen Flughafencode aus dem Input-Feld lesen
+		this.updateAirportFromInput();
+
 		console.log(`Rufe Wetterdaten für ${this.currentAirport} ab...`);
 
 		// Status-Feedback im UI
