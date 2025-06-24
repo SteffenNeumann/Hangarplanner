@@ -400,7 +400,14 @@ class StorageBrowser {
 				`arrival-time-${tileData.tileId}`
 			);
 			if (arrivalElement) {
-				arrivalElement.textContent = tileData.arrivalTime;
+				arrivalElement.value = tileData.arrivalTime;
+				console.log(
+					`Arrival Time für Tile ${tileData.tileId} gesetzt: ${tileData.arrivalTime}`
+				);
+			} else {
+				console.warn(
+					`Arrival Time Input für Tile ${tileData.tileId} nicht gefunden`
+				);
 			}
 		}
 
@@ -410,7 +417,31 @@ class StorageBrowser {
 				`departure-time-${tileData.tileId}`
 			);
 			if (departureElement) {
-				departureElement.textContent = tileData.departureTime;
+				departureElement.value = tileData.departureTime;
+				console.log(
+					`Departure Time für Tile ${tileData.tileId} gesetzt: ${tileData.departureTime}`
+				);
+			} else {
+				console.warn(
+					`Departure Time Input für Tile ${tileData.tileId} nicht gefunden`
+				);
+			}
+		}
+
+		// Position (Info-Grid) setzen
+		if (tileData.positionInfoGrid) {
+			const positionInfoElement = document.getElementById(
+				`position-${tileData.tileId}`
+			);
+			if (positionInfoElement) {
+				positionInfoElement.value = tileData.positionInfoGrid;
+				console.log(
+					`Position Info-Grid für Tile ${tileData.tileId} gesetzt: ${tileData.positionInfoGrid}`
+				);
+			} else {
+				console.warn(
+					`Position Info-Grid Input für Tile ${tileData.tileId} nicht gefunden`
+				);
 			}
 		}
 
@@ -844,13 +875,13 @@ class StorageBrowser {
 				towStatus:
 					document.getElementById(`tow-status-${cellId}`)?.value || "neutral",
 				arrivalTime:
-					document
-						.getElementById(`arrival-time-${cellId}`)
-						?.textContent?.trim() || "--:--",
+					document.getElementById(`arrival-time-${cellId}`)?.value?.trim() ||
+					"--:--",
 				departureTime:
-					document
-						.getElementById(`departure-time-${cellId}`)
-						?.textContent?.trim() || "--:--",
+					document.getElementById(`departure-time-${cellId}`)?.value?.trim() ||
+					"--:--",
+				positionInfoGrid:
+					document.getElementById(`position-${cellId}`)?.value || "",
 				isSecondary: isSecondary,
 			};
 		} catch (error) {
