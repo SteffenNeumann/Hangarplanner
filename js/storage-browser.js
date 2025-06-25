@@ -77,6 +77,9 @@ class StorageBrowser {
 		try {
 			console.log("Wende geladene Daten auf Anwendung an...", projectData);
 
+			// Flag setzen, um localStorage-Wiederherstellung zu blockieren
+			window.isApplyingServerData = true;
+
 			if (!projectData) {
 				throw new Error("Keine Projektdaten übergeben");
 			}
@@ -121,7 +124,11 @@ class StorageBrowser {
 			}
 
 			// UI aktualisieren
-			setTimeout(() => this.updateUIElements(), 500);
+			setTimeout(() => {
+				this.updateUIElements();
+				// Flag nach Abschluss zurücksetzen
+				window.isApplyingServerData = false;
+			}, 500);
 
 			// Ereignis auslösen, um andere Komponenten zu informieren
 			const event = new CustomEvent("projectDataChanged", {

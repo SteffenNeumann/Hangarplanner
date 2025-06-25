@@ -907,7 +907,17 @@ function applyProjectData(projectData) {
 	setTimeout(() => {
 		if (projectData.tilesData && Array.isArray(projectData.tilesData)) {
 			projectData.tilesData.forEach((tileData) => {
-				const { id, position, aircraftId, status, towStatus, notes } = tileData;
+				const {
+					id,
+					position,
+					aircraftId,
+					status,
+					towStatus,
+					notes,
+					arrivalTime,
+					departureTime,
+					positionInfoGrid,
+				} = tileData;
 
 				// Positionswert setzen
 				const posInput = document.getElementById(`hangar-position-${id}`);
@@ -938,6 +948,41 @@ function applyProjectData(projectData) {
 				// Notizen setzen
 				const notesTextarea = document.getElementById(`notes-${id}`);
 				if (notesTextarea) notesTextarea.value = notes || "";
+
+				// Arrival Time setzen (NEU HINZUGEFÜGT)
+				if (tileData.arrivalTime && tileData.arrivalTime !== "--:--") {
+					const arrivalInput = document.getElementById(`arrival-time-${id}`);
+					if (arrivalInput) {
+						arrivalInput.value = tileData.arrivalTime;
+						console.log(
+							`Arrival Time für Tile ${id} aus LocalStorage: ${tileData.arrivalTime}`
+						);
+					}
+				}
+
+				// Departure Time setzen (NEU HINZUGEFÜGT)
+				if (tileData.departureTime && tileData.departureTime !== "--:--") {
+					const departureInput = document.getElementById(
+						`departure-time-${id}`
+					);
+					if (departureInput) {
+						departureInput.value = tileData.departureTime;
+						console.log(
+							`Departure Time für Tile ${id} aus LocalStorage: ${tileData.departureTime}`
+						);
+					}
+				}
+
+				// Position Info Grid setzen (NEU HINZUGEFÜGT)
+				if (tileData.positionInfoGrid) {
+					const positionInfoInput = document.getElementById(`position-${id}`);
+					if (positionInfoInput) {
+						positionInfoInput.value = tileData.positionInfoGrid;
+						console.log(
+							`Position Info Grid für Tile ${id} aus LocalStorage: ${tileData.positionInfoGrid}`
+						);
+					}
+				}
 			});
 		}
 	}, 300);
@@ -983,6 +1028,14 @@ window.hangarData.saveCurrentStateToLocalStorage = function () {
 document.addEventListener("DOMContentLoaded", function () {
 	// Versuchen, den letzten Zustand aus dem LocalStorage zu laden
 	try {
+		// Prüfen, ob gerade Server-Daten angewendet werden
+		if (window.isApplyingServerData) {
+			console.log(
+				"LocalStorage-Wiederherstellung übersprungen: Server-Daten werden angewendet"
+			);
+			return;
+		}
+
 		const savedState = localStorage.getItem("hangarPlannerCurrentState");
 		if (savedState) {
 			const projectData = JSON.parse(savedState);
