@@ -342,13 +342,28 @@ function collectTileData(containerSelector) {
 			const towStatus =
 				tile.querySelector(`[id^="tow-status-"]`)?.value || "neutral";
 			const arrivalTime =
-				tile.querySelector(`[id^="arrival-time-"]`)?.textContent.trim() ||
-				"--:--";
+				tile.querySelector(`[id^="arrival-time-"]`)?.value?.trim() || "--:--";
 			const departureTime =
-				tile.querySelector(`[id^="departure-time-"]`)?.textContent.trim() ||
-				"--:--";
+				tile.querySelector(`[id^="departure-time-"]`)?.value?.trim() || "--:--";
+			const positionInfoGrid =
+				tile.querySelector(`[id^="position-"][id$="-${tileId}"]`)?.value || "";
 
 			console.log(`Tow-Status für Kachel ${tileId} gesammelt: ${towStatus}`);
+			if (arrivalTime !== "--:--") {
+				console.log(
+					`Arrival Time für Kachel ${tileId} gesammelt: ${arrivalTime}`
+				);
+			}
+			if (departureTime !== "--:--") {
+				console.log(
+					`Departure Time für Kachel ${tileId} gesammelt: ${departureTime}`
+				);
+			}
+			if (positionInfoGrid) {
+				console.log(
+					`Position Info Grid für Kachel ${tileId} gesammelt: ${positionInfoGrid}`
+				);
+			}
 
 			const tileDataObject = {
 				tileId: tileId,
@@ -519,19 +534,25 @@ function applyTileData(tileData, isSecondary = false) {
 			}
 		}
 
-		// Weitere Felder aktualisieren
+		// Arrival Time und Departure Time setzen (diese sind Eingabefelder!)
 		const arrivalTime = document.querySelector(
 			`${container} #arrival-time-${tileId}`
 		);
 		if (arrivalTime) {
-			arrivalTime.textContent = tileData.arrivalTime || "--:--";
+			arrivalTime.value = tileData.arrivalTime || "--:--";
+			console.log(
+				`Arrival Time für Kachel ${tileId} angewendet: ${tileData.arrivalTime}`
+			);
 		}
 
 		const departureTime = document.querySelector(
 			`${container} #departure-time-${tileId}`
 		);
 		if (departureTime) {
-			departureTime.textContent = tileData.departureTime || "--:--";
+			departureTime.value = tileData.departureTime || "--:--";
+			console.log(
+				`Departure Time für Kachel ${tileId} angewendet: ${tileData.departureTime}`
+			);
 		}
 
 		// Position-Wert setzen
