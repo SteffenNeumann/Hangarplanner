@@ -312,41 +312,29 @@ function collectTileData(containerSelector) {
 			const isSecondary = containerSelector === "#secondaryHangarGrid";
 			const tileId = isSecondary ? 100 + index + 1 : index + 1;
 
-			// Sammle alle Daten aus der Kachel
-			const aircraftId = tile.querySelector(`[id^="aircraft-"]`)?.value || "";
+			// Sammle alle Daten aus der Kachel (nach bewährtem Aircraft-Verfahren)
+			const aircraftId =
+				document.getElementById(`aircraft-${tileId}`)?.value || "";
 
-			// Position gezielt über ID oder Fallback über Attribut finden
-			let position = "";
-			const positionInput = document.getElementById(
-				`hangar-position-${tileId}`
-			);
-			if (positionInput) {
-				position = positionInput.value || "";
-				console.log(`Position für Kachel ${tileId} gesammelt: ${position}`);
-			} else {
-				const fallbackPositionInput = tile.querySelector(
-					'input[id^="hangar-position-"]'
-				);
-				if (fallbackPositionInput) {
-					position = fallbackPositionInput.value || "";
-					console.log(
-						`Fallback: Position für Kachel ${tileId} gesammelt: ${position}`
-					);
-				}
-			}
+			// Position gezielt über ID finden (bewährtes Verfahren)
+			const position =
+				document.getElementById(`hangar-position-${tileId}`)?.value || "";
 
 			const manualInput =
-				tile.querySelector('input[placeholder="Manual Input"]')?.value || "";
-			const notes = tile.querySelector(`[id^="notes-"]`)?.value || "";
-			const status = tile.querySelector(`[id^="status-"]`)?.value || "ready";
+				document.getElementById(`manual-input-${tileId}`)?.value || "";
+			const notes = document.getElementById(`notes-${tileId}`)?.value || "";
+			const status =
+				document.getElementById(`status-${tileId}`)?.value || "ready";
 			const towStatus =
-				tile.querySelector(`[id^="tow-status-"]`)?.value || "neutral";
+				document.getElementById(`tow-status-${tileId}`)?.value || "neutral";
 			const arrivalTime =
-				tile.querySelector(`[id^="arrival-time-"]`)?.value?.trim() || "--:--";
+				document.getElementById(`arrival-time-${tileId}`)?.value?.trim() ||
+				"--:--";
 			const departureTime =
-				tile.querySelector(`[id^="departure-time-"]`)?.value?.trim() || "--:--";
+				document.getElementById(`departure-time-${tileId}`)?.value?.trim() ||
+				"--:--";
 			const positionInfoGrid =
-				tile.querySelector(`[id^="position-"][id$="-${tileId}"]`)?.value || "";
+				document.getElementById(`position-${tileId}`)?.value || "";
 
 			console.log(`Tow-Status für Kachel ${tileId} gesammelt: ${towStatus}`);
 			if (arrivalTime !== "--:--") {
@@ -424,17 +412,16 @@ function applyLoadedTileData(data) {
 function applyTileData(tileData, isSecondary = false) {
 	try {
 		const tileId = tileData.tileId;
-		const container = isSecondary ? "#secondaryHangarGrid" : "#hangarGrid";
 
-		// Aircraft ID setzen
-		const aircraftInput = document.querySelector(
-			`${container} #aircraft-${tileId}`
-		);
+		// Aircraft ID setzen (bewährtes Verfahren)
+		const aircraftInput = document.getElementById(`aircraft-${tileId}`);
 		if (aircraftInput) {
 			aircraftInput.value = tileData.aircraftId || "";
+		} else {
+			console.warn(`Aircraft Input für Tile ${tileId} nicht gefunden`);
 		}
 
-		// Position setzen - explizit über ID finden oder über Container und Selektoren
+		// Position setzen (bewährtes Verfahren)
 		const positionInput = document.getElementById(`hangar-position-${tileId}`);
 		if (positionInput) {
 			positionInput.value = tileData.position || "";
@@ -442,33 +429,71 @@ function applyTileData(tileData, isSecondary = false) {
 				`Position für Kachel ${tileId} geladen: ${tileData.position}`
 			);
 		} else {
-			// Fallback: Finde Position-Eingabe im Container für diese Kachel
-			const cellIndex = isSecondary ? tileId - 100 : tileId;
-			const cells = document.querySelectorAll(`${container} .hangar-cell`);
+			console.warn(`Position Input für Tile ${tileId} nicht gefunden`);
+		}
 
-			if (cells.length >= cellIndex && cellIndex > 0) {
-				const cellPositionInput = cells[cellIndex - 1].querySelector(
-					'input[id^="hangar-position-"]'
+		// Arrival Time setzen (bewährtes Verfahren)
+		if (tileData.arrivalTime && tileData.arrivalTime !== "--:--") {
+			const arrivalElement = document.getElementById(`arrival-time-${tileId}`);
+			if (arrivalElement) {
+				arrivalElement.value = tileData.arrivalTime;
+				console.log(
+					`Arrival Time für Tile ${tileId} gesetzt: ${tileData.arrivalTime}`
 				);
-				if (cellPositionInput) {
-					cellPositionInput.value = tileData.position || "";
-					console.log(
-						`Fallback: Position für Kachel ${tileId} geladen über Selektor: ${tileData.position}`
-					);
-
-					// Falls keine korrekte ID vorhanden, jetzt setzen
-					if (cellPositionInput.id !== `hangar-position-${tileId}`) {
-						cellPositionInput.id = `hangar-position-${tileId}`;
-						console.log(
-							`ID für Position-Eingabe nachträglich gesetzt: ${cellPositionInput.id}`
-						);
-					}
-				} else {
-					console.warn(
-						`Kein Position-Eingabefeld für Kachel ${tileId} gefunden`
-					);
-				}
+			} else {
+				console.warn(`Arrival Time Input für Tile ${tileId} nicht gefunden`);
 			}
+		}
+
+		// Departure Time setzen (bewährtes Verfahren)
+		if (tileData.departureTime && tileData.departureTime !== "--:--") {
+			const departureElement = document.getElementById(
+				`departure-time-${tileId}`
+			);
+			if (departureElement) {
+				departureElement.value = tileData.departureTime;
+				console.log(
+					`Departure Time für Tile ${tileId} gesetzt: ${tileData.departureTime}`
+				);
+			} else {
+				console.warn(`Departure Time Input für Tile ${tileId} nicht gefunden`);
+			}
+		}
+
+		// Position Info Grid setzen (bewährtes Verfahren)
+		if (tileData.positionInfoGrid) {
+			const positionInfoElement = document.getElementById(`position-${tileId}`);
+			if (positionInfoElement) {
+				positionInfoElement.value = tileData.positionInfoGrid;
+				console.log(
+					`Position Info-Grid für Tile ${tileId} gesetzt: ${tileData.positionInfoGrid}`
+				);
+			} else {
+				console.warn(
+					`Position Info-Grid Input für Tile ${tileId} nicht gefunden`
+				);
+			}
+		}
+
+		// Weitere Felder (bewährtes Verfahren)
+		const manualInput = document.getElementById(`manual-input-${tileId}`);
+		if (manualInput) {
+			manualInput.value = tileData.manualInput || "";
+		}
+
+		const notesInput = document.getElementById(`notes-${tileId}`);
+		if (notesInput) {
+			notesInput.value = tileData.notes || "";
+		}
+
+		const statusElement = document.getElementById(`status-${tileId}`);
+		if (statusElement) {
+			statusElement.value = tileData.status || "ready";
+		}
+
+		const towStatusElement = document.getElementById(`tow-status-${tileId}`);
+		if (towStatusElement) {
+			towStatusElement.value = tileData.towStatus || "neutral";
 		}
 
 		// Manuelle Eingabe setzen - immer zuerst über die spezifische ID versuchen

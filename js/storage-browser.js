@@ -1179,8 +1179,11 @@ class StorageBrowser {
 			});
 		};
 
-		// Verschiedene Eingabefeld-Typen überwachen
+		// Verschiedene Eingabefeld-Typen überwachen (nach bewährtem Aircraft-Verfahren)
 		setupFieldListener('input[id^="aircraft-"]');
+		setupFieldListener('input[id^="arrival-time-"]'); // NEU: Time-Felder
+		setupFieldListener('input[id^="departure-time-"]'); // NEU: Time-Felder
+		setupFieldListener('input[id^="position-"]'); // NEU: Position-Felder
 		setupFieldListener('input[id^="hangar-position-"]');
 		setupFieldListener('input[id^="manual-input-"]');
 		setupFieldListener('textarea[id^="notes-"]');
