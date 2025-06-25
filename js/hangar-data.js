@@ -368,7 +368,8 @@ function collectTileData(containerSelector) {
 			const tileDataObject = {
 				tileId: tileId,
 				aircraftId: aircraftId,
-				position: position,
+				position: position, // Hangar position (hangar-position-X)
+				positionInfoGrid: positionInfoGrid, // Position in Info Grid (position-X)
 				manualInput: manualInput,
 				notes: notes,
 				status: status,
@@ -555,12 +556,15 @@ function applyTileData(tileData, isSecondary = false) {
 			);
 		}
 
-		// Position-Wert setzen
-		const positionDisplay = document.querySelector(
+		// Position-Wert setzen (Info Grid)
+		const positionInfoGrid = document.querySelector(
 			`${container} #position-${tileId}`
 		);
-		if (positionDisplay) {
-			positionDisplay.textContent = tileData.position || "--";
+		if (positionInfoGrid) {
+			positionInfoGrid.value = tileData.positionInfoGrid || "--";
+			console.log(
+				`Position Info Grid für Kachel ${tileId} angewendet: ${tileData.positionInfoGrid}`
+			);
 		}
 	} catch (error) {
 		console.error(
