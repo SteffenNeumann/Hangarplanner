@@ -1,6 +1,7 @@
 /**
  * REKURSIVE SYNCHRONISATIONS-FEHLERANALYSE
- * Systematische Analyse aller Input-Felder mit den IDs:
+ * Systematische Analyse aller Input-Felder nach bewährtem Aircraft-Verfahren:
+ * - aircraft-{id} (bewährtes Referenzverfahren)
  * - arrival-time-{id}
  * - departure-time-{id}
  * - position-{id}
@@ -10,6 +11,11 @@ window.recursiveSyncAnalysis = {
 	// Konfiguration für die Analyse
 	config: {
 		targetFieldTypes: [
+			{
+				prefix: "aircraft-",
+				dataKey: "aircraftId",
+				displayName: "Aircraft ID",
+			},
 			{
 				prefix: "arrival-time-",
 				dataKey: "arrivalTime",
@@ -21,20 +27,15 @@ window.recursiveSyncAnalysis = {
 				displayName: "Departure Time",
 			},
 			{
-				prefix: "hangar-position-",
-				dataKey: "position",
-				displayName: "Hangar Position",
-			},
-			{
 				prefix: "position-",
 				dataKey: "positionInfoGrid",
 				displayName: "Position Info Grid",
 			},
 		],
 		testValues: {
+			aircraftId: "D-TEST",
 			arrivalTime: "15:30",
 			departureTime: "16:45",
-			position: "A-12",
 			positionInfoGrid: "P-99",
 		},
 		containers: ["#hangarGrid", "#secondaryHangarGrid"],
@@ -488,6 +489,149 @@ window.recursiveSyncAnalysis = {
 		}
 	},
 
+	// VERGLEICHSANALYSE: Aircraft als bewährte Referenz
+	async testAircraftReferenceMethod() {
+		console.log("🔍 VERGLEICHSANALYSE: Aircraft-Verfahren als Referenz");
+		console.log("====================================================");
+
+		const allTiles = this.findAllTiles();
+		const results = {
+			aircraftResults: [],
+			timePositionResults: [],
+			comparisonSummary: {},
+		};
+
+		for (const tile of allTiles) {
+			const tileId = this.extractTileId(tile);
+			if (!tileId) continue;
+
+			console.log(`\n🔧 Vergleichsanalyse für Tile: ${tileId}`);
+
+			// Test Aircraft (bewährte Referenz)
+			const aircraftField = this.config.targetFieldTypes.find(
+				(f) => f.prefix === "aircraft-"
+			);
+			const aircraftResults = await this.analyzeFieldCompletely(
+				tileId,
+				aircraftField
+			);
+			results.aircraftResults.push(aircraftResults);
+
+			// Test andere Felder (zu verbessernde)
+			for (const fieldType of this.config.targetFieldTypes.filter(
+				(f) => f.prefix !== "aircraft-"
+			)) {
+				const fieldResults = await this.analyzeFieldCompletely(
+					tileId,
+					fieldType
+				);
+				results.timePositionResults.push({
+					...fieldResults,
+					referenceTileId: tileId,
+				});
+			}
+		}
+
+		// Vergleichsauswertung
+		results.comparisonSummary = this.generateComparisonSummary(
+			results.aircraftResults,
+			results.timePositionResults
+		);
+
+		console.log("\n📊 VERGLEICHSAUSWERTUNG:");
+		console.log("========================");
+		console.log(results.comparisonSummary.report);
+
+		return results;
+	},
+
+	generateComparisonSummary(aircraftResults, timePositionResults) {
+		const aircraftSuccess = aircraftResults.filter(
+			(r) =>
+				r.dataExtraction?.success &&
+				r.serverSync?.success &&
+				r.dataRetrieval?.success &&
+				r.overwriteCheck?.success
+		).length;
+
+		const timePositionSuccess = timePositionResults.filter(
+			(r) =>
+				r.dataExtraction?.success &&
+				r.serverSync?.success &&
+				r.dataRetrieval?.success &&
+				r.overwriteCheck?.success
+		).length;
+
+		const aircraftTotal = aircraftResults.length;
+		const timePositionTotal = timePositionResults.length;
+
+		const aircraftSuccessRate = aircraftTotal
+			? (aircraftSuccess / aircraftTotal) * 100
+			: 0;
+		const timePositionSuccessRate = timePositionTotal
+			? (timePositionSuccess / timePositionTotal) * 100
+			: 0;
+
+		let report = `🎯 Aircraft-Referenz (bewährt): ${aircraftSuccess}/${aircraftTotal} (${aircraftSuccessRate.toFixed(
+			1
+		)}%)\n`;
+		report += `⚠️ Zeit/Position-Felder: ${timePositionSuccess}/${timePositionTotal} (${timePositionSuccessRate.toFixed(
+			1
+		)}%)\n\n`;
+
+		if (aircraftSuccessRate > timePositionSuccessRate) {
+			report += `💡 EMPFEHLUNG: Zeit/Position-Felder sollten Aircraft-Verfahren übernehmen!\n`;
+			report += `📋 Unterschiede analysieren:\n`;
+
+			// Detaillierte Fehleranalyse
+			const aircraftErrors = this.analyzeErrorPatterns(aircraftResults);
+			const timePositionErrors = this.analyzeErrorPatterns(timePositionResults);
+
+			report += `   🟢 Aircraft-Verfahren Probleme: ${aircraftErrors.join(
+				", "
+			)}\n`;
+			report += `   🔴 Zeit/Position-Probleme: ${timePositionErrors.join(
+				", "
+			)}`;
+		} else {
+			report += `✅ Zeit/Position-Felder funktionieren bereits gut!`;
+		}
+
+		return {
+			aircraftSuccessRate,
+			timePositionSuccessRate,
+			report,
+			aircraftErrors: this.analyzeErrorPatterns(aircraftResults),
+			timePositionErrors: this.analyzeErrorPatterns(timePositionResults),
+		};
+	},
+
+	analyzeErrorPatterns(results) {
+		const errorTypes = [];
+		let dataExtractionErrors = 0;
+		let serverSyncErrors = 0;
+		let dataRetrievalErrors = 0;
+		let overwriteErrors = 0;
+
+		results.forEach((result) => {
+			if (!result.dataExtraction?.success) dataExtractionErrors++;
+			if (!result.serverSync?.success) serverSyncErrors++;
+			if (!result.dataRetrieval?.success) dataRetrievalErrors++;
+			if (!result.overwriteCheck?.success) overwriteErrors++;
+		});
+
+		if (dataExtractionErrors > 0)
+			errorTypes.push(`${dataExtractionErrors}x Datenextraktion`);
+		if (serverSyncErrors > 0)
+			errorTypes.push(`${serverSyncErrors}x Server-Sync`);
+		if (dataRetrievalErrors > 0)
+			errorTypes.push(`${dataRetrievalErrors}x Datenrückschreibung`);
+		if (overwriteErrors > 0)
+			errorTypes.push(`${overwriteErrors}x Überschreibung`);
+
+		return errorTypes.length > 0 ? errorTypes : ["Keine Fehler"];
+	},
+
 	// Hilfsfunktionen
 	findAllTiles() {
 		const tiles = [];
@@ -511,11 +655,11 @@ window.recursiveSyncAnalysis = {
 		}
 		// Nach ID-Pattern in child elements suchen
 		const childWithId = tileElement.querySelector(
-			'[id*="arrival-time-"], [id*="departure-time-"], [id*="hangar-position-"], [id*="position-"]'
+			'[id*="aircraft-"], [id*="arrival-time-"], [id*="departure-time-"], [id*="position-"]'
 		);
 		if (childWithId) {
 			const match = childWithId.id.match(
-				/(arrival-time-|departure-time-|hangar-position-|position-)(\d+)/
+				/(aircraft-|arrival-time-|departure-time-|position-)(\d+)/
 			);
 			if (match) {
 				return match[2];
@@ -709,6 +853,14 @@ window.recursiveSyncAnalysis = {
 // Einfache API für schnelle Tests
 window.quickSyncTest = {
 	testAll: () => window.recursiveSyncAnalysis.runCompleteAnalysis(),
+	testAircraftReference: () =>
+		window.recursiveSyncAnalysis.testAircraftReferenceMethod(),
+	compareWithAircraft: () => {
+		console.log(
+			"🔍 Starte Vergleichsanalyse mit bewährtem Aircraft-Verfahren..."
+		);
+		return window.recursiveSyncAnalysis.testAircraftReferenceMethod();
+	},
 	testField: (fieldId) => {
 		const element = document.getElementById(fieldId);
 		if (!element) {
@@ -717,7 +869,7 @@ window.quickSyncTest = {
 		}
 
 		const match = fieldId.match(
-			/(arrival-time-|departure-time-|hangar-position-|position-)(\d+)/
+			/(aircraft-|arrival-time-|departure-time-|position-)(\d+)/
 		);
 		if (!match) {
 			console.log(`❌ Unbekanntes Feld-Format: ${fieldId}`);
@@ -741,8 +893,13 @@ window.quickSyncTest = {
 	},
 };
 
-console.log("🔧 Rekursive Synchronisations-Analyse geladen");
+console.log(
+	"🔧 Rekursive Synchronisations-Analyse geladen (mit Aircraft-Referenz)"
+);
 console.log(
 	"📞 Verwende window.recursiveSyncAnalysis.runCompleteAnalysis() für vollständige Analyse"
 );
 console.log("📞 Verwende window.quickSyncTest.testAll() für Schnelltest");
+console.log(
+	"🎯 Verwende window.quickSyncTest.compareWithAircraft() für Vergleich mit bewährtem Aircraft-Verfahren"
+);

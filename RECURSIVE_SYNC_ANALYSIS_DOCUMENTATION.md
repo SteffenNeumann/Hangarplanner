@@ -1,10 +1,64 @@
 # Rekursive Synchronisations-Fehleranalyse
 
-## Übersicht
+## ✅ SOFORT VERFÜGBARE ANALYSE
 
-Diese umfassende Analyse-Suite wurde entwickelt, um systematisch alle Synchronisationsprobleme in der Hangar Planner Anwendung zu identifizieren und zu diagnostizieren.
+Nach dem Laden der Seite stehen folgende Kommandos **sofort** zur Verfügung:
 
-## Verfügbare Analyse-Tools
+### 🚀 HAUPTKOMMANDO (Empfohlen):
+
+```javascript
+window.runSyncDiagnosis();
+```
+
+Diese Funktion führt eine vollständige, rekursive Analyse aller Input-Felder durch und identifiziert systematisch:
+
+- **Datenextraktions-Probleme** (werden Werte korrekt gelesen?)
+- **Server-Sync-Probleme** (kommen Daten auf dem Server an?)
+- **Datenrückschreibungs-Probleme** (werden Server-Daten korrekt in Felder geschrieben?)
+- **Überschreibungs-Probleme** (werden Daten nachträglich überschrieben?)
+
+### 🔧 QUICK-TESTS:
+
+```javascript
+window.quickSyncTests.testDataExtraction(); // Teste nur Datenextraktion
+window.quickSyncTests.testServerConnection(); // Teste nur Server-Verbindung
+window.quickSyncTests.testHtmlStructure(); // Teste nur HTML-Struktur
+```
+
+### 🔍 EINZELFELD-TESTS:
+
+```javascript
+window.testSingleField("arrival-time-1"); // Teste spezifisches Feld
+window.testSingleField("departure-time-5"); // Teste anderes Feld
+window.testSingleField("position-3"); // Teste Position-Feld
+```
+
+## 🛠️ BEI PROBLEMEN
+
+Falls die Tools nicht verfügbar sind:
+
+```javascript
+window.syncDebugFixer.fixAll(); // Repariert fehlende Module
+window.syncDebugFixer.emergencyDiagnosis(); // Notfall-Diagnose
+```
+
+## 📊 ANALYSIERTE FELDER
+
+Die Analyse testet systematisch alle Input-Felder mit folgenden ID-Patterns:
+
+- **`arrival-time-{id}`** - Ankunftszeiten
+- **`departure-time-{id}`** - Abfahrtszeiten
+- **`position-{id}`** - Positionen (NUR diese, NICHT hangar-position-{id})
+- **`position-{id}`** - Position Info Grid
+
+Für jedes gefundene Feld werden **4 kritische Tests** durchgeführt:
+
+1. **📖 Datenextraktion** - Kann das Feld beschrieben/gelesen werden?
+2. **🌐 Server-Sync** - Werden Änderungen zum Server übertragen?
+3. **📥 Datenrückschreibung** - Werden Server-Daten korrekt zurückgeschrieben?
+4. **🛡️ Überschreibungsschutz** - Bleiben Daten persistent?
+
+## Erweiterte Tools (Optional)
 
 ### 1. 🎯 Master Sync Diagnostics (`js/master-sync-diagnostics.js`)
 
@@ -21,13 +75,6 @@ window.syncDiagnostics.quickDataExtraction(); // Schnelltest Datenextraktion
 window.syncDiagnostics.quickServerSync(); // Schnelltest Server-Sync
 ```
 
-### 2. 🔍 Rekursive Sync-Analyse (`js/recursive-sync-analysis.js`)
-
-Testet systematisch alle Input-Felder mit den IDs:
-
-- `arrival-time-{id}`
-- `departure-time-{id}`
-- `hangar-position-{id}`
 - `position-{id}`
 
 ```javascript
