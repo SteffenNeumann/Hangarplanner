@@ -328,11 +328,9 @@ function collectTileData(containerSelector) {
 			const towStatus =
 				document.getElementById(`tow-status-${tileId}`)?.value || "neutral";
 			const arrivalTime =
-				document.getElementById(`arrival-time-${tileId}`)?.value?.trim() ||
-				"--:--";
+				document.getElementById(`arrival-time-${tileId}`)?.value || "";
 			const departureTime =
-				document.getElementById(`departure-time-${tileId}`)?.value?.trim() ||
-				"--:--";
+				document.getElementById(`departure-time-${tileId}`)?.value || "";
 			const positionInfoGrid =
 				document.getElementById(`position-${tileId}`)?.value || "";
 
@@ -463,8 +461,8 @@ function applyTileData(tileData, isSecondary = false) {
 			console.warn(`❌ Position Input für Tile ${tileId} nicht gefunden`);
 		}
 
-		// Arrival Time setzen (auch --:-- Standardwerte synchronisieren)
-		if (tileData.arrivalTime !== undefined) {
+		// Arrival Time setzen (leer bedeutet keine Zeit)
+		if (tileData.arrivalTime) {
 			const arrivalElement = document.getElementById(`arrival-time-${tileId}`);
 			if (arrivalElement) {
 				arrivalElement.value = tileData.arrivalTime;
@@ -476,8 +474,8 @@ function applyTileData(tileData, isSecondary = false) {
 			}
 		}
 
-		// Departure Time setzen (auch --:-- Standardwerte synchronisieren)
-		if (tileData.departureTime !== undefined) {
+		// Departure Time setzen (leer bedeutet keine Zeit)
+		if (tileData.departureTime) {
 			const departureElement = document.getElementById(
 				`departure-time-${tileId}`
 			);

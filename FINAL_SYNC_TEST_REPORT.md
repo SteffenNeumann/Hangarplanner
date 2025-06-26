@@ -92,6 +92,72 @@ const status = document.getElementById(`status-${tileId}`)?.value || "neutral";
 statusElement.value = tileData.status || "neutral";
 ```
 
+## ❌ KRITISCHES PROBLEM IDENTIFIZIERT UND BEHOBEN
+
+### 🔍 ROOT CAUSE ENTDECKT
+
+Aus dem Slave-Log war ersichtlich, dass **ALLE Zeiten als `"--:--"` ankommen**, obwohl sie im Master eingegeben wurden. Das Problem lag nicht in der Anwendung der Daten, sondern beim **Sammeln der Daten**.
+
+### 🛠️ HAUPTPROBLEM: Falsche Input-Feldtypen
+
+**Problem**: Zeit-Felder waren als `type="text"` mit Pattern definiert:
+
+```html
+<input
+	type="text"
+	id="arrival-time-1"
+	class="info-input"
+	placeholder="--:--"
+	maxlength="5"
+	pattern="[0-9]{2}:[0-9]{2}"
+	title="Arrival time (HH:MM)" />
+```
+
+**Auswirkungen**:
+
+1. **Sammeln funktioniert nicht**: Pattern blockierte korrekte Wertübertragung
+2. **Eingabe funktioniert nicht**: Strict Pattern verhinderte normale Eingabe
+3. **Alle Zeiten wurden als `"--:--"` gesammelt**
+
+### ✅ LÖSUNG: HTML5 Time-Inputs
+
+**Alle Zeit-Felder zu `type="time"` geändert:**
+
+```html
+<input type="time" id="arrival-time-1" class="info-input" title="Time" />
+```
+
+**Vorteile**:
+
+- ✅ Native Browser-Zeitauswahl
+- ✅ Automatische Validierung
+- ✅ Bessere UX (Zeitpicker)
+- ✅ Korrekte Wertübertragung
+
+### 🔧 CODE-ANPASSUNGEN
+
+**JavaScript-Sammlung vereinfacht:**
+
+```javascript
+// VORHER (Problem):
+const arrivalTime =
+	document.getElementById(`arrival-time-${tileId}`)?.value?.trim() || "--:--";
+
+// NACHHER (Korrekt):
+const arrivalTime =
+	document.getElementById(`arrival-time-${tileId}`)?.value || "";
+```
+
+**JavaScript-Anwendung vereinfacht:**
+
+```javascript
+// VORHER (zu komplex):
+if (tileData.arrivalTime !== undefined) { ... }
+
+// NACHHER (einfach und korrekt):
+if (tileData.arrivalTime) { ... }
+```
+
 ## ✅ VALIDATION CHECKLIST
 
 - [ ] Zeit-Felder werden vom Master gesammelt
