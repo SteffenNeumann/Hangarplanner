@@ -393,15 +393,24 @@ function collectTileData(containerSelector) {
  * Wendet Daten aus einem geladenen Hangarplan auf die UI an
  */
 function applyLoadedTileData(data) {
+	console.log("=== APPLY LOADED TILE DATA ===");
+	console.log("Erhaltene Daten:", data);
+
 	// Primäre Kacheln füllen
 	if (data.primaryTiles && Array.isArray(data.primaryTiles)) {
-		data.primaryTiles.forEach((tile) => {
+		console.log(`Wende ${data.primaryTiles.length} primäre Kacheln an:`);
+		data.primaryTiles.forEach((tile, index) => {
+			console.log(`Primäre Kachel ${index + 1}:`, tile);
 			applyTileData(tile, false);
 		});
+	} else {
+		console.log("Keine primären Kacheln in den Daten gefunden");
 	}
 
 	// Sekundäre Kacheln füllen
 	if (data.secondaryTiles && Array.isArray(data.secondaryTiles)) {
+		console.log(`Wende ${data.secondaryTiles.length} sekundäre Kacheln an:`);
+
 		// Stelle sicher, dass genügend sekundäre Kacheln existieren
 		if (data.secondaryTiles.length > 0 && data.settings) {
 			window.hangarUI.uiSettings.secondaryTilesCount =
@@ -413,9 +422,12 @@ function applyLoadedTileData(data) {
 		}
 
 		// Dann Daten zuweisen
-		data.secondaryTiles.forEach((tile) => {
+		data.secondaryTiles.forEach((tile, index) => {
+			console.log(`Sekundäre Kachel ${index + 1}:`, tile);
 			applyTileData(tile, true);
 		});
+	} else {
+		console.log("Keine sekundären Kacheln in den Daten gefunden");
 	}
 }
 
@@ -425,26 +437,30 @@ function applyLoadedTileData(data) {
 function applyTileData(tileData, isSecondary = false) {
 	try {
 		const tileId = tileData.tileId;
-		console.log(`Anwenden der Daten für Tile ${tileId}`, tileData);
+		console.log(`=== ANWENDEN DER DATEN FÜR TILE ${tileId} ===`);
+		console.log(`isSecondary: ${isSecondary}`);
+		console.log(`tileData:`, tileData);
 
 		// Aircraft ID setzen
 		const aircraftInput = document.getElementById(`aircraft-${tileId}`);
 		if (aircraftInput) {
 			aircraftInput.value = tileData.aircraftId || "";
 			console.log(
-				`Aircraft ID für Tile ${tileId} gesetzt: ${tileData.aircraftId}`
+				`✅ Aircraft ID für Tile ${tileId} gesetzt: ${tileData.aircraftId}`
 			);
 		} else {
-			console.warn(`Aircraft Input für Tile ${tileId} nicht gefunden`);
+			console.warn(`❌ Aircraft Input für Tile ${tileId} nicht gefunden`);
 		}
 
 		// Position setzen (hangar-position)
 		const positionInput = document.getElementById(`hangar-position-${tileId}`);
 		if (positionInput) {
 			positionInput.value = tileData.position || "";
-			console.log(`Position für Tile ${tileId} gesetzt: ${tileData.position}`);
+			console.log(
+				`✅ Position für Tile ${tileId} gesetzt: ${tileData.position}`
+			);
 		} else {
-			console.warn(`Position Input für Tile ${tileId} nicht gefunden`);
+			console.warn(`❌ Position Input für Tile ${tileId} nicht gefunden`);
 		}
 
 		// Arrival Time setzen (auch --:-- Standardwerte synchronisieren)
@@ -453,10 +469,10 @@ function applyTileData(tileData, isSecondary = false) {
 			if (arrivalElement) {
 				arrivalElement.value = tileData.arrivalTime;
 				console.log(
-					`Arrival Time für Tile ${tileId} gesetzt: ${tileData.arrivalTime}`
+					`✅ Arrival Time für Tile ${tileId} gesetzt: ${tileData.arrivalTime}`
 				);
 			} else {
-				console.warn(`Arrival Time Input für Tile ${tileId} nicht gefunden`);
+				console.warn(`❌ Arrival Time Input für Tile ${tileId} nicht gefunden`);
 			}
 		}
 
@@ -468,10 +484,12 @@ function applyTileData(tileData, isSecondary = false) {
 			if (departureElement) {
 				departureElement.value = tileData.departureTime;
 				console.log(
-					`Departure Time für Tile ${tileId} gesetzt: ${tileData.departureTime}`
+					`✅ Departure Time für Tile ${tileId} gesetzt: ${tileData.departureTime}`
 				);
 			} else {
-				console.warn(`Departure Time Input für Tile ${tileId} nicht gefunden`);
+				console.warn(
+					`❌ Departure Time Input für Tile ${tileId} nicht gefunden`
+				);
 			}
 		}
 
