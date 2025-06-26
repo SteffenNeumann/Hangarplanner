@@ -1311,9 +1311,17 @@ function whenElementReady(selector, callback, options = {}) {
 // Validiere UI-Einstellungen bei der Initialisierung
 document.addEventListener("DOMContentLoaded", function () {
 	setTimeout(() => {
-		if (storageHelper) {
+		if (
+			typeof storageHelper !== "undefined" &&
+			storageHelper &&
+			typeof storageHelper.validateUISettings === "function"
+		) {
 			console.log("Validiere UI-Einstellungen...");
 			storageHelper.validateUISettings();
+		} else {
+			console.log(
+				"storageHelper noch nicht verfügbar, überspringe UI-Validierung"
+			);
 		}
 
 		// Event für die Initialisierung der sekundären Kacheln einrichten

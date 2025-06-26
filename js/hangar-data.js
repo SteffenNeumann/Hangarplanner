@@ -324,7 +324,7 @@ function collectTileData(containerSelector) {
 				document.getElementById(`manual-input-${tileId}`)?.value || "";
 			const notes = document.getElementById(`notes-${tileId}`)?.value || "";
 			const status =
-				document.getElementById(`status-${tileId}`)?.value || "ready";
+				document.getElementById(`status-${tileId}`)?.value || "neutral";
 			const towStatus =
 				document.getElementById(`tow-status-${tileId}`)?.value || "neutral";
 			const arrivalTime =
@@ -337,16 +337,29 @@ function collectTileData(containerSelector) {
 				document.getElementById(`position-${tileId}`)?.value || "";
 
 			console.log(`Tow-Status für Kachel ${tileId} gesammelt: ${towStatus}`);
-			if (arrivalTime !== "--:--") {
-				console.log(
-					`Arrival Time für Kachel ${tileId} gesammelt: ${arrivalTime}`
-				);
-			}
-			if (departureTime !== "--:--") {
-				console.log(
-					`Departure Time für Kachel ${tileId} gesammelt: ${departureTime}`
-				);
-			}
+
+			// Debug: Zeiten immer loggen um Probleme zu identifizieren
+			const arrivalElement = document.getElementById(`arrival-time-${tileId}`);
+			const departureElement = document.getElementById(
+				`departure-time-${tileId}`
+			);
+
+			console.log(`Arrival Time Element für Kachel ${tileId}:`, arrivalElement);
+			console.log(
+				`Arrival Time Raw Value für Kachel ${tileId}:`,
+				arrivalElement?.value
+			);
+			console.log(`Arrival Time Final für Kachel ${tileId}:`, arrivalTime);
+
+			console.log(
+				`Departure Time Element für Kachel ${tileId}:`,
+				departureElement
+			);
+			console.log(
+				`Departure Time Raw Value für Kachel ${tileId}:`,
+				departureElement?.value
+			);
+			console.log(`Departure Time Final für Kachel ${tileId}:`, departureTime);
 			if (positionInfoGrid) {
 				console.log(
 					`Position Info Grid für Kachel ${tileId} gesammelt: ${positionInfoGrid}`
@@ -434,8 +447,8 @@ function applyTileData(tileData, isSecondary = false) {
 			console.warn(`Position Input für Tile ${tileId} nicht gefunden`);
 		}
 
-		// Arrival Time setzen
-		if (tileData.arrivalTime && tileData.arrivalTime !== "--:--") {
+		// Arrival Time setzen (auch --:-- Standardwerte synchronisieren)
+		if (tileData.arrivalTime !== undefined) {
 			const arrivalElement = document.getElementById(`arrival-time-${tileId}`);
 			if (arrivalElement) {
 				arrivalElement.value = tileData.arrivalTime;
@@ -447,8 +460,8 @@ function applyTileData(tileData, isSecondary = false) {
 			}
 		}
 
-		// Departure Time setzen
-		if (tileData.departureTime && tileData.departureTime !== "--:--") {
+		// Departure Time setzen (auch --:-- Standardwerte synchronisieren)
+		if (tileData.departureTime !== undefined) {
 			const departureElement = document.getElementById(
 				`departure-time-${tileId}`
 			);
@@ -495,7 +508,7 @@ function applyTileData(tileData, isSecondary = false) {
 		// Status setzen
 		const statusElement = document.getElementById(`status-${tileId}`);
 		if (statusElement) {
-			statusElement.value = tileData.status || "ready";
+			statusElement.value = tileData.status || "neutral";
 			// Update status lights if function exists
 			if (
 				window.hangarUI &&

@@ -420,7 +420,17 @@ window.debugHelpers = {
 document.addEventListener("DOMContentLoaded", function () {
 	// Status beim Laden überprüfen
 	setTimeout(() => {
-		window.debugHelpers.checkSidebarStatus();
+		if (
+			typeof window.debugHelpers !== "undefined" &&
+			window.debugHelpers &&
+			typeof window.debugHelpers.checkSidebarStatus === "function"
+		) {
+			window.debugHelpers.checkSidebarStatus();
+		} else {
+			console.log(
+				"debugHelpers noch nicht verfügbar, überspringe Sidebar-Status-Check"
+			);
+		}
 	}, 1000);
 
 	// Tastaturabruf für Debugging-Funktionen einrichten

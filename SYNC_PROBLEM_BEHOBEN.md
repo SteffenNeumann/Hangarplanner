@@ -59,7 +59,37 @@ if (arrivalElement) {
 }
 ```
 
-### 3. Zentraler Event-Manager ✅
+### 3. Zeit-Synchronisation BEHOBEN ✅
+
+**Problem**: Arrival- und Departure-Times wurden nicht synchronisiert, obwohl sie in den Sync-Daten enthalten waren.
+
+**Ursache**: Die `applyTileData` Funktion wendete nur Zeiten an, die NICHT `"--:--"` waren:
+
+```javascript
+// FEHLER: Nur nicht-leere Zeiten wurden angewendet
+if (tileData.arrivalTime && tileData.arrivalTime !== "--:--") {
+	arrivalElement.value = tileData.arrivalTime;
+}
+```
+
+**Lösung**: Alle Zeit-Werte synchronisieren, auch Standardwerte:
+
+```javascript
+// KORREKT: Alle Zeit-Werte werden synchronisiert
+if (tileData.arrivalTime !== undefined) {
+	arrivalElement.value = tileData.arrivalTime;
+	console.log(
+		`Arrival Time für Tile ${tileId} gesetzt: ${tileData.arrivalTime}`
+	);
+}
+```
+
+**Status-Konsistenz BEHOBEN ✅**:
+
+- Standardwert von "ready" zu "neutral" korrigiert (entspricht HTML-Standard)
+- `collectTileData` und `applyTileData` verwenden nun konsistent "neutral" als Standard
+
+### 4. Zentraler Event-Manager ✅
 
 **Erstellt: `js/event-manager.js`**
 
@@ -68,7 +98,7 @@ if (arrivalElement) {
 - Bessere localStorage-Integration ✅
 - Integrierte Konflikt-Vermeidung ✅
 
-### 4. Vereinfachtes Diagnose-Tool ✅
+### 5. Vereinfachtes Diagnose-Tool ✅
 
 **Erstellt: `js/sync-diagnosis.js`**
 
@@ -76,7 +106,7 @@ if (arrivalElement) {
 - Fokussiert auf praktische Diagnostik ✅
 - Einfache API: `window.quickSync.diagnose()`
 
-### 4. Bereinigte HTML-Struktur
+### 6. Bereinigte HTML-Struktur
 
 **In `index.html`:**
 
