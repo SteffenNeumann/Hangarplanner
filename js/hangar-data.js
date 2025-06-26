@@ -412,27 +412,29 @@ function applyLoadedTileData(data) {
 function applyTileData(tileData, isSecondary = false) {
 	try {
 		const tileId = tileData.tileId;
+		console.log(`Anwenden der Daten für Tile ${tileId}`, tileData);
 
-		// Aircraft ID setzen (bewährtes Verfahren)
+		// Aircraft ID setzen
 		const aircraftInput = document.getElementById(`aircraft-${tileId}`);
 		if (aircraftInput) {
 			aircraftInput.value = tileData.aircraftId || "";
+			console.log(
+				`Aircraft ID für Tile ${tileId} gesetzt: ${tileData.aircraftId}`
+			);
 		} else {
 			console.warn(`Aircraft Input für Tile ${tileId} nicht gefunden`);
 		}
 
-		// Position setzen (bewährtes Verfahren)
+		// Position setzen (hangar-position)
 		const positionInput = document.getElementById(`hangar-position-${tileId}`);
 		if (positionInput) {
 			positionInput.value = tileData.position || "";
-			console.log(
-				`Position für Kachel ${tileId} geladen: ${tileData.position}`
-			);
+			console.log(`Position für Tile ${tileId} gesetzt: ${tileData.position}`);
 		} else {
 			console.warn(`Position Input für Tile ${tileId} nicht gefunden`);
 		}
 
-		// Arrival Time setzen (bewährtes Verfahren)
+		// Arrival Time setzen
 		if (tileData.arrivalTime && tileData.arrivalTime !== "--:--") {
 			const arrivalElement = document.getElementById(`arrival-time-${tileId}`);
 			if (arrivalElement) {
@@ -445,7 +447,7 @@ function applyTileData(tileData, isSecondary = false) {
 			}
 		}
 
-		// Departure Time setzen (bewährtes Verfahren)
+		// Departure Time setzen
 		if (tileData.departureTime && tileData.departureTime !== "--:--") {
 			const departureElement = document.getElementById(
 				`departure-time-${tileId}`
@@ -460,7 +462,7 @@ function applyTileData(tileData, isSecondary = false) {
 			}
 		}
 
-		// Position Info Grid setzen (bewährtes Verfahren)
+		// Position Info Grid setzen
 		if (tileData.positionInfoGrid) {
 			const positionInfoElement = document.getElementById(`position-${tileId}`);
 			if (positionInfoElement) {
@@ -475,121 +477,45 @@ function applyTileData(tileData, isSecondary = false) {
 			}
 		}
 
-		// Weitere Felder (bewährtes Verfahren)
+		// Manual Input setzen
 		const manualInput = document.getElementById(`manual-input-${tileId}`);
 		if (manualInput) {
 			manualInput.value = tileData.manualInput || "";
+			console.log(
+				`Manual Input für Tile ${tileId} gesetzt: ${tileData.manualInput}`
+			);
 		}
 
+		// Notes setzen
 		const notesInput = document.getElementById(`notes-${tileId}`);
 		if (notesInput) {
 			notesInput.value = tileData.notes || "";
 		}
 
+		// Status setzen
 		const statusElement = document.getElementById(`status-${tileId}`);
 		if (statusElement) {
 			statusElement.value = tileData.status || "ready";
-		}
-
-		const towStatusElement = document.getElementById(`tow-status-${tileId}`);
-		if (towStatusElement) {
-			towStatusElement.value = tileData.towStatus || "neutral";
-		}
-
-		// Manuelle Eingabe setzen - immer zuerst über die spezifische ID versuchen
-		const manualInputById = document.getElementById(`manual-input-${tileId}`);
-		if (manualInputById) {
-			manualInputById.value = tileData.manualInput || "";
-			console.log(
-				`Manuelle Eingabe für Kachel ${tileId} geladen: ${tileData.manualInput}`
-			);
-		} else {
-			// Fallback auf die alte Methode mit Vorsicht (korrekter Index)
-			const cellIndex = isSecondary ? tileId - 100 : tileId;
-			const cells = document.querySelectorAll(`${container} .hangar-cell`);
-			if (cells.length >= cellIndex && cellIndex > 0) {
-				const manualInput = cells[cellIndex - 1].querySelector(
-					'input[placeholder="Manual Input"]'
-				);
-				if (manualInput) {
-					manualInput.value = tileData.manualInput || "";
-					console.log(
-						`Fallback: Manuelle Eingabe für Kachel ${tileId} geladen über Selektor`
-					);
-
-					// Falls keine ID vorhanden, jetzt eine setzen
-					if (!manualInput.id) {
-						manualInput.id = `manual-input-${tileId}`;
-					}
-				}
+			// Update status lights if function exists
+			if (
+				window.hangarUI &&
+				typeof window.hangarUI.updateStatusLights === "function"
+			) {
+				window.hangarUI.updateStatusLights(tileId);
 			}
 		}
 
-		// Notizen setzen
-		const notesTextarea = document.querySelector(
-			`${container} #notes-${tileId}`
-		);
-		if (notesTextarea) {
-			notesTextarea.value = tileData.notes || "";
-		}
-
-		// Status setzen
-		const statusSelect = document.querySelector(
-			`${container} #status-${tileId}`
-		);
-		if (statusSelect) {
-			statusSelect.value = tileData.status || "ready";
-			window.hangarUI.updateStatusLights(tileId);
-		}
-
-		// Tow-Status setzen
-		const towStatusSelect = document.querySelector(
-			`${container} #tow-status-${tileId}`
-		);
-		if (towStatusSelect) {
-			towStatusSelect.value = tileData.towStatus || "neutral";
-			console.log(
-				`Tow-Status für Kachel ${tileId} angewendet: ${tileData.towStatus}`
-			);
-			// Stil-Update für Tow-Status auslösen
+		// Tow Status setzen
+		const towStatusElement = document.getElementById(`tow-status-${tileId}`);
+		if (towStatusElement) {
+			towStatusElement.value = tileData.towStatus || "neutral";
+			// Update tow status styling if function exists
 			if (
 				window.hangarUI &&
 				typeof window.hangarUI.updateTowStatus === "function"
 			) {
 				window.hangarUI.updateTowStatus(tileId);
 			}
-		}
-
-		// Arrival Time und Departure Time setzen (diese sind Eingabefelder!)
-		const arrivalTime = document.querySelector(
-			`${container} #arrival-time-${tileId}`
-		);
-		if (arrivalTime) {
-			arrivalTime.value = tileData.arrivalTime || "--:--";
-			console.log(
-				`Arrival Time für Kachel ${tileId} angewendet: ${tileData.arrivalTime}`
-			);
-		}
-
-		const departureTime = document.querySelector(
-			`${container} #departure-time-${tileId}`
-		);
-		if (departureTime) {
-			departureTime.value = tileData.departureTime || "--:--";
-			console.log(
-				`Departure Time für Kachel ${tileId} angewendet: ${tileData.departureTime}`
-			);
-		}
-
-		// Position-Wert setzen (Info Grid)
-		const positionInfoGrid = document.querySelector(
-			`${container} #position-${tileId}`
-		);
-		if (positionInfoGrid) {
-			positionInfoGrid.value = tileData.positionInfoGrid || "--";
-			console.log(
-				`Position Info Grid für Kachel ${tileId} angewendet: ${tileData.positionInfoGrid}`
-			);
 		}
 	} catch (error) {
 		console.error(
