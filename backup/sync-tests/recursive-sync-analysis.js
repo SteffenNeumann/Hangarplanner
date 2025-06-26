@@ -856,7 +856,9 @@ window.quickSyncTest = {
 	testAircraftReference: () =>
 		window.recursiveSyncAnalysis.testAircraftReferenceMethod(),
 	compareWithAircraft: () => {
-		console.log("🔍 Starte Vergleichsanalyse mit bewährtem Aircraft-Verfahren...");
+		console.log(
+			"🔍 Starte Vergleichsanalyse mit bewährtem Aircraft-Verfahren..."
+		);
 		return window.recursiveSyncAnalysis.testAircraftReferenceMethod();
 	},
 	testField: (fieldId) => {
