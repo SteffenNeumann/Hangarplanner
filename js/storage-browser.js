@@ -210,7 +210,8 @@ class StorageBrowser {
 	 */
 	applyTilesData(tilesData) {
 		try {
-			console.log("Wende Kacheldaten an:", tilesData);
+			console.log("=== WENDE KACHELDATEN AN ===");
+			console.log("Eingangsdaten:", tilesData);
 
 			// Format prüfen und normalisieren
 			let primaryTiles = [];
@@ -232,24 +233,66 @@ class StorageBrowser {
 					secondaryTiles = tilesData.secondaryTiles;
 				}
 			}
-			// Altes Format: Direkt ein Array - aufteilen nach Tile IDs
+			// Altes Format: Direkt ein Array - aufteilen nach Tile IDs (VERBESSERTE LOGIK)
 			else if (Array.isArray(tilesData)) {
 				tilesData.forEach((tile) => {
+					// Striktere Zuordnung: IDs >= 101 sind definitiv sekundär
 					if (tile.tileId >= 101) {
 						secondaryTiles.push(tile);
-					} else {
+						console.log(
+							`Tile ${tile.tileId} als sekundär klassifiziert (ID >= 101)`
+						);
+					}
+					// IDs 1-12 sind primär (typischer Bereich für primäre Kacheln)
+					else if (tile.tileId >= 1 && tile.tileId <= 12) {
 						primaryTiles.push(tile);
+						console.log(
+							`Tile ${tile.tileId} als primär klassifiziert (ID 1-12)`
+						);
+					}
+					// Unerwartete IDs - Warnung ausgeben
+					else {
+						console.warn(
+							`❌ Unerwartete Tile ID ${tile.tileId} - wird ignoriert`
+						);
 					}
 				});
 			}
 
-			console.log("Primary tiles zu anwenden:", primaryTiles.length);
-			console.log("Secondary tiles zu anwenden:", secondaryTiles.length);
+			console.log(`=== KACHELN KLASSIFIZIERT ===`);
+			console.log(
+				`Primary tiles zu anwenden: ${primaryTiles.length}`,
+				primaryTiles
+			);
+			console.log(
+				`Secondary tiles zu anwenden: ${secondaryTiles.length}`,
+				secondaryTiles
+			);
 
-			// Primary Tiles anwenden
-			primaryTiles.forEach((tileData) => {
-				this.applySingleTileData(tileData);
-			});
+			// Primary Tiles anwenden - mit Container-Existenz-Prüfung
+			const primaryContainer = document.querySelector("#hangarGrid");
+			if (primaryContainer && primaryTiles.length > 0) {
+				console.log("=== ANWENDEN DER PRIMÄREN KACHELN ===");
+				primaryTiles.forEach((tileData, index) => {
+					console.log(
+						`Wende primäre Kachel ${index + 1}/${primaryTiles.length} an:`,
+						tileData
+					);
+
+					// Zusätzliche Validierung - sicherstellen, dass die Tile ID im primären Bereich liegt
+					if (tileData.tileId >= 1 && tileData.tileId <= 12) {
+						this.applySingleTileData(tileData);
+					} else {
+						console.error(
+							`❌ FEHLER: Primäre Kachel mit ungültiger ID ${tileData.tileId} wird übersprungen`
+						);
+					}
+				});
+			} else if (primaryTiles.length > 0) {
+				console.warn(
+					"❌ Primary Container nicht gefunden, aber primary tiles vorhanden"
+				);
+			}
 
 			// Secondary Tiles - sicherstellen, dass sie existieren, bevor wir sie anwenden
 			if (secondaryTiles.length > 0) {
@@ -287,22 +330,51 @@ class StorageBrowser {
 
 					// Kurz warten bis UI erstellt ist, dann erneut versuchen
 					setTimeout(() => {
-						console.log("Versuche Secondary Tiles erneut anzuwenden...");
-						secondaryTiles.forEach((tileData) => {
-							this.applySingleTileData(tileData);
+						console.log("=== ANWENDEN DER SEKUNDÄREN KACHELN (VERZÖGERT) ===");
+						secondaryTiles.forEach((tileData, index) => {
+							console.log(
+								`Wende sekundäre Kachel ${index + 1}/${
+									secondaryTiles.length
+								} an:`,
+								tileData
+							);
+
+							// Zusätzliche Validierung - sicherstellen, dass die Tile ID im sekundären Bereich liegt
+							if (tileData.tileId >= 101) {
+								this.applySingleTileData(tileData);
+							} else {
+								console.error(
+									`❌ FEHLER: Sekundäre Kachel mit ungültiger ID ${tileData.tileId} wird übersprungen`
+								);
+							}
 						});
 					}, 500);
 				} else {
 					// Secondary tiles direkt anwenden
-					secondaryTiles.forEach((tileData) => {
-						this.applySingleTileData(tileData);
+					console.log("=== ANWENDEN DER SEKUNDÄREN KACHELN ===");
+					secondaryTiles.forEach((tileData, index) => {
+						console.log(
+							`Wende sekundäre Kachel ${index + 1}/${
+								secondaryTiles.length
+							} an:`,
+							tileData
+						);
+
+						// Zusätzliche Validierung - sicherstellen, dass die Tile ID im sekundären Bereich liegt
+						if (tileData.tileId >= 101) {
+							this.applySingleTileData(tileData);
+						} else {
+							console.error(
+								`❌ FEHLER: Sekundäre Kachel mit ungültiger ID ${tileData.tileId} wird übersprungen`
+							);
+						}
 					});
 				}
 			}
 
-			console.log("Kacheldaten erfolgreich angewendet");
+			console.log("=== KACHELDATEN ERFOLGREICH ANGEWENDET ===");
 		} catch (error) {
-			console.error("Fehler beim Anwenden der Kacheldaten:", error);
+			console.error("❌ Fehler beim Anwenden der Kacheldaten:", error);
 		}
 	}
 
@@ -313,7 +385,36 @@ class StorageBrowser {
 	applySingleTileData(tileData) {
 		if (!tileData.tileId) return;
 
-		console.log(`Wende Daten für Tile ${tileData.tileId} an:`, tileData);
+		console.log(`=== ANWENDEN DER DATEN FÜR TILE ${tileData.tileId} ===`);
+		console.log("TileData:", tileData);
+
+		// WICHTIG: Validation - sekundäre Kacheln haben IDs >= 101, primäre IDs 1-12
+		const isSecondaryByTileId = tileData.tileId >= 101;
+		const expectedContainer = isSecondaryByTileId
+			? "#secondaryHangarGrid"
+			: "#hangarGrid";
+		const containerElement = document.querySelector(expectedContainer);
+
+		if (!containerElement) {
+			console.warn(
+				`❌ Container ${expectedContainer} nicht gefunden für Tile ${tileData.tileId}`
+			);
+			return;
+		}
+
+		// Container-basierte Validation - stelle sicher, dass das Element in der richtigen Sektion existiert
+		const aircraftInput = document.getElementById(
+			`aircraft-${tileData.tileId}`
+		);
+		if (aircraftInput) {
+			const isInExpectedContainer = containerElement.contains(aircraftInput);
+			if (!isInExpectedContainer) {
+				console.error(
+					`❌ KRITISCHER MAPPING FEHLER: Element aircraft-${tileData.tileId} wurde gefunden, aber ist NICHT im erwarteten Container ${expectedContainer}!`
+				);
+				return;
+			}
+		}
 
 		// Debug: Spezifisches Logging für Tow Status
 		if (tileData.towStatus) {
@@ -322,13 +423,20 @@ class StorageBrowser {
 			);
 		}
 
-		// Position setzen
+		// Position setzen - mit Container-Validation
 		if (tileData.position) {
 			const positionInput = document.getElementById(
 				`hangar-position-${tileData.tileId}`
 			);
-			if (positionInput) {
+			if (positionInput && containerElement.contains(positionInput)) {
 				positionInput.value = tileData.position;
+				console.log(
+					`✅ Position für Tile ${tileData.tileId} gesetzt: ${tileData.position}`
+				);
+			} else if (positionInput) {
+				console.warn(
+					`❌ Position Input für Tile ${tileData.tileId} ist nicht im erwarteten Container`
+				);
 			} else {
 				console.warn(
 					`Position Input für Tile ${tileData.tileId} nicht gefunden`
@@ -336,13 +444,17 @@ class StorageBrowser {
 			}
 		}
 
-		// Aircraft ID setzen
+		// Aircraft ID setzen - mit Container-Validation
 		if (tileData.aircraftId) {
-			const aircraftInput = document.getElementById(
-				`aircraft-${tileData.tileId}`
-			);
-			if (aircraftInput) {
+			if (aircraftInput && containerElement.contains(aircraftInput)) {
 				aircraftInput.value = tileData.aircraftId;
+				console.log(
+					`✅ Aircraft ID für Tile ${tileData.tileId} gesetzt: ${tileData.aircraftId}`
+				);
+			} else if (aircraftInput) {
+				console.warn(
+					`❌ Aircraft Input für Tile ${tileData.tileId} ist nicht im erwarteten Container`
+				);
 			} else {
 				console.warn(
 					`Aircraft Input für Tile ${tileData.tileId} nicht gefunden`
@@ -350,49 +462,70 @@ class StorageBrowser {
 			}
 		}
 
-		// Manuelle Eingabe setzen
+		// Manuelle Eingabe setzen - mit Container-Validation
 		if (tileData.manualInput) {
 			const manualInput = document.getElementById(
 				`manual-input-${tileData.tileId}`
 			);
-			if (manualInput) {
+			if (manualInput && containerElement.contains(manualInput)) {
 				manualInput.value = tileData.manualInput;
+				console.log(
+					`✅ Manual Input für Tile ${tileData.tileId} gesetzt: ${tileData.manualInput}`
+				);
 			}
 		}
 
-		// Notizen setzen
+		// Notizen setzen - mit Container-Validation
 		if (tileData.notes) {
 			const notesInput = document.getElementById(`notes-${tileData.tileId}`);
-			if (notesInput) {
+			if (notesInput && containerElement.contains(notesInput)) {
 				notesInput.value = tileData.notes;
+				console.log(
+					`✅ Notes für Tile ${tileData.tileId} gesetzt: ${tileData.notes}`
+				);
+			} else if (notesInput) {
+				console.warn(
+					`❌ Notes Input für Tile ${tileData.tileId} ist nicht im erwarteten Container`
+				);
 			} else {
 				console.warn(`Notes Input für Tile ${tileData.tileId} nicht gefunden`);
 			}
 		}
 
-		// Status setzen
+		// Status setzen - mit Container-Validation
 		if (tileData.status) {
 			const statusInput = document.getElementById(`status-${tileData.tileId}`);
-			if (statusInput) {
+			if (statusInput && containerElement.contains(statusInput)) {
 				statusInput.value = tileData.status;
+				console.log(
+					`✅ Status für Tile ${tileData.tileId} gesetzt: ${tileData.status}`
+				);
+			} else if (statusInput) {
+				console.warn(
+					`❌ Status Input für Tile ${tileData.tileId} ist nicht im erwarteten Container`
+				);
 			} else {
 				console.warn(`Status Input für Tile ${tileData.tileId} nicht gefunden`);
 			}
 		}
 
-		// Schlepp-Status setzen (auch für neutrale oder leere Werte)
+		// Schlepp-Status setzen (auch für neutrale oder leere Werte) - mit Container-Validation
 		if (tileData.towStatus !== undefined) {
 			const towInput = document.getElementById(`tow-status-${tileData.tileId}`);
-			if (towInput) {
+			if (towInput && containerElement.contains(towInput)) {
 				towInput.value = tileData.towStatus || "neutral";
 				// Auch die visuellen Styles aktualisieren
 				if (typeof updateTowStatusStyles === "function") {
 					updateTowStatusStyles(towInput);
 				}
 				console.log(
-					`Tow Status für Tile ${tileData.tileId} gesetzt: ${
+					`✅ Tow Status für Tile ${tileData.tileId} gesetzt: ${
 						tileData.towStatus || "neutral"
 					}`
+				);
+			} else if (towInput) {
+				console.warn(
+					`❌ Tow Status Input für Tile ${tileData.tileId} ist nicht im erwarteten Container`
 				);
 			} else {
 				console.warn(
@@ -401,15 +534,19 @@ class StorageBrowser {
 			}
 		}
 
-		// Arrival Time setzen
+		// Arrival Time setzen - mit Container-Validation
 		if (tileData.arrivalTime && tileData.arrivalTime !== "--:--") {
 			const arrivalElement = document.getElementById(
 				`arrival-time-${tileData.tileId}`
 			);
-			if (arrivalElement) {
+			if (arrivalElement && containerElement.contains(arrivalElement)) {
 				arrivalElement.value = tileData.arrivalTime;
 				console.log(
-					`Arrival Time für Tile ${tileData.tileId} gesetzt: ${tileData.arrivalTime}`
+					`✅ Arrival Time für Tile ${tileData.tileId} gesetzt: ${tileData.arrivalTime}`
+				);
+			} else if (arrivalElement) {
+				console.warn(
+					`❌ Arrival Time Input für Tile ${tileData.tileId} ist nicht im erwarteten Container`
 				);
 			} else {
 				console.warn(
@@ -418,15 +555,19 @@ class StorageBrowser {
 			}
 		}
 
-		// Departure Time setzen
+		// Departure Time setzen - mit Container-Validation
 		if (tileData.departureTime && tileData.departureTime !== "--:--") {
 			const departureElement = document.getElementById(
 				`departure-time-${tileData.tileId}`
 			);
-			if (departureElement) {
+			if (departureElement && containerElement.contains(departureElement)) {
 				departureElement.value = tileData.departureTime;
 				console.log(
-					`Departure Time für Tile ${tileData.tileId} gesetzt: ${tileData.departureTime}`
+					`✅ Departure Time für Tile ${tileData.tileId} gesetzt: ${tileData.departureTime}`
+				);
+			} else if (departureElement) {
+				console.warn(
+					`❌ Departure Time Input für Tile ${tileData.tileId} ist nicht im erwarteten Container`
 				);
 			} else {
 				console.warn(
@@ -435,15 +576,22 @@ class StorageBrowser {
 			}
 		}
 
-		// Position (Info-Grid) setzen
+		// Position (Info-Grid) setzen - mit Container-Validation
 		if (tileData.positionInfoGrid) {
 			const positionInfoElement = document.getElementById(
 				`position-${tileData.tileId}`
 			);
-			if (positionInfoElement) {
+			if (
+				positionInfoElement &&
+				containerElement.contains(positionInfoElement)
+			) {
 				positionInfoElement.value = tileData.positionInfoGrid;
 				console.log(
-					`Position Info-Grid für Tile ${tileData.tileId} gesetzt: ${tileData.positionInfoGrid}`
+					`✅ Position Info-Grid für Tile ${tileData.tileId} gesetzt: ${tileData.positionInfoGrid}`
+				);
+			} else if (positionInfoElement) {
+				console.warn(
+					`❌ Position Info-Grid Input für Tile ${tileData.tileId} ist nicht im erwarteten Container`
 				);
 			} else {
 				console.warn(
@@ -460,6 +608,10 @@ class StorageBrowser {
 				tileData.departureTime || "--:--"
 			);
 		}
+
+		console.log(
+			`=== ANWENDEN ABGESCHLOSSEN FÜR TILE ${tileData.tileId} (Container: ${expectedContainer}) ===`
+		);
 	}
 
 	/**
@@ -836,13 +988,42 @@ class StorageBrowser {
 	 */
 	collectPrimaryTilesData() {
 		const tiles = [];
+		const container = document.querySelector("#hangarGrid");
+		if (!container) {
+			console.warn("Primary hangar grid container nicht gefunden");
+			return tiles;
+		}
+
 		document
 			.querySelectorAll("#hangarGrid .hangar-cell")
 			.forEach((cell, index) => {
+				// Ignoriere versteckte Kacheln
+				if (cell.classList.contains("hidden")) {
+					console.log(`Primäre Kachel ${index} übersprungen (versteckt)`);
+					return;
+				}
+
 				const cellId = index + 1;
+
+				// Container-Validation: Prüfe, ob das aircraft-Element wirklich im primary container ist
+				const aircraftElement = document.getElementById(`aircraft-${cellId}`);
+				if (aircraftElement && !container.contains(aircraftElement)) {
+					console.error(
+						`❌ KRITISCHER FEHLER: Element aircraft-${cellId} ist NICHT im Primary Container!`
+					);
+					return; // Skip diese Kachel
+				}
+
 				const tileData = this.collectSingleTileData(cellId, false);
-				if (tileData) tiles.push(tileData);
+				if (tileData) {
+					console.log(`✅ Gesammelte primäre Kachel ${cellId}:`, tileData);
+					tiles.push(tileData);
+				}
 			});
+
+		console.log(
+			`=== PRIMARY TILES SAMMLUNG ABGESCHLOSSEN: ${tiles.length} Kacheln ===`
+		);
 		return tiles;
 	}
 
@@ -852,13 +1033,42 @@ class StorageBrowser {
 	 */
 	collectSecondaryTilesData() {
 		const tiles = [];
+		const container = document.querySelector("#secondaryHangarGrid");
+		if (!container) {
+			console.warn("Secondary hangar grid container nicht gefunden");
+			return tiles;
+		}
+
 		document
 			.querySelectorAll("#secondaryHangarGrid .hangar-cell")
 			.forEach((cell, index) => {
+				// Ignoriere versteckte Kacheln
+				if (cell.classList.contains("hidden")) {
+					console.log(`Sekundäre Kachel ${index} übersprungen (versteckt)`);
+					return;
+				}
+
 				const cellId = 101 + index;
+
+				// Container-Validation: Prüfe, ob das aircraft-Element wirklich im secondary container ist
+				const aircraftElement = document.getElementById(`aircraft-${cellId}`);
+				if (aircraftElement && !container.contains(aircraftElement)) {
+					console.error(
+						`❌ KRITISCHER FEHLER: Element aircraft-${cellId} ist NICHT im Secondary Container!`
+					);
+					return; // Skip diese Kachel
+				}
+
 				const tileData = this.collectSingleTileData(cellId, true);
-				if (tileData) tiles.push(tileData);
+				if (tileData) {
+					console.log(`✅ Gesammelte sekundäre Kachel ${cellId}:`, tileData);
+					tiles.push(tileData);
+				}
 			});
+
+		console.log(
+			`=== SECONDARY TILES SAMMLUNG ABGESCHLOSSEN: ${tiles.length} Kacheln ===`
+		);
 		return tiles;
 	}
 
@@ -870,27 +1080,110 @@ class StorageBrowser {
 	 */
 	collectSingleTileData(cellId, isSecondary = false) {
 		try {
-			return {
+			// Container-Validation: Bestimme den erwarteten Container
+			const expectedContainer = isSecondary
+				? "#secondaryHangarGrid"
+				: "#hangarGrid";
+			const containerElement = document.querySelector(expectedContainer);
+
+			if (!containerElement) {
+				console.warn(
+					`Container ${expectedContainer} nicht gefunden für Kachel ${cellId}`
+				);
+				return null;
+			}
+
+			// Sammle Daten nur von Elementen, die wirklich im richtigen Container sind
+			const aircraftElement = document.getElementById(`aircraft-${cellId}`);
+			const aircraftId =
+				aircraftElement && containerElement.contains(aircraftElement)
+					? aircraftElement.value || ""
+					: "";
+
+			const positionElement = document.getElementById(
+				`hangar-position-${cellId}`
+			);
+			const position =
+				positionElement && containerElement.contains(positionElement)
+					? positionElement.value || ""
+					: "";
+
+			const manualInputElement = document.getElementById(
+				`manual-input-${cellId}`
+			);
+			const manualInput =
+				manualInputElement && containerElement.contains(manualInputElement)
+					? manualInputElement.value || ""
+					: "";
+
+			const notesElement = document.getElementById(`notes-${cellId}`);
+			const notes =
+				notesElement && containerElement.contains(notesElement)
+					? notesElement.value || ""
+					: "";
+
+			const statusElement = document.getElementById(`status-${cellId}`);
+			const status =
+				statusElement && containerElement.contains(statusElement)
+					? statusElement.value || "ready"
+					: "ready";
+
+			const towStatusElement = document.getElementById(`tow-status-${cellId}`);
+			const towStatus =
+				towStatusElement && containerElement.contains(towStatusElement)
+					? towStatusElement.value || "neutral"
+					: "neutral";
+
+			const arrivalTimeElement = document.getElementById(
+				`arrival-time-${cellId}`
+			);
+			const arrivalTime =
+				arrivalTimeElement && containerElement.contains(arrivalTimeElement)
+					? arrivalTimeElement.value?.trim() || "--:--"
+					: "--:--";
+
+			const departureTimeElement = document.getElementById(
+				`departure-time-${cellId}`
+			);
+			const departureTime =
+				departureTimeElement && containerElement.contains(departureTimeElement)
+					? departureTimeElement.value?.trim() || "--:--"
+					: "--:--";
+
+			const positionInfoElement = document.getElementById(`position-${cellId}`);
+			const positionInfoGrid =
+				positionInfoElement && containerElement.contains(positionInfoElement)
+					? positionInfoElement.value || ""
+					: "";
+
+			// Debug-Logging für kritische Validierungen
+			if (aircraftElement && !containerElement.contains(aircraftElement)) {
+				console.error(
+					`❌ VALIDATION FAILED: aircraft-${cellId} ist nicht im erwarteten Container ${expectedContainer}`
+				);
+			}
+
+			const tileData = {
 				tileId: cellId,
-				aircraftId: document.getElementById(`aircraft-${cellId}`)?.value || "",
-				position:
-					document.getElementById(`hangar-position-${cellId}`)?.value || "",
-				manualInput:
-					document.querySelector(`#manual-input-${cellId}`)?.value || "",
-				notes: document.getElementById(`notes-${cellId}`)?.value || "",
-				status: document.getElementById(`status-${cellId}`)?.value || "ready",
-				towStatus:
-					document.getElementById(`tow-status-${cellId}`)?.value || "neutral",
-				arrivalTime:
-					document.getElementById(`arrival-time-${cellId}`)?.value?.trim() ||
-					"--:--",
-				departureTime:
-					document.getElementById(`departure-time-${cellId}`)?.value?.trim() ||
-					"--:--",
-				positionInfoGrid:
-					document.getElementById(`position-${cellId}`)?.value || "",
+				aircraftId: aircraftId,
+				position: position,
+				manualInput: manualInput,
+				notes: notes,
+				status: status,
+				towStatus: towStatus,
+				arrivalTime: arrivalTime,
+				departureTime: departureTime,
+				positionInfoGrid: positionInfoGrid,
 				isSecondary: isSecondary,
 			};
+
+			console.log(
+				`Sammle Daten für Kachel ${cellId} (${
+					isSecondary ? "sekundär" : "primär"
+				}) aus Container ${expectedContainer}:`,
+				tileData
+			);
+			return tileData;
 		} catch (error) {
 			console.warn(`Fehler beim Sammeln von Kachel ${cellId}:`, error);
 			return null;
@@ -1272,6 +1565,67 @@ class StorageBrowser {
 
 		console.log("=== SYNC DEBUG TEST ENDE ===");
 	}
+
+	/**
+	 * Debug-Funktion: Validiert Container-Zuordnungen
+	 */
+	validateContainerMappings() {
+		console.log("=== CONTAINER MAPPING VALIDATION ===");
+
+		// Prüfe Primary Container
+		const primaryContainer = document.querySelector("#hangarGrid");
+		const secondaryContainer = document.querySelector("#secondaryHangarGrid");
+
+		console.log("Primary Container vorhanden:", !!primaryContainer);
+		console.log("Secondary Container vorhanden:", !!secondaryContainer);
+
+		if (primaryContainer) {
+			const primaryCells = primaryContainer.querySelectorAll(".hangar-cell");
+			console.log(`Primary Container hat ${primaryCells.length} Kacheln`);
+
+			primaryCells.forEach((cell, index) => {
+				const cellId = index + 1;
+				const aircraftElement = document.getElementById(`aircraft-${cellId}`);
+				const isInPrimaryContainer =
+					aircraftElement && primaryContainer.contains(aircraftElement);
+
+				console.log(
+					`Primary Kachel ${cellId}: Element gefunden: ${!!aircraftElement}, Im richtigen Container: ${isInPrimaryContainer}`
+				);
+
+				if (aircraftElement && !isInPrimaryContainer) {
+					console.error(
+						`❌ MAPPING FEHLER: aircraft-${cellId} ist nicht im Primary Container!`
+					);
+				}
+			});
+		}
+
+		if (secondaryContainer) {
+			const secondaryCells =
+				secondaryContainer.querySelectorAll(".hangar-cell");
+			console.log(`Secondary Container hat ${secondaryCells.length} Kacheln`);
+
+			secondaryCells.forEach((cell, index) => {
+				const cellId = 101 + index;
+				const aircraftElement = document.getElementById(`aircraft-${cellId}`);
+				const isInSecondaryContainer =
+					aircraftElement && secondaryContainer.contains(aircraftElement);
+
+				console.log(
+					`Secondary Kachel ${cellId}: Element gefunden: ${!!aircraftElement}, Im richtigen Container: ${isInSecondaryContainer}`
+				);
+
+				if (aircraftElement && !isInSecondaryContainer) {
+					console.error(
+						`❌ MAPPING FEHLER: aircraft-${cellId} ist nicht im Secondary Container!`
+					);
+				}
+			});
+		}
+
+		console.log("=== CONTAINER MAPPING VALIDATION ENDE ===");
+	}
 }
 
 // Debug-Funktionen global verfügbar machen
@@ -1308,6 +1662,41 @@ window.resetSync = () => {
 		window.storageBrowser.isApplyingServerData = false;
 		console.log("Synchronisations-Status zurückgesetzt");
 		console.log("=== SYNC RESET ENDE ===");
+	} else {
+		console.error("Storage Browser nicht verfügbar");
+	}
+};
+
+// NEUE Debug-Funktion für Container-Mapping-Validation
+window.validateContainerMapping = () => {
+	if (window.storageBrowser) {
+		window.storageBrowser.validateContainerMappings();
+	} else {
+		console.error("Storage Browser nicht verfügbar");
+	}
+};
+
+// NEUE Debug-Funktion für detaillierte Sync-Analyse
+window.debugSyncDetailed = () => {
+	if (window.storageBrowser) {
+		console.log("=== DETAILLIERTE SYNC ANALYSE ===");
+
+		// 1. Container-Mappings validieren
+		window.storageBrowser.validateContainerMappings();
+
+		// 2. Aktuelle Daten sammeln und anzeigen
+		console.log("--- DATENSAMMLUNG ---");
+		const primaryData = window.storageBrowser.collectPrimaryTilesData();
+		const secondaryData = window.storageBrowser.collectSecondaryTilesData();
+
+		console.log("Primary Tiles Data:", primaryData);
+		console.log("Secondary Tiles Data:", secondaryData);
+
+		// 3. Vollständige Projektdaten
+		const fullData = window.storageBrowser.collectCurrentProjectData();
+		console.log("Vollständige Projektdaten:", fullData);
+
+		console.log("=== DETAILLIERTE SYNC ANALYSE ENDE ===");
 	} else {
 		console.error("Storage Browser nicht verfügbar");
 	}
