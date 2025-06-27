@@ -1669,38 +1669,173 @@ window.resetSync = () => {
 
 // NEUE Debug-Funktion für Container-Mapping-Validation
 window.validateContainerMapping = () => {
-	if (window.storageBrowser) {
-		window.storageBrowser.validateContainerMappings();
+	console.log("=== Container Mapping Validation ===");
+
+	const primaryContainer = document.querySelector(".primary-tiles-container");
+	const secondaryContainer = document.querySelector(
+		".secondary-tiles-container"
+	);
+
+	if (!primaryContainer) {
+		console.error("❌ Primary tiles container not found!");
+		return false;
+	}
+
+	if (!secondaryContainer) {
+		console.error("❌ Secondary tiles container not found!");
+		return false;
+	}
+
+	console.log("✅ Both containers found");
+	console.log("Primary container:", primaryContainer);
+	console.log("Secondary container:", secondaryContainer);
+
+	// Check tiles in each container
+	const primaryTiles = primaryContainer.querySelectorAll(".hangar-tile");
+	const secondaryTiles = secondaryContainer.querySelectorAll(".hangar-tile");
+
+	console.log(`Primary tiles count: ${primaryTiles.length}`);
+	console.log(`Secondary tiles count: ${secondaryTiles.length}`);
+
+	// Validate no tile is in both containers
+	let crossContainerIssues = 0;
+	primaryTiles.forEach((tile, index) => {
+		if (secondaryContainer.contains(tile)) {
+			console.error(`❌ Primary tile ${index} found in secondary container!`);
+			crossContainerIssues++;
+		}
+	});
+
+	secondaryTiles.forEach((tile, index) => {
+		if (primaryContainer.contains(tile)) {
+			console.error(`❌ Secondary tile ${index} found in primary container!`);
+			crossContainerIssues++;
+		}
+	});
+
+	if (crossContainerIssues === 0) {
+		console.log("✅ No cross-container issues found");
+		return true;
 	} else {
-		console.error("Storage Browser nicht verfügbar");
+		console.error(`❌ Found ${crossContainerIssues} cross-container issues`);
+		return false;
+	}
+
+	// Also call storageBrowser validation if available
+	if (
+		window.storageBrowser &&
+		window.storageBrowser.validateContainerMappings
+	) {
+		window.storageBrowser.validateContainerMappings();
 	}
 };
 
+// Add to helpers namespace if available
+if (window.helpers) {
+	window.helpers.validateContainerMapping = window.validateContainerMapping;
+} else {
+	window.helpers = {
+		validateContainerMapping: window.validateContainerMapping,
+	};
+}
+
 // NEUE Debug-Funktion für detaillierte Sync-Analyse
 window.debugSyncDetailed = () => {
-	if (window.storageBrowser) {
-		console.log("=== DETAILLIERTE SYNC ANALYSE ===");
+	console.log("=== DETAILLIERTE SYNC ANALYSE ===");
 
-		// 1. Container-Mappings validieren
-		window.storageBrowser.validateContainerMappings();
+	// 1. Container-Mappings validieren
+	const containerValid = window.validateContainerMapping();
 
-		// 2. Aktuelle Daten sammeln und anzeigen
-		console.log("--- DATENSAMMLUNG ---");
-		const primaryData = window.storageBrowser.collectPrimaryTilesData();
-		const secondaryData = window.storageBrowser.collectSecondaryTilesData();
+	if (!containerValid) {
+		console.error(
+			"❌ Container-Validierung fehlgeschlagen, Analyse abgebrochen"
+		);
+		return;
+	}
+
+	// 2. Aktuelle Daten sammeln und anzeigen
+	console.log("--- DATENSAMMLUNG ---");
+
+	try {
+		// Erstelle globale Referenzen auf die Sammelfunktionen falls nicht vorhanden
+		if (typeof collectPrimaryTilesData === "undefined") {
+			window.collectPrimaryTilesData = () => {
+				if (
+					window.storageBrowser &&
+					window.storageBrowser.collectPrimaryTilesData
+				) {
+					return window.storageBrowser.collectPrimaryTilesData();
+				}
+				return [];
+			};
+		}
+
+		if (typeof collectSecondaryTilesData === "undefined") {
+			window.collectSecondaryTilesData = () => {
+				if (
+					window.storageBrowser &&
+					window.storageBrowser.collectSecondaryTilesData
+				) {
+					return window.storageBrowser.collectSecondaryTilesData();
+				}
+				return [];
+			};
+		}
+
+		const primaryData = collectPrimaryTilesData();
+		const secondaryData = collectSecondaryTilesData();
 
 		console.log("Primary Tiles Data:", primaryData);
 		console.log("Secondary Tiles Data:", secondaryData);
 
-		// 3. Vollständige Projektdaten
-		const fullData = window.storageBrowser.collectCurrentProjectData();
-		console.log("Vollständige Projektdaten:", fullData);
+		// Check for data crossover
+		let dataCrossover = false;
+		if (primaryData.length > 0 && secondaryData.length > 0) {
+			const firstPrimaryData = JSON.stringify(primaryData[0]);
+			secondaryData.forEach((secData, index) => {
+				if (JSON.stringify(secData) === firstPrimaryData) {
+					console.error(
+						`❌ Secondary tile ${index} has identical data to first primary tile!`
+					);
+					dataCrossover = true;
+				}
+			});
+		}
+
+		if (!dataCrossover) {
+			console.log("✅ No data crossover detected");
+		}
+
+		// 3. Vollständige Projektdaten wenn verfügbar
+		if (
+			window.storageBrowser &&
+			window.storageBrowser.collectCurrentProjectData
+		) {
+			const fullData = window.storageBrowser.collectCurrentProjectData();
+			console.log("Vollständige Projektdaten:", fullData);
+		}
 
 		console.log("=== DETAILLIERTE SYNC ANALYSE ENDE ===");
-	} else {
-		console.error("Storage Browser nicht verfügbar");
+
+		return {
+			containerValid,
+			primaryData,
+			secondaryData,
+			dataCrossover,
+		};
+	} catch (error) {
+		console.error("❌ Fehler bei der Sync-Analyse:", error);
+		return null;
 	}
 };
+
+// Add to helpers namespace if available
+if (window.helpers) {
+	window.helpers.debugSyncDetailed = window.debugSyncDetailed;
+} else {
+	if (!window.helpers) window.helpers = {};
+	window.helpers.debugSyncDetailed = window.debugSyncDetailed;
+}
 
 // Globale Instanz erstellen
 window.storageBrowser = new StorageBrowser();
@@ -1715,3 +1850,72 @@ document.addEventListener("DOMContentLoaded", () => {
 		}
 	}, 2000); // Erhöht auf 2 Sekunden für bessere Kompatibilität
 });
+
+// === COMPREHENSIVE DEBUG UTILITIES ===
+window.hangarDebug = {
+	// Validate container mapping
+	validateContainerMapping: window.validateContainerMapping,
+
+	// Detailed sync analysis
+	debugSyncDetailed: window.debugSyncDetailed,
+
+	// Quick sync check
+	debugSync: () => {
+		if (window.storageBrowser && window.storageBrowser.debugSync) {
+			return window.storageBrowser.debugSync();
+		} else {
+			console.warn("debugSync nicht verfügbar, verwende vereinfachte Version");
+			return window.debugSyncDetailed();
+		}
+	},
+
+	// Check helper availability
+	checkHelpers: () => {
+		console.log("=== HELPER AVAILABILITY CHECK ===");
+		console.log("window.helpers:", !!window.helpers);
+		console.log(
+			"window.helpers.storage:",
+			!!(window.helpers && window.helpers.storage)
+		);
+		console.log(
+			"window.helpers.storage.whenFieldsReady:",
+			!!(
+				window.helpers &&
+				window.helpers.storage &&
+				window.helpers.storage.whenFieldsReady
+			)
+		);
+		console.log("window.storageBrowser:", !!window.storageBrowser);
+		console.log("window.collectAllHangarData:", !!window.collectAllHangarData);
+		console.log("=== END HELPER CHECK ===");
+	},
+
+	// Collect all current data
+	collectAllData: () => {
+		const result = {
+			primary: [],
+			secondary: [],
+			full: null,
+			error: null,
+		};
+
+		try {
+			if (window.collectAllHangarData) {
+				result.full = window.collectAllHangarData();
+			}
+
+			if (window.storageBrowser) {
+				result.primary = window.storageBrowser.collectPrimaryTilesData();
+				result.secondary = window.storageBrowser.collectSecondaryTilesData();
+			}
+		} catch (error) {
+			result.error = error.message;
+		}
+
+		return result;
+	},
+};
+
+// Also make individual functions globally available for backwards compatibility
+window.debugSync = window.hangarDebug.debugSync;
+window.checkHelpers = window.hangarDebug.checkHelpers;

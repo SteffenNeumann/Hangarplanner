@@ -1325,7 +1325,11 @@ document.addEventListener("DOMContentLoaded", function () {
 		}
 
 		// Event für die Initialisierung der sekundären Kacheln einrichten
-		if (window.helpers && window.helpers.storage) {
+		if (
+			window.helpers &&
+			window.helpers.storage &&
+			window.helpers.storage.whenFieldsReady
+		) {
 			// Verwende erweiterte Konfiguration für die Erkennung
 			window.helpers.storage.whenFieldsReady(
 				"secondary-tile",
@@ -1395,6 +1399,24 @@ document.addEventListener("DOMContentLoaded", function () {
 					}, 500);
 				}
 			});
+		} else {
+			console.warn(
+				"window.helpers.storage.whenFieldsReady nicht verfügbar, verwende Fallback für sekundäre Kacheln"
+			);
+			// Fallback: Direkte Überprüfung nach kurzer Verzögerung
+			setTimeout(() => {
+				const secondaryTiles = document.querySelectorAll(".secondary-tile");
+				if (secondaryTiles.length > 0) {
+					console.log(
+						`${secondaryTiles.length} sekundäre Kacheln über Fallback gefunden`
+					);
+					document.dispatchEvent(
+						new CustomEvent("secondaryTilesReady", {
+							detail: { count: secondaryTiles.length },
+						})
+					);
+				}
+			}, 1000);
 		}
 	}, 500);
 });
