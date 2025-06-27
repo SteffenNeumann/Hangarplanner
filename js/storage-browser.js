@@ -294,65 +294,68 @@ class StorageBrowser {
 				);
 			}
 
-			// Secondary Tiles - sicherstellen, dass sie existieren, bevor wir sie anwenden
+			// Secondary Tiles - prüfen und sicherstellen, dass die richtige Anzahl angezeigt wird
 			if (secondaryTiles.length > 0) {
-				// Prüfen ob Secondary Grid existiert
+				console.log("=== ANWENDEN DER SEKUNDÄREN KACHELN ===");
+
+				// Ermittle die erforderliche Anzahl sekundärer Kacheln aus den Sync-Daten
+				const requiredSecondaryTiles = secondaryTiles.length;
+				console.log(
+					`Sync-Daten enthalten ${requiredSecondaryTiles} sekundäre Kacheln`
+				);
+
+				// Prüfen ob Secondary Grid existiert und richtige Anzahl hat
 				const secondaryGrid = document.getElementById("secondaryHangarGrid");
-				if (!secondaryGrid || secondaryGrid.children.length === 0) {
+				const currentSecondaryCount = secondaryGrid
+					? secondaryGrid.children.length
+					: 0;
+
+				console.log(
+					`Aktuell vorhanden: ${currentSecondaryCount} sekundäre Kacheln`
+				);
+				console.log(
+					`Benötigt für Sync: ${requiredSecondaryTiles} sekundäre Kacheln`
+				);
+
+				if (!secondaryGrid || currentSecondaryCount === 0) {
 					console.log(
-						"Secondary tiles existieren noch nicht, erstelle sie für Sync..."
+						"🔧 Secondary tiles existieren noch nicht - erstelle sie für Sync"
 					);
 
-					// Anzahl der secondary tiles in den Einstellungen setzen
-					const secondaryTilesCount = Math.max(
-						secondaryTiles.length,
-						parseInt(document.getElementById("secondaryTilesCount")?.value) || 0
-					);
+					// Anzahl in den Einstellungen setzen
 					const secondaryTilesCountInput = document.getElementById(
 						"secondaryTilesCount"
 					);
 					if (secondaryTilesCountInput) {
-						secondaryTilesCountInput.value = secondaryTilesCount;
+						secondaryTilesCountInput.value = requiredSecondaryTiles;
+						console.log(
+							`Einstellung aktualisiert: ${requiredSecondaryTiles} sekundäre Kacheln`
+						);
 					}
 
-					// KRITISCHER FIX: Sekundäre Kacheln für Sync erstellen OHNE Datenkloning
-					// Temporär die localStorage-Wiederherstellung deaktivieren während UI-Update
-					const originalFlag = window.isApplyingServerData;
-					window.isApplyingServerData = true;
-
-					// Leere sekundäre Kacheln erstellen (OHNE updateSecondaryTiles zu verwenden)
+					// Erstelle die sekundären Kacheln über die normale UI-Funktion
 					if (
-						window.hangarUI &&
-						typeof window.hangarUI.createEmptySecondaryTiles === "function"
-					) {
-						// Verwende spezielle Funktion für Sync (falls verfügbar)
-						window.hangarUI.createEmptySecondaryTiles(secondaryTilesCount);
-					} else if (
 						window.hangarUI &&
 						typeof window.hangarUI.updateSecondaryTiles === "function"
 					) {
-						// Fallback: Verwende normale Funktion aber mit Sync-Flag
-						console.warn(
-							"SYNC WORKAROUND: Verwende updateSecondaryTiles - Daten werden überschrieben"
+						const currentLayout = window.uiSettings
+							? window.uiSettings.layout
+							: 4;
+						console.log(
+							`Erstelle ${requiredSecondaryTiles} sekundäre Kacheln (Layout: ${currentLayout})`
 						);
-						window.hangarUI.updateSecondaryTiles();
+						window.hangarUI.updateSecondaryTiles(
+							requiredSecondaryTiles,
+							currentLayout
+						);
 					}
 
-					// Flag nach UI-Update zurücksetzen
-					window.isApplyingServerData = originalFlag;
-
-					// Kurz warten bis UI erstellt ist, dann erneut versuchen
+					// Kurz warten, dann Sync-Daten anwenden
 					setTimeout(() => {
-						console.log("=== ANWENDEN DER SEKUNDÄREN KACHELN (VERZÖGERT) ===");
+						console.log(
+							"Wende Sync-Daten auf neu erstellte sekundäre Kacheln an"
+						);
 						secondaryTiles.forEach((tileData, index) => {
-							console.log(
-								`Wende sekundäre Kachel ${index + 1}/${
-									secondaryTiles.length
-								} an:`,
-								tileData
-							);
-
-							// Zusätzliche Validierung - sicherstellen, dass die Tile ID im sekundären Bereich liegt
 							if (tileData.tileId >= 101) {
 								this.applySingleTileData(tileData);
 							} else {
@@ -361,10 +364,52 @@ class StorageBrowser {
 								);
 							}
 						});
-					}, 500);
+					}, 100);
+				} else if (currentSecondaryCount !== requiredSecondaryTiles) {
+					console.log(
+						`🔧 Anzahl sekundärer Kacheln anpassen: ${currentSecondaryCount} → ${requiredSecondaryTiles}`
+					);
+
+					// Anzahl in den Einstellungen anpassen
+					const secondaryTilesCountInput = document.getElementById(
+						"secondaryTilesCount"
+					);
+					if (secondaryTilesCountInput) {
+						secondaryTilesCountInput.value = requiredSecondaryTiles;
+					}
+
+					// Kacheln anpassen über die normale UI-Funktion
+					if (
+						window.hangarUI &&
+						typeof window.hangarUI.updateSecondaryTiles === "function"
+					) {
+						const currentLayout = window.uiSettings
+							? window.uiSettings.layout
+							: 4;
+						window.hangarUI.updateSecondaryTiles(
+							requiredSecondaryTiles,
+							currentLayout
+						);
+					}
+
+					// Kurz warten, dann Sync-Daten anwenden
+					setTimeout(() => {
+						console.log("Wende Sync-Daten auf angepasste sekundäre Kacheln an");
+						secondaryTiles.forEach((tileData, index) => {
+							if (tileData.tileId >= 101) {
+								this.applySingleTileData(tileData);
+							} else {
+								console.error(
+									`❌ FEHLER: Sekundäre Kachel mit ungültiger ID ${tileData.tileId} wird übersprungen`
+								);
+							}
+						});
+					}, 100);
 				} else {
-					// Secondary tiles direkt anwenden
-					console.log("=== ANWENDEN DER SEKUNDÄREN KACHELN ===");
+					// Anzahl stimmt überein - direkt Daten anwenden
+					console.log(
+						`✅ Korrekte Anzahl sekundärer Kacheln vorhanden - wende Sync-Daten direkt an`
+					);
 					secondaryTiles.forEach((tileData, index) => {
 						console.log(
 							`Wende sekundäre Kachel ${index + 1}/${

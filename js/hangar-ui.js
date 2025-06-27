@@ -659,36 +659,99 @@ function createEmptySecondaryTiles(count, layout = null) {
 	for (let i = 0; i < count; i++) {
 		const cellId = 101 + i; // Start bei 101 für sekundäre Kacheln
 
-		// Klone die Vorlage-Kachel (nur Struktur, nicht Daten)
+		// KRITISCH: Klone NICHT die Vorlage-Kachel, sondern nur die STRUKTUR ohne Daten
 		const cellClone = templateCell.cloneNode(true);
 
 		// WICHTIG: Setze explizit das data-cell-id Attribut für korrekte Identifizierung
 		cellClone.setAttribute("data-cell-id", cellId.toString());
 		cellClone.id = `secondary-cell-${cellId}`;
 
-		// KRITISCH: Alle Input-Felder komplett leeren - keine Datenübernahme aus der Vorlage
+		// SOFORTIGE KOMPLETTE LEERUNG: Alle Input-Felder VOR jeder weiteren Verarbeitung leeren
 		const allInputs = cellClone.querySelectorAll("input, select, textarea");
 		allInputs.forEach((input) => {
+			// Attribute zurücksetzen
 			input.value = "";
-			// Spezielle Behandlung für Select-Elemente
+			input.defaultValue = "";
 			if (input.type === "select-one") {
 				input.selectedIndex = 0;
 			}
+			// Alle Data-Attribute entfernen, die Werte enthalten könnten
+			Array.from(input.attributes).forEach((attr) => {
+				if (attr.name.startsWith("data-") && attr.name !== "data-cell-id") {
+					input.removeAttribute(attr.name);
+				}
+			});
 		});
 
-		// IDs korrekt aktualisieren
+		// IDs aktualisieren NACH kompletter Leerung
 		updateCellAttributes(cellClone, cellId);
+
+		// FINALE SICHERHEIT: Nochmalige explizite Leerung aller kritischen Felder
+		const criticalFields = [
+			`#hangar-position-${cellId}`,
+			`#aircraft-${cellId}`,
+			`#arrival-time-${cellId}`,
+			`#departure-time-${cellId}`,
+			`#manual-input-${cellId}`,
+			`#notes-${cellId}`,
+			`#status-${cellId}`,
+		];
+
+		criticalFields.forEach((selector) => {
+			const element = cellClone.querySelector(selector);
+			if (element) {
+				const oldValue = element.value;
+				element.value = "";
+				element.defaultValue = "";
+				if (element.type === "select-one") {
+					element.selectedIndex = 0;
+				}
+				console.log(
+					`🔧 ${selector} für Sync geleert (war: "${oldValue}", jetzt: "${element.value}")`
+				);
+			}
+		});
 
 		// Zur sekundären Sektion hinzufügen
 		secondaryGrid.appendChild(cellClone);
 
-		console.log(`✅ Leere sekundäre Kachel ${cellId} erstellt`);
+		// FINALE VERIFIKATION: Prüfe nach DOM-Hinzufügung, dass alle Felder wirklich leer sind
+		setTimeout(() => {
+			const verificationFields = [
+				`hangar-position-${cellId}`,
+				`aircraft-${cellId}`,
+				`arrival-time-${cellId}`,
+				`departure-time-${cellId}`,
+				`manual-input-${cellId}`,
+				`notes-${cellId}`,
+			];
+
+			verificationFields.forEach((fieldId) => {
+				const field = document.getElementById(fieldId);
+				if (field && field.value !== "") {
+					console.warn(
+						`⚠️  SYNC-WARNUNG: Feld ${fieldId} ist nicht leer (Wert: "${field.value}") - leere es nochmals`
+					);
+					field.value = "";
+					field.defaultValue = "";
+				}
+			});
+		}, 10);
+
+		console.log(
+			`✅ KOMPLETT LEERE sekundäre Kachel ${cellId} für Sync erstellt`
+		);
 	}
 
 	// Layout-Klasse setzen
 	secondaryGrid.className = `hangar-grid grid-cols-${layout}`;
 
-	console.log(`=== ${count} LEERE SEKUNDÄRE KACHELN FÜR SYNC ERSTELLT ===`);
+	console.log(
+		`=== ${count} KOMPLETT LEERE SEKUNDÄRE KACHELN FÜR SYNC ERSTELLT ===`
+	);
+	console.log(
+		`🚫 KEIN DATENKLONING durchgeführt - alle Kacheln sind garantiert leer`
+	);
 
 	// KEINE Datenwiederherstellung - Kacheln sollen komplett leer bleiben für Sync!
 }
@@ -705,6 +768,30 @@ function updateCellAttributes(cell, cellId) {
 		const currentId = element.id;
 		const newId = currentId.replace(/\d+$/, cellId.toString());
 		element.id = newId;
+
+		// KRITISCH: Für Sync-Sicherheit alle Input-Werte radikal leeren
+		if (
+			element.tagName === "INPUT" ||
+			element.tagName === "SELECT" ||
+			element.tagName === "TEXTAREA"
+		) {
+			// Komplett zurücksetzen - KEIN Kloning
+			element.value = "";
+			element.defaultValue = "";
+			element.innerHTML = ""; // Bei Textareas
+
+			if (element.type === "select-one") {
+				element.selectedIndex = 0;
+				// Alle Options zurücksetzen außer der ersten
+				Array.from(element.options).forEach((option, index) => {
+					option.selected = index === 0;
+				});
+			}
+
+			// Alle potentiellen Werte-Attribute entfernen
+			element.removeAttribute("data-original-value");
+			element.removeAttribute("data-default-value");
+		}
 	});
 
 	// Labels mit 'for' Attributen aktualisieren
@@ -715,8 +802,19 @@ function updateCellAttributes(cell, cellId) {
 		label.setAttribute("for", newFor);
 	});
 
-	// Data-Attribute aktualisieren
+	// Data-Attribute aktualisieren, aber Werte-bezogene entfernen
 	cell.setAttribute("data-cell-id", cellId.toString());
+
+	// Entferne alle Data-Attribute, die Werte enthalten könnten
+	Array.from(cell.attributes).forEach((attr) => {
+		if (
+			attr.name.startsWith("data-") &&
+			attr.name !== "data-cell-id" &&
+			(attr.name.includes("value") || attr.name.includes("content"))
+		) {
+			cell.removeAttribute(attr.name);
+		}
+	});
 }
 
 /**
