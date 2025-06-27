@@ -1916,6 +1916,228 @@ window.hangarDebug = {
 	},
 };
 
-// Also make individual functions globally available for backwards compatibility
-window.debugSync = window.hangarDebug.debugSync;
-window.checkHelpers = window.hangarDebug.checkHelpers;
+// === ROBUSTE DEBUG-FUNKTIONS-VERFÜGBARKEIT ===
+// Diese Funktionen stellen sicher, dass Debug-Funktionen immer verfügbar sind,
+// auch wenn andere Skripte das window-Objekt überschreiben
+
+function ensureGlobalDebugAccess() {
+	// Erstelle dediziertes Debug-Objekt falls nicht vorhanden
+	if (!window.hangarDebug) {
+		window.hangarDebug = {};
+	}
+
+	// Stelle sicher, dass helpers.debug existiert
+	if (!window.helpers) {
+		window.helpers = {};
+	}
+	if (!window.helpers.debug) {
+		window.helpers.debug = {};
+	}
+
+	// Sammle alle Debug-Funktionen
+	const debugFunctions = {
+		validateContainerMapping: window.validateContainerMapping,
+		debugSyncDetailed: window.debugSyncDetailed,
+		debugSync:
+			window.debugSync ||
+			(() => {
+				if (window.storageBrowser && window.storageBrowser.testSync) {
+					return window.storageBrowser.testSync();
+				} else {
+					return window.debugSyncDetailed();
+				}
+			}),
+		debugChecksum: window.debugChecksum,
+		resetSync: window.resetSync,
+		checkHelpers:
+			window.hangarDebug?.checkHelpers ||
+			(() => {
+				console.log("=== HELPER AVAILABILITY CHECK ===");
+				console.log("window.helpers:", !!window.helpers);
+				console.log("window.storageBrowser:", !!window.storageBrowser);
+				console.log("=== END HELPER CHECK ===");
+			}),
+	};
+
+	// Filtere undefined Funktionen heraus
+	Object.keys(debugFunctions).forEach((key) => {
+		if (typeof debugFunctions[key] !== "function") {
+			delete debugFunctions[key];
+		}
+	});
+
+	// Registriere unter window.hangarDebug (bevorzugter Namespace)
+	Object.assign(window.hangarDebug, debugFunctions);
+
+	// Registriere unter window.helpers.debug
+	Object.assign(window.helpers.debug, debugFunctions);
+
+	// Registriere als globale Funktionen mit robuster Eigenschaftsdefinition
+	Object.keys(debugFunctions).forEach((key) => {
+		try {
+			// Verwende defineProperty für robuste Definition
+			Object.defineProperty(window, key, {
+				value: debugFunctions[key],
+				writable: true,
+				enumerable: false,
+				configurable: true,
+			});
+		} catch (e) {
+			// Fallback bei defineProperty-Fehlern
+			window[key] = debugFunctions[key];
+		}
+	});
+
+	console.log("🔧 Debug-Funktionen registriert unter:", {
+		"window.hangarDebug": Object.keys(window.hangarDebug),
+		"window.helpers.debug": Object.keys(window.helpers.debug),
+		globals: Object.keys(debugFunctions),
+	});
+
+	return Object.keys(debugFunctions);
+}
+
+// Überwachungsfunktion für Debug-Funktionen
+function monitorDebugFunctions() {
+	const requiredGlobals = [
+		"validateContainerMapping",
+		"debugSyncDetailed",
+		"debugSync",
+	];
+
+	const checkAndRestore = () => {
+		let missing = [];
+		let restored = false;
+
+		requiredGlobals.forEach((fn) => {
+			if (typeof window[fn] !== "function") {
+				missing.push(fn);
+			}
+		});
+
+		if (missing.length > 0) {
+			console.warn(
+				"⚠️ Debug-Funktionen wurden überschrieben, stelle wieder her:",
+				missing
+			);
+			const registeredFunctions = ensureGlobalDebugAccess();
+			restored = true;
+			console.log(
+				"✅ Debug-Funktionen wiederhergestellt:",
+				registeredFunctions
+			);
+		}
+
+		return { missing, restored };
+	};
+
+	// Erste Prüfung nach 5 Sekunden
+	setTimeout(() => {
+		console.log("🔍 Starte Debug-Funktions-Überwachung...");
+		checkAndRestore();
+	}, 5000);
+
+	// Dann alle 10 Sekunden prüfen
+	setInterval(checkAndRestore, 10000);
+}
+
+// Sofort ausführen
+const initialFunctions = ensureGlobalDebugAccess();
+console.log("📋 Initial registrierte Debug-Funktionen:", initialFunctions);
+
+// Nach DOM-Ready erneut ausführen
+document.addEventListener("DOMContentLoaded", () => {
+	console.log("📄 DOM geladen, aktualisiere Debug-Funktionen...");
+	ensureGlobalDebugAccess();
+});
+
+// Nach Window-Load erneut ausführen und Überwachung starten
+window.addEventListener("load", () => {
+	console.log("🌍 Window geladen, finale Debug-Setup...");
+	ensureGlobalDebugAccess();
+
+	// Starte Überwachung nach einer kurzen Verzögerung
+	setTimeout(monitorDebugFunctions, 2000);
+});
+
+// Zusätzliche Datenkollektions-Funktionen für Debug-Zwecke
+function getAllPrimaryTileData() {
+	if (window.storageBrowser && window.storageBrowser.collectPrimaryTilesData) {
+		return window.storageBrowser.collectPrimaryTilesData();
+	}
+	console.warn("storageBrowser nicht verfügbar für Primary Tile Data");
+	return [];
+}
+
+function getAllSecondaryTileData() {
+	if (
+		window.storageBrowser &&
+		window.storageBrowser.collectSecondaryTilesData
+	) {
+		return window.storageBrowser.collectSecondaryTilesData();
+	}
+	console.warn("storageBrowser nicht verfügbar für Secondary Tile Data");
+	return [];
+}
+
+function debugContainerMapping() {
+	console.log("=== DEBUG: Container Mapping Analysis ===");
+
+	const primaryContainer = document.querySelector(".primary-tiles-container");
+	const secondaryContainer = document.querySelector(
+		".secondary-tiles-container"
+	);
+
+	if (!primaryContainer || !secondaryContainer) {
+		console.error("❌ Container nicht gefunden!");
+		return false;
+	}
+
+	const primaryTiles = primaryContainer.querySelectorAll(".hangar-tile");
+	const secondaryTiles = secondaryContainer.querySelectorAll(".hangar-tile");
+
+	console.log(`Primary Tiles: ${primaryTiles.length}`);
+	console.log(`Secondary Tiles: ${secondaryTiles.length}`);
+
+	const primaryData = getAllPrimaryTileData();
+	const secondaryData = getAllSecondaryTileData();
+
+	console.log("Primary Data:", primaryData);
+	console.log("Secondary Data:", secondaryData);
+
+	// Prüfe auf Datenüberschneidungen
+	if (primaryData.length > 0 && secondaryData.length > 0) {
+		const firstPrimaryJSON = JSON.stringify(primaryData[0]);
+		let crossoverFound = false;
+
+		secondaryData.forEach((secData, index) => {
+			if (JSON.stringify(secData) === firstPrimaryJSON) {
+				console.error(
+					`❌ CROSSOVER DETECTED: Secondary tile ${index} has identical data to first primary!`
+				);
+				crossoverFound = true;
+			}
+		});
+
+		if (!crossoverFound) {
+			console.log("✅ Keine Datenüberschneidungen gefunden");
+		}
+
+		return !crossoverFound;
+	}
+
+	return true;
+}
+
+// Diese Funktionen auch dem hangarDebug-Objekt hinzufügen
+if (window.hangarDebug) {
+	window.hangarDebug.getAllPrimaryTileData = getAllPrimaryTileData;
+	window.hangarDebug.getAllSecondaryTileData = getAllSecondaryTileData;
+	window.hangarDebug.debugContainerMapping = debugContainerMapping;
+	window.hangarDebug.ensureGlobalDebugAccess = ensureGlobalDebugAccess;
+}
+
+// Auch als Globals verfügbar machen
+window.getAllPrimaryTileData = getAllPrimaryTileData;
+window.getAllSecondaryTileData = getAllSecondaryTileData;
+window.debugContainerMapping = debugContainerMapping;

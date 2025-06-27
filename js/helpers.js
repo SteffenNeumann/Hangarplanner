@@ -1424,5 +1424,101 @@ document.addEventListener("DOMContentLoaded", function () {
 // Füge whenElementReady zum window.helpers-Objekt hinzu
 if (window.helpers) {
 	window.helpers.whenElementReady = whenElementReady;
+
+	// Stelle sicher, dass Debug-Namespace existiert
+	if (!window.helpers.debug) {
+		window.helpers.debug = {};
+	}
+
+	// Registriere verfügbare Debug-Funktionen aus anderen Modulen
+	// Diese Funktion wird aufgerufen, nachdem alle Module geladen sind
+	window.helpers.registerDebugFunctions = function () {
+		const debugFunctions = [
+			"validateContainerMapping",
+			"debugSyncDetailed",
+			"debugSync",
+			"debugContainerMapping",
+			"getAllPrimaryTileData",
+			"getAllSecondaryTileData",
+		];
+
+		debugFunctions.forEach((fn) => {
+			if (window[fn] && typeof window[fn] === "function") {
+				window.helpers.debug[fn] = window[fn];
+			}
+		});
+
+		// Auch hangarDebug-Objekt in helpers einbinden falls verfügbar
+		if (window.hangarDebug) {
+			window.helpers.hangarDebug = window.hangarDebug;
+		}
+
+		console.log(
+			"🔧 Debug-Funktionen in helpers.debug registriert:",
+			Object.keys(window.helpers.debug)
+		);
+	};
+
+	// Registriere Debug-Funktionen nach einer kurzen Verzögerung
+	setTimeout(() => {
+		if (window.helpers.registerDebugFunctions) {
+			window.helpers.registerDebugFunctions();
+		}
+	}, 3000);
 }
-//# sourceMappingURL=helpers.js.map
+
+// === HELPER VERFÜGBARKEITS-ÜBERWACHUNG ===
+window.addEventListener("load", () => {
+	// Registriere Debug-Funktionen erneut nach vollständigem Laden
+	setTimeout(() => {
+		if (window.helpers && window.helpers.registerDebugFunctions) {
+			window.helpers.registerDebugFunctions();
+		}
+
+		// Teste kritische Debug-Funktionen
+		const criticalFunctions = ["validateContainerMapping", "debugSyncDetailed"];
+		const missing = criticalFunctions.filter(
+			(fn) => typeof window[fn] !== "function"
+		);
+
+		if (missing.length > 0) {
+			console.warn(
+				"⚠️ Kritische Debug-Funktionen fehlen nach vollständigem Laden:",
+				missing
+			);
+		} else {
+			console.log("✅ Alle kritischen Debug-Funktionen verfügbar");
+		}
+
+		// Füge Konsolen-Info für Benutzer hinzu
+		console.log(
+			"%c🔧 DEBUG-FUNKTIONEN VERFÜGBAR:",
+			"color: #4CAF50; font-weight: bold;"
+		);
+		console.log(
+			"%cValidierung:",
+			"color: #2196F3; font-weight: bold;",
+			"validateContainerMapping()"
+		);
+		console.log(
+			"%cSync-Analyse:",
+			"color: #2196F3; font-weight: bold;",
+			"debugSyncDetailed()"
+		);
+		console.log(
+			"%cContainer-Debug:",
+			"color: #2196F3; font-weight: bold;",
+			"debugContainerMapping()"
+		);
+		console.log(
+			"%cDaten sammeln:",
+			"color: #2196F3; font-weight: bold;",
+			"getAllPrimaryTileData(), getAllSecondaryTileData()"
+		);
+		console.log(
+			"%cZugriff über:",
+			"color: #FF9800; font-weight: bold;",
+			"window.hangarDebug.* oder window.helpers.debug.*"
+		);
+	}, 5000);
+});

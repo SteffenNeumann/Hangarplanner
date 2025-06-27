@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="de">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Debug-Funktionen Test</title>
+		<style>
+			body {
+				font-family: Arial, sans-serif;
+				max-width: 800px;
+				margin: 0 auto;
+				padding: 20px;
+				background-color: #f5f5f5;
+			}
+			.test-section {
+				background: white;
+				padding: 20px;
+				margin: 10px 0;
+				border-radius: 8px;
+				box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+			}
+			.success {
+				color: #4caf50;
+				font-weight: bold;
+			}
+			.error {
+				color: #f44336;
+				font-weight: bold;
+			}
+			.warning {
+				color: #ff9800;
+				font-weight: bold;
+			}
+			button {
+				background: #2196f3;
+				color: white;
+				border: none;
+				padding: 10px 20px;
+				border-radius: 4px;
+				cursor: pointer;
+				margin: 5px;
+			}
+			button:hover {
+				background: #1976d2;
+			}
+			pre {
+				background: #f0f0f0;
+				padding: 10px;
+				border-radius: 4px;
+				overflow-x: auto;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>🔧 Debug-Funktionen Verfügbarkeitstest</h1>
+
+		<div class="test-section">
+			<h2>Automatische Tests</h2>
+			<div id="auto-test-results"></div>
+			<button onclick="runAutomaticTests()">Tests erneut ausführen</button>
+		</div>
+
+		<div class="test-section">
+			<h2>Manuelle Tests</h2>
+			<button onclick="testValidateContainerMapping()">
+				validateContainerMapping()
+			</button>
+			<button onclick="testDebugSyncDetailed()">debugSyncDetailed()</button>
+			<button onclick="testDebugContainerMapping()">
+				debugContainerMapping()
+			</button>
+			<button onclick="testGetAllTileData()">getAllTileData()</button>
+			<button onclick="testHangarDebugObject()">window.hangarDebug</button>
+			<button onclick="testHelpersDebug()">window.helpers.debug</button>
+		</div>
+
+		<div class="test-section">
+			<h2>Test-Ausgabe</h2>
+			<pre id="test-output"></pre>
+		</div>
+
+		<script>
+			function log(message, type = "info") {
+				const output = document.getElementById("test-output");
+				const timestamp = new Date().toLocaleTimeString();
+				const className =
+					type === "success"
+						? "success"
+						: type === "error"
+						? "error"
+						: type === "warning"
+						? "warning"
+						: "";
+				output.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+				output.scrollTop = output.scrollHeight;
+
+				// Auch in die Konsole loggen
+				console.log(`[${timestamp}] ${message}`);
+			}
+
+			function runAutomaticTests() {
+				const results = document.getElementById("auto-test-results");
+				results.innerHTML = "";
+
+				const tests = [
+					{
+						name: "validateContainerMapping",
+						test: () => typeof window.validateContainerMapping === "function",
+					},
+					{
+						name: "debugSyncDetailed",
+						test: () => typeof window.debugSyncDetailed === "function",
+					},
+					{
+						name: "debugContainerMapping",
+						test: () => typeof window.debugContainerMapping === "function",
+					},
+					{
+						name: "getAllPrimaryTileData",
+						test: () => typeof window.getAllPrimaryTileData === "function",
+					},
+					{
+						name: "getAllSecondaryTileData",
+						test: () => typeof window.getAllSecondaryTileData === "function",
+					},
+					{
+						name: "window.hangarDebug",
+						test: () =>
+							window.hangarDebug && typeof window.hangarDebug === "object",
+					},
+					{
+						name: "window.helpers.debug",
+						test: () =>
+							window.helpers &&
+							window.helpers.debug &&
+							typeof window.helpers.debug === "object",
+					},
+				];
+
+				let passed = 0;
+				let failed = 0;
+
+				tests.forEach((test) => {
+					const result = test.test();
+					const status = result ? "✅" : "❌";
+					const statusClass = result ? "success" : "error";
+
+					results.innerHTML += `<div class="${statusClass}">${status} ${test.name}</div>`;
+
+					if (result) {
+						passed++;
+					} else {
+						failed++;
+					}
+
+					log(
+						`Test ${test.name}: ${result ? "BESTANDEN" : "FEHLGESCHLAGEN"}`,
+						result ? "success" : "error"
+					);
+				});
+
+				results.innerHTML += `<div style="margin-top: 10px; font-weight: bold;">Ergebnis: ${passed} bestanden, ${failed} fehlgeschlagen</div>`;
+				log(
+					`=== TESTÜBERSICHT: ${passed} bestanden, ${failed} fehlgeschlagen ===`
+				);
+			}
+
+			function testValidateContainerMapping() {
+				log("Testing validateContainerMapping()...");
+				try {
+					if (typeof window.validateContainerMapping === "function") {
+						const result = window.validateContainerMapping();
+						log(`validateContainerMapping() Ergebnis: ${result}`, "success");
+					} else {
+						log("validateContainerMapping() ist nicht verfügbar!", "error");
+					}
+				} catch (error) {
+					log(
+						`Fehler bei validateContainerMapping(): ${error.message}`,
+						"error"
+					);
+				}
+			}
+
+			function testDebugSyncDetailed() {
+				log("Testing debugSyncDetailed()...");
+				try {
+					if (typeof window.debugSyncDetailed === "function") {
+						const result = window.debugSyncDetailed();
+						log(`debugSyncDetailed() ausgeführt`, "success");
+					} else {
+						log("debugSyncDetailed() ist nicht verfügbar!", "error");
+					}
+				} catch (error) {
+					log(`Fehler bei debugSyncDetailed(): ${error.message}`, "error");
+				}
+			}
+
+			function testDebugContainerMapping() {
+				log("Testing debugContainerMapping()...");
+				try {
+					if (typeof window.debugContainerMapping === "function") {
+						const result = window.debugContainerMapping();
+						log(`debugContainerMapping() Ergebnis: ${result}`, "success");
+					} else {
+						log("debugContainerMapping() ist nicht verfügbar!", "error");
+					}
+				} catch (error) {
+					log(`Fehler bei debugContainerMapping(): ${error.message}`, "error");
+				}
+			}
+
+			function testGetAllTileData() {
+				log("Testing getAllPrimaryTileData() und getAllSecondaryTileData()...");
+				try {
+					if (typeof window.getAllPrimaryTileData === "function") {
+						const primaryData = window.getAllPrimaryTileData();
+						log(
+							`getAllPrimaryTileData() lieferte ${primaryData.length} Elemente`,
+							"success"
+						);
+					} else {
+						log("getAllPrimaryTileData() ist nicht verfügbar!", "error");
+					}
+
+					if (typeof window.getAllSecondaryTileData === "function") {
+						const secondaryData = window.getAllSecondaryTileData();
+						log(
+							`getAllSecondaryTileData() lieferte ${secondaryData.length} Elemente`,
+							"success"
+						);
+					} else {
+						log("getAllSecondaryTileData() ist nicht verfügbar!", "error");
+					}
+				} catch (error) {
+					log(`Fehler bei TileData-Funktionen: ${error.message}`, "error");
+				}
+			}
+
+			function testHangarDebugObject() {
+				log("Testing window.hangarDebug...");
+				if (window.hangarDebug) {
+					const functions = Object.keys(window.hangarDebug).filter(
+						(key) => typeof window.hangarDebug[key] === "function"
+					);
+					log(
+						`window.hangarDebug verfügbar mit Funktionen: ${functions.join(
+							", "
+						)}`,
+						"success"
+					);
+				} else {
+					log("window.hangarDebug ist nicht verfügbar!", "error");
+				}
+			}
+
+			function testHelpersDebug() {
+				log("Testing window.helpers.debug...");
+				if (window.helpers && window.helpers.debug) {
+					const functions = Object.keys(window.helpers.debug).filter(
+						(key) => typeof window.helpers.debug[key] === "function"
+					);
+					log(
+						`window.helpers.debug verfügbar mit Funktionen: ${functions.join(
+							", "
+						)}`,
+						"success"
+					);
+				} else {
+					log("window.helpers.debug ist nicht verfügbar!", "error");
+				}
+			}
+
+			// Automatische Tests beim Laden der Seite
+			window.addEventListener("load", () => {
+				setTimeout(() => {
+					log("=== AUTOMATISCHE TESTS STARTEN ===");
+					runAutomaticTests();
+				}, 1000);
+			});
+		</script>
+	</body>
+</html>
