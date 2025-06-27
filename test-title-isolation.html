@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="de">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Test: Titel-Isolation zwischen Container-Sektionen</title>
+		<script src="https://cdn.tailwindcss.com"></script>
+		<style>
+			.test-container {
+				border: 2px solid #ccc;
+				margin: 20px;
+				padding: 20px;
+				border-radius: 8px;
+			}
+			.primary-container {
+				border-color: #3b82f6;
+				background-color: #eff6ff;
+			}
+			.secondary-container {
+				border-color: #10b981;
+				background-color: #f0fdf4;
+			}
+			.test-field {
+				margin: 10px 0;
+				padding: 8px;
+				border: 1px solid #ddd;
+				border-radius: 4px;
+			}
+			.log-area {
+				background-color: #f8f9fa;
+				border: 1px solid #ddd;
+				padding: 15px;
+				margin: 20px 0;
+				border-radius: 4px;
+				height: 300px;
+				overflow-y: auto;
+				font-family: monospace;
+				font-size: 12px;
+			}
+		</style>
+	</head>
+	<body class="bg-gray-100 p-6">
+		<h1 class="text-2xl font-bold mb-6">
+			🔬 Test: Titel-Isolation zwischen Container-Sektionen
+		</h1>
+
+		<div class="mb-6">
+			<p class="text-gray-700">
+				Dieser Test prüft, ob Änderungen an Titel-Feldern (Aircraft-ID) in der
+				inneren Sektion (primär) fälschlicherweise die Titel-Felder der äußeren
+				Sektion (sekundär) überschreiben.
+			</p>
+		</div>
+
+		<!-- PRIMÄRE SEKTION (Innere Sektion) -->
+		<div class="test-container primary-container" id="hangarGrid">
+			<h2 class="text-lg font-semibold mb-4 text-blue-800">
+				📍 Primäre Sektion (Inner Section)
+			</h2>
+			<p class="text-sm text-blue-600 mb-4">
+				Container: #hangarGrid, IDs: 1-12
+			</p>
+
+			<div class="grid grid-cols-2 gap-4">
+				<!-- Primäre Kachel 1 -->
+				<div class="hangar-cell bg-white p-4 rounded border" data-cell-id="1">
+					<h3 class="font-semibold mb-2">Kachel 1 (Primär)</h3>
+					<input
+						type="text"
+						id="aircraft-1"
+						placeholder="Aircraft ID Kachel 1"
+						class="test-field w-full"
+						data-test-field="primary-aircraft-1" />
+					<input
+						type="text"
+						id="hangar-position-1"
+						placeholder="Position 1"
+						class="test-field w-full" />
+				</div>
+
+				<!-- Primäre Kachel 2 -->
+				<div class="hangar-cell bg-white p-4 rounded border" data-cell-id="2">
+					<h3 class="font-semibold mb-2">Kachel 2 (Primär)</h3>
+					<input
+						type="text"
+						id="aircraft-2"
+						placeholder="Aircraft ID Kachel 2"
+						class="test-field w-full"
+						data-test-field="primary-aircraft-2" />
+					<input
+						type="text"
+						id="hangar-position-2"
+						placeholder="Position 2"
+						class="test-field w-full" />
+				</div>
+			</div>
+		</div>
+
+		<!-- SEKUNDÄRE SEKTION (Äußere Sektion) -->
+		<div class="test-container secondary-container" id="secondaryHangarGrid">
+			<h2 class="text-lg font-semibold mb-4 text-green-800">
+				📍 Sekundäre Sektion (Outer Section)
+			</h2>
+			<p class="text-sm text-green-600 mb-4">
+				Container: #secondaryHangarGrid, IDs: 101+
+			</p>
+
+			<div class="grid grid-cols-2 gap-4">
+				<!-- Sekundäre Kachel 101 -->
+				<div class="hangar-cell bg-white p-4 rounded border" data-cell-id="101">
+					<h3 class="font-semibold mb-2">Kachel 101 (Sekundär)</h3>
+					<input
+						type="text"
+						id="aircraft-101"
+						placeholder="Aircraft ID Kachel 101"
+						class="test-field w-full"
+						data-test-field="secondary-aircraft-101" />
+					<input
+						type="text"
+						id="hangar-position-101"
+						placeholder="Position 101"
+						class="test-field w-full" />
+				</div>
+
+				<!-- Sekundäre Kachel 102 -->
+				<div class="hangar-cell bg-white p-4 rounded border" data-cell-id="102">
+					<h3 class="font-semibold mb-2">Kachel 102 (Sekundär)</h3>
+					<input
+						type="text"
+						id="aircraft-102"
+						placeholder="Aircraft ID Kachel 102"
+						class="test-field w-full"
+						data-test-field="secondary-aircraft-102" />
+					<input
+						type="text"
+						id="hangar-position-102"
+						placeholder="Position 102"
+						class="test-field w-full" />
+				</div>
+			</div>
+		</div>
+
+		<!-- TESTKONTROLLEN -->
+		<div class="test-container bg-yellow-50 border-yellow-400">
+			<h2 class="text-lg font-semibold mb-4">🧪 Test-Kontrollen</h2>
+			<div class="grid grid-cols-3 gap-4">
+				<button
+					onclick="testPrimaryFieldChange()"
+					class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+					🔵 Primäres Feld ändern
+				</button>
+				<button
+					onclick="testSecondaryFieldChange()"
+					class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+					🟢 Sekundäres Feld ändern
+				</button>
+				<button
+					onclick="clearLog()"
+					class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+					🗑️ Log löschen
+				</button>
+			</div>
+			<div class="mt-4">
+				<button
+					onclick="validateContainerMapping()"
+					class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+					✅ Container-Mapping validieren
+				</button>
+				<button
+					onclick="simulateEventPropagation()"
+					class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+					⚠️ Event-Propagation testen
+				</button>
+			</div>
+		</div>
+
+		<!-- LOG-BEREICH -->
+		<div class="log-area" id="logArea">
+			<strong>📋 Event-Log (Real-time):</strong><br />
+			<span class="text-gray-500">Warten auf Ereignisse...</span>
+		</div>
+
+		<script>
+			// Mock der hangar-events.js Funktionen für den Test
+			let logCounter = 0;
+
+			function log(message, type = "info") {
+				const timestamp = new Date().toLocaleTimeString();
+				logCounter++;
+
+				const logArea = document.getElementById("logArea");
+				const colorClass =
+					type === "error"
+						? "text-red-600"
+						: type === "warning"
+						? "text-orange-600"
+						: type === "success"
+						? "text-green-600"
+						: "text-gray-800";
+
+				logArea.innerHTML += `<div class="${colorClass}">[${timestamp}] #${logCounter}: ${message}</div>`;
+				logArea.scrollTop = logArea.scrollHeight;
+			}
+
+			function clearLog() {
+				document.getElementById("logArea").innerHTML =
+					'<strong>📋 Event-Log (Real-time):</strong><br><span class="text-gray-500">Log gelöscht...</span>';
+				logCounter = 0;
+			}
+
+			// Container-Validierung
+			function validateContainerMapping() {
+				log("🔍 Starte Container-Mapping-Validation...", "info");
+
+				// Primäre Container prüfen
+				const primaryContainer = document.querySelector("#hangarGrid");
+				const secondaryContainer = document.querySelector(
+					"#secondaryHangarGrid"
+				);
+
+				log(
+					`✅ Primärer Container gefunden: ${primaryContainer ? "JA" : "NEIN"}`,
+					primaryContainer ? "success" : "error"
+				);
+				log(
+					`✅ Sekundärer Container gefunden: ${
+						secondaryContainer ? "JA" : "NEIN"
+					}`,
+					secondaryContainer ? "success" : "error"
+				);
+
+				// Alle Aircraft-Felder finden
+				const allAircraftFields = document.querySelectorAll(
+					'input[id^="aircraft-"]'
+				);
+				log(
+					`📊 Gesamtanzahl Aircraft-Felder: ${allAircraftFields.length}`,
+					"info"
+				);
+
+				allAircraftFields.forEach((field) => {
+					const fieldId = field.id;
+					const tileId = parseInt(fieldId.split("-")[1]);
+					const expectedContainer = tileId >= 101 ? "sekundär" : "primär";
+
+					const isInPrimary =
+						primaryContainer && primaryContainer.contains(field);
+					const isInSecondary =
+						secondaryContainer && secondaryContainer.contains(field);
+
+					const actualContainer = isInPrimary
+						? "primär"
+						: isInSecondary
+						? "sekundär"
+						: "UNBEKANNT";
+
+					if (expectedContainer === actualContainer) {
+						log(
+							`✅ ${fieldId}: Korrekt im ${actualContainer} Container`,
+							"success"
+						);
+					} else {
+						log(
+							`❌ FEHLER ${fieldId}: Erwartet ${expectedContainer}, aber in ${actualContainer}`,
+							"error"
+						);
+					}
+				});
+			}
+
+			// Event-Propagation Test
+			function simulateEventPropagation() {
+				log("⚠️  Teste Event-Propagation zwischen Containern...", "warning");
+
+				// Simuliere Änderung im ersten primären Feld
+				const primaryField = document.getElementById("aircraft-1");
+				const secondaryField = document.getElementById("aircraft-101");
+
+				if (primaryField && secondaryField) {
+					const originalSecondaryValue = secondaryField.value;
+
+					// Wert in primärem Feld ändern
+					primaryField.value = "TEST-PROPAGATION-" + Date.now();
+					log(`🔵 Primäres Feld geändert zu: ${primaryField.value}`, "info");
+
+					// Event auslösen
+					primaryField.dispatchEvent(new Event("blur", { bubbles: true }));
+
+					// Kurz warten und sekundäres Feld prüfen
+					setTimeout(() => {
+						if (
+							secondaryField.value !== originalSecondaryValue &&
+							secondaryField.value === primaryField.value
+						) {
+							log(
+								`❌ KRITISCHER FEHLER: Sekundäres Feld wurde ungewollt überschrieben!`,
+								"error"
+							);
+							log(
+								`❌ Sekundäres Feld jetzt: "${secondaryField.value}" (war: "${originalSecondaryValue}")`,
+								"error"
+							);
+						} else {
+							log(
+								`✅ Event-Propagation korrekt: Sekundäres Feld unverändert`,
+								"success"
+							);
+						}
+					}, 100);
+				}
+			}
+
+			// Test-Funktionen
+			function testPrimaryFieldChange() {
+				const field = document.getElementById("aircraft-1");
+				const newValue = "PRIMARY-TEST-" + Date.now();
+				field.value = newValue;
+				log(`🔵 Primäres Feld (aircraft-1) geändert zu: ${newValue}`, "info");
+				field.dispatchEvent(new Event("blur", { bubbles: true }));
+			}
+
+			function testSecondaryFieldChange() {
+				const field = document.getElementById("aircraft-101");
+				const newValue = "SECONDARY-TEST-" + Date.now();
+				field.value = newValue;
+				log(
+					`🟢 Sekundäres Feld (aircraft-101) geändert zu: ${newValue}`,
+					"info"
+				);
+				field.dispatchEvent(new Event("blur", { bubbles: true }));
+			}
+
+			// Event-Listener einrichten
+			function setupTestEventListeners() {
+				// Alle Test-Felder überwachen
+				document.querySelectorAll(".test-field").forEach((field) => {
+					field.addEventListener("input", function () {
+						const testFieldType =
+							this.getAttribute("data-test-field") || "unknown";
+						log(
+							`📝 Input-Event: ${this.id} (${testFieldType}) = "${this.value}"`,
+							"info"
+						);
+					});
+
+					field.addEventListener("blur", function () {
+						const testFieldType =
+							this.getAttribute("data-test-field") || "unknown";
+						log(
+							`👋 Blur-Event: ${this.id} (${testFieldType}) = "${this.value}"`,
+							"info"
+						);
+					});
+				});
+			}
+
+			// Beim Laden der Seite
+			document.addEventListener("DOMContentLoaded", function () {
+				log(
+					"🚀 Test-Seite geladen - Event-Listener werden eingerichtet",
+					"success"
+				);
+				setupTestEventListeners();
+
+				setTimeout(() => {
+					validateContainerMapping();
+				}, 500);
+			});
+		</script>
+	</body>
+</html>

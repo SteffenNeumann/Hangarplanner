@@ -89,6 +89,45 @@ window.hangarEventManager = {
 			return;
 		}
 
+		// Container-Validation: Prüfe, ob das Element im richtigen Container ist
+		const elementId = element.id;
+		const tileIdMatch = elementId.match(/-(\d+)$/);
+
+		if (tileIdMatch) {
+			const tileId = parseInt(tileIdMatch[1]);
+			const isSecondaryExpected = tileId >= 101;
+
+			// Finde heraus, in welchem Container das Element tatsächlich ist
+			const primaryContainer = document.querySelector("#hangarGrid");
+			const secondaryContainer = document.querySelector("#secondaryHangarGrid");
+
+			const isInPrimary =
+				primaryContainer && primaryContainer.contains(element);
+			const isInSecondary =
+				secondaryContainer && secondaryContainer.contains(element);
+
+			// Validation: Element muss im richtigen Container sein
+			if (isSecondaryExpected && !isInSecondary) {
+				console.error(
+					`❌ CONTAINER MAPPING FEHLER: Element ${elementId} (sekundär erwartet) ist NICHT im sekundären Container!`
+				);
+				return;
+			}
+
+			if (!isSecondaryExpected && !isInPrimary) {
+				console.error(
+					`❌ CONTAINER MAPPING FEHLER: Element ${elementId} (primär erwartet) ist NICHT im primären Container!`
+				);
+				return;
+			}
+
+			console.log(
+				`✅ Container-Validation OK: ${elementId} ist im richtigen Container (${
+					isSecondaryExpected ? "sekundär" : "primär"
+				})`
+			);
+		}
+
 		console.log(
 			`🔄 Feld geändert (${eventType}):`,
 			element.id,

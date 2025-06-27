@@ -1535,14 +1535,51 @@ function fetchAllAircraftData() {
 			fetchStatus.innerHTML = `<span class="animate-pulse">🔍 Sammle alle Flugzeug-IDs...</span>`;
 		}
 
-		// Alle Flugzeug-IDs sammeln
-		const aircraftInputs = document.querySelectorAll('input[id^="aircraft-"]');
+		// Alle Flugzeug-IDs sammeln - CONTAINER-SPEZIFISCH
+		// Primäre Kacheln (hangarGrid)
+		const primaryAircraftInputs = document.querySelectorAll(
+			'#hangarGrid input[id^="aircraft-"]'
+		);
+		// Sekundäre Kacheln (secondaryHangarGrid)
+		const secondaryAircraftInputs = document.querySelectorAll(
+			'#secondaryHangarGrid input[id^="aircraft-"]'
+		);
+
 		let aircraftIds = [];
 
-		aircraftInputs.forEach((input) => {
+		// Primäre Kacheln verarbeiten
+		primaryAircraftInputs.forEach((input) => {
+			const cellId = parseInt(input.id.split("-")[1]);
+			// Container-Validation: Primäre Kacheln sollten IDs 1-12 haben
+			if (cellId >= 101) {
+				console.warn(`❌ Primäre Kachel mit sekundärer ID ${cellId} ignoriert`);
+				return;
+			}
+
 			const id = input.value.trim();
 			if (id && !aircraftIds.includes(id)) {
 				aircraftIds.push(id);
+				console.log(
+					`✅ Aircraft ID aus PRIMÄRER Kachel ${cellId} gesammelt: ${id}`
+				);
+			}
+		});
+
+		// Sekundäre Kacheln verarbeiten
+		secondaryAircraftInputs.forEach((input) => {
+			const cellId = parseInt(input.id.split("-")[1]);
+			// Container-Validation: Sekundäre Kacheln sollten IDs >= 101 haben
+			if (cellId < 101) {
+				console.warn(`❌ Sekundäre Kachel mit primärer ID ${cellId} ignoriert`);
+				return;
+			}
+
+			const id = input.value.trim();
+			if (id && !aircraftIds.includes(id)) {
+				aircraftIds.push(id);
+				console.log(
+					`✅ Aircraft ID aus SEKUNDÄRER Kachel ${cellId} gesammelt: ${id}`
+				);
 			}
 		});
 
@@ -1928,53 +1965,145 @@ function applyFlightDataToCell(cellId, flightData, preferredAirport) {
  * Wird aufgerufen, nachdem DOM-Updates durchgeführt wurden
  */
 function setupInputEventListeners() {
-	// Verbesserte Einrichtung von Event-Handlern für sekundäre Kacheln
+	console.log("🔧 Einrichtung von Input Event-Listenern...");
+
+	// Event-Handler für PRIMÄRE Kacheln einrichten
+	document.querySelectorAll("#hangarGrid .hangar-cell").forEach((cell) => {
+		// Verwende das data-cell-id Attribut, um die korrekte ID zu bekommen
+		const cellId = parseInt(cell.getAttribute("data-cell-id") || 0);
+
+		// Fallback: Aus der Aircraft-Input-ID ableiten
+		if (!cellId || cellId === 0) {
+			const aircraftInput = cell.querySelector('input[id^="aircraft-"]');
+			if (aircraftInput) {
+				const extractedId = parseInt(aircraftInput.id.split("-")[1]);
+				cell.setAttribute("data-cell-id", extractedId);
+				console.log(
+					`✅ Primäre Kachel ID ${extractedId} aus Aircraft-Input abgeleitet`
+				);
+			}
+		}
+
+		const finalCellId = parseInt(cell.getAttribute("data-cell-id") || 0);
+
+		// Container-Validation: Primäre Kacheln sollten IDs 1-12 haben
+		if (!finalCellId || finalCellId >= 101) {
+			console.warn(
+				`❌ Ungültige cellId ${finalCellId} für PRIMÄRE Kachel gefunden`
+			);
+			return;
+		}
+
+		console.log(
+			`🔧 Richte Event-Handler für PRIMÄRE Kachel ${finalCellId} ein`
+		);
+
+		// Aircraft-ID Eingabe
+		const aircraftInput = cell.querySelector(`#aircraft-${finalCellId}`);
+		if (aircraftInput) {
+			// Entferne vorherige Event-Listener
+			aircraftInput.removeEventListener("blur", aircraftInput._saveHandler);
+
+			aircraftInput._saveHandler = function () {
+				console.log(
+					`Aircraft-ID in PRIMÄRER Kachel ${finalCellId} geändert: ${this.value}`
+				);
+				saveDataToLocalStorage();
+			};
+
+			aircraftInput.addEventListener("blur", aircraftInput._saveHandler);
+		}
+
+		// Position Eingabe
+		const positionInput = cell.querySelector(`#hangar-position-${finalCellId}`);
+		if (positionInput) {
+			// Entferne vorherige Event-Listener
+			positionInput.removeEventListener("blur", positionInput._saveHandler);
+
+			positionInput._saveHandler = function () {
+				console.log(
+					`Position in PRIMÄRER Kachel ${finalCellId} geändert: ${this.value}`
+				);
+				saveDataToLocalStorage();
+			};
+
+			positionInput.addEventListener("blur", positionInput._saveHandler);
+		}
+
+		// Weitere Felder für primäre Kacheln...
+		// Manuelle Eingabe, Notizen, etc.
+	});
+
+	// Event-Handler für SEKUNDÄRE Kacheln einrichten
 	document
 		.querySelectorAll("#secondaryHangarGrid .hangar-cell")
 		.forEach((cell) => {
 			// Verwende das data-cell-id Attribut, um die korrekte ID zu bekommen
 			const cellId = parseInt(cell.getAttribute("data-cell-id") || 0);
 
+			// Container-Validation: Sekundäre Kacheln sollten IDs >= 101 haben
 			if (!cellId || cellId < 101) {
 				console.warn(
-					`Ungültige cellId ${cellId} für sekundäre Kachel gefunden`
+					`❌ Ungültige cellId ${cellId} für SEKUNDÄRE Kachel gefunden`
 				);
 				return;
 			}
 
-			console.log(`Richte Event-Handler für sekundäre Kachel ${cellId} ein`);
+			console.log(`🔧 Richte Event-Handler für SEKUNDÄRE Kachel ${cellId} ein`);
 
 			// Aircraft-ID Eingabe
 			const aircraftInput = cell.querySelector(`#aircraft-${cellId}`);
 			if (aircraftInput) {
-				aircraftInput.addEventListener("blur", function () {
+				// Entferne vorherige Event-Listener
+				aircraftInput.removeEventListener("blur", aircraftInput._saveHandler);
+
+				aircraftInput._saveHandler = function () {
 					console.log(
-						`Aircraft-ID in Kachel ${cellId} geändert: ${this.value}`
+						`Aircraft-ID in SEKUNDÄRER Kachel ${cellId} geändert: ${this.value}`
 					);
 					saveDataToLocalStorage();
-				});
+				};
+
+				aircraftInput.addEventListener("blur", aircraftInput._saveHandler);
 			}
 
 			// Position Eingabe
 			const positionInput = cell.querySelector(`#hangar-position-${cellId}`);
 			if (positionInput) {
-				positionInput.addEventListener("blur", function () {
-					console.log(`Position in Kachel ${cellId} geändert: ${this.value}`);
+				// Entferne vorherige Event-Listener
+				positionInput.removeEventListener("blur", positionInput._saveHandler);
+
+				positionInput._saveHandler = function () {
+					console.log(
+						`Position in SEKUNDÄRER Kachel ${cellId} geändert: ${this.value}`
+					);
 					saveDataToLocalStorage();
-				});
+				};
+
+				positionInput.addEventListener("blur", positionInput._saveHandler);
 			}
 
 			// Manuelle Eingabe
 			const manualInput = cell.querySelector(`#manual-input-${cellId}`);
 			if (manualInput) {
-				manualInput.addEventListener("blur", function () {
+				// Entferne vorherige Event-Listener
+				manualInput.removeEventListener("blur", manualInput._saveHandler);
+
+				manualInput._saveHandler = function () {
 					console.log(
-						`Manuelle Eingabe in Kachel ${cellId} geändert: ${this.value}`
+						`Manuelle Eingabe in SEKUNDÄRER Kachel ${cellId} geändert: ${this.value}`
 					);
 					saveDataToLocalStorage();
-				});
+				};
+
+				manualInput.addEventListener("blur", manualInput._saveHandler);
 			}
+
+			// Weitere Felder für sekundäre Kacheln...
+			// Notizen, Status, etc.
 		});
+
+	console.log("✅ Input Event-Listener für BEIDE Container eingerichtet");
 }
 
 // Funktion zum direkten Speichern der Daten im localStorage
@@ -2318,13 +2447,21 @@ function applyFlightTimeValuesFromLocalStorage() {
  * Diese Funktion stellt sicher, dass die Position-Werte korrekt im localStorage gespeichert werden
  */
 function setupFlightTimeEventListeners() {
-	// Event-Listener für Position-Eingabefelder (hangar-position)
+	// Event-Listener für Position-Eingabefelder (hangar-position) - CONTAINER-SPEZIFISCH
+	// Primäre Kacheln (hangarGrid)
 	document
-		.querySelectorAll('input[id^="hangar-position-"]')
+		.querySelectorAll('#hangarGrid input[id^="hangar-position-"]')
 		.forEach((input) => {
 			const cellId = parseInt(input.id.split("-")[2]);
+
+			// Container-Validation: Primäre Kacheln sollten IDs 1-12 haben
+			if (cellId >= 101) {
+				console.warn(`❌ Primäre Kachel mit sekundärer ID ${cellId} ignoriert`);
+				return;
+			}
+
 			console.log(
-				`Event-Handler für Position in Kachel ${cellId} eingerichtet`
+				`Event-Handler für Position in PRIMÄRER Kachel ${cellId} eingerichtet`
 			);
 
 			// Alte Event-Handler entfernen, um doppelte Aufrufe zu vermeiden
@@ -2334,7 +2471,43 @@ function setupFlightTimeEventListeners() {
 			// Neuen Handler für sofortiges Speichern bei Änderung hinzufügen
 			input._positionSaveHandler = function () {
 				const newValue = this.value;
-				console.log(`Speichere Position für Kachel ${cellId}: ${newValue}`);
+				console.log(
+					`Speichere Position für PRIMÄRE Kachel ${cellId}: ${newValue}`
+				);
+				saveFlightTimeValueToLocalStorage(cellId, "position", newValue);
+			};
+
+			// Event-Handler für Änderungen und Blur-Events hinzufügen
+			input.addEventListener("blur", input._positionSaveHandler);
+			input.addEventListener("change", input._positionSaveHandler);
+		});
+
+	// Sekundäre Kacheln (secondaryHangarGrid)
+	document
+		.querySelectorAll('#secondaryHangarGrid input[id^="hangar-position-"]')
+		.forEach((input) => {
+			const cellId = parseInt(input.id.split("-")[2]);
+
+			// Container-Validation: Sekundäre Kacheln sollten IDs >= 101 haben
+			if (cellId < 101) {
+				console.warn(`❌ Sekundäre Kachel mit primärer ID ${cellId} ignoriert`);
+				return;
+			}
+
+			console.log(
+				`Event-Handler für Position in SEKUNDÄRER Kachel ${cellId} eingerichtet`
+			);
+
+			// Alte Event-Handler entfernen, um doppelte Aufrufe zu vermeiden
+			input.removeEventListener("blur", input._positionSaveHandler);
+			input.removeEventListener("change", input._positionSaveHandler);
+
+			// Neuen Handler für sofortiges Speichern bei Änderung hinzufügen
+			input._positionSaveHandler = function () {
+				const newValue = this.value;
+				console.log(
+					`Speichere Position für SEKUNDÄRE Kachel ${cellId}: ${newValue}`
+				);
 				saveFlightTimeValueToLocalStorage(cellId, "position", newValue);
 			};
 
