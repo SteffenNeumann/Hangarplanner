@@ -833,7 +833,11 @@ function collectTileData(cellId) {
 	const statusSelect = document.getElementById(`status-${cellId}`);
 	const notesTextarea = document.getElementById(`notes-${cellId}`);
 
-	return {
+	// Bestimme ob es sich um eine primäre Kachel handelt (ID 1-8)
+	const isPrimaryTile = cellId >= 1 && cellId <= 8;
+
+	// Basis-Datenstruktur
+	const tileData = {
 		position: posInput?.value || "",
 		aircraftId: aircraftInput?.value || "",
 		arrivalTime: arrivalTimeInput?.value || "",
@@ -842,6 +846,17 @@ function collectTileData(cellId) {
 		status: statusSelect?.value || "",
 		notes: notesTextarea?.value || "",
 	};
+
+	// positionInfoGrid nur für primäre Kacheln hinzufügen
+	if (isPrimaryTile) {
+		const positionInfoInput = document.getElementById(
+			`position-info-${cellId}`
+		);
+		tileData.positionInfoGrid = positionInfoInput?.value || "";
+	}
+	// Für sekundäre Kacheln wird positionInfoGrid bewusst NICHT gesetzt
+
+	return tileData;
 }
 
 /**

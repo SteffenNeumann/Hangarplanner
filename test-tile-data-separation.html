@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="de">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Test: Tile Data Separation Fix</title>
+		<link rel="stylesheet" href="css/hangarplanner-ui.css" />
+		<style>
+			.test-container {
+				padding: 20px;
+				max-width: 1200px;
+				margin: 0 auto;
+			}
+			.test-section {
+				margin: 20px 0;
+				padding: 15px;
+				border: 1px solid #ccc;
+				border-radius: 5px;
+			}
+			.test-results {
+				background-color: #f5f5f5;
+				padding: 10px;
+				margin-top: 10px;
+				border-radius: 3px;
+				font-family: monospace;
+				white-space: pre-wrap;
+			}
+			.primary-tile {
+				background-color: #e8f4fd;
+			}
+			.secondary-tile {
+				background-color: #fff4e6;
+			}
+			.error {
+				color: red;
+				font-weight: bold;
+			}
+			.success {
+				color: green;
+				font-weight: bold;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="test-container">
+			<h1>Test: Tile Data Separation Fix</h1>
+			<p>
+				Dieser Test überprüft, ob das Problem mit dem
+				<code>positionInfoGrid</code>-Wert behoben wurde.
+			</p>
+
+			<div class="test-section primary-tile">
+				<h2>Primäre Kachel (ID: 1)</h2>
+				<div class="hangar-tile" id="tile-1">
+					<div class="position-info-grid">
+						<input
+							type="text"
+							placeholder="Position Info"
+							value="Testposition A1" />
+					</div>
+					<div class="aircraft-type">
+						<input type="text" placeholder="Flugzeugtyp" value="Boeing 737" />
+					</div>
+				</div>
+				<button onclick="testPrimaryTile()">Primäre Kachel testen</button>
+				<div id="primary-results" class="test-results"></div>
+			</div>
+
+			<div class="test-section secondary-tile">
+				<h2>Sekundäre Kachel (ID: 101)</h2>
+				<div class="hangar-tile" id="tile-101">
+					<div class="position-info-grid">
+						<input
+							type="text"
+							placeholder="Position Info"
+							value="Sollte ignoriert werden" />
+					</div>
+					<div class="aircraft-type">
+						<input type="text" placeholder="Flugzeugtyp" value="Airbus A320" />
+					</div>
+				</div>
+				<button onclick="testSecondaryTile()">Sekundäre Kachel testen</button>
+				<div id="secondary-results" class="test-results"></div>
+			</div>
+
+			<div class="test-section">
+				<h2>Vergleichstest</h2>
+				<button onclick="runComparisonTest()">Beide Kacheln vergleichen</button>
+				<div id="comparison-results" class="test-results"></div>
+			</div>
+		</div>
+
+		<script src="js/hangar-ui.js"></script>
+		<script>
+			function testPrimaryTile() {
+				console.log("=== TESTE PRIMÄRE KACHEL (ID: 1) ===");
+
+				try {
+					const tileData = collectTileData(1);
+					const results = document.getElementById("primary-results");
+
+					let output = "Primäre Kachel (ID: 1) Daten:\n";
+					output += JSON.stringify(tileData, null, 2);
+
+					// Überprüfe, ob positionInfoGrid vorhanden ist
+					if (tileData.hasOwnProperty("positionInfoGrid")) {
+						output +=
+							"\n\n✅ SUCCESS: positionInfoGrid ist für primäre Kachel vorhanden";
+						output += "\nWert: " + tileData.positionInfoGrid;
+					} else {
+						output +=
+							"\n\n❌ ERROR: positionInfoGrid fehlt bei primärer Kachel";
+					}
+
+					results.textContent = output;
+					results.className = "test-results success";
+				} catch (error) {
+					const results = document.getElementById("primary-results");
+					results.textContent = "ERROR: " + error.message;
+					results.className = "test-results error";
+				}
+			}
+
+			function testSecondaryTile() {
+				console.log("=== TESTE SEKUNDÄRE KACHEL (ID: 101) ===");
+
+				try {
+					const tileData = collectTileData(101);
+					const results = document.getElementById("secondary-results");
+
+					let output = "Sekundäre Kachel (ID: 101) Daten:\n";
+					output += JSON.stringify(tileData, null, 2);
+
+					// Überprüfe, ob positionInfoGrid NICHT vorhanden ist
+					if (!tileData.hasOwnProperty("positionInfoGrid")) {
+						output +=
+							"\n\n✅ SUCCESS: positionInfoGrid ist korrekt NICHT vorhanden bei sekundärer Kachel";
+					} else {
+						output +=
+							"\n\n❌ ERROR: positionInfoGrid ist fälschlicherweise bei sekundärer Kachel vorhanden";
+						output += "\nWert: " + tileData.positionInfoGrid;
+					}
+
+					results.textContent = output;
+					results.className = tileData.hasOwnProperty("positionInfoGrid")
+						? "test-results error"
+						: "test-results success";
+				} catch (error) {
+					const results = document.getElementById("secondary-results");
+					results.textContent = "ERROR: " + error.message;
+					results.className = "test-results error";
+				}
+			}
+
+			function runComparisonTest() {
+				console.log("=== VERGLEICHSTEST ===");
+
+				try {
+					const primaryData = collectTileData(1);
+					const secondaryData = collectTileData(101);
+					const results = document.getElementById("comparison-results");
+
+					let output = "VERGLEICHSTEST ERGEBNISSE:\n\n";
+
+					output += "Primäre Kachel (ID: 1):\n";
+					output +=
+						"- Hat positionInfoGrid: " +
+						primaryData.hasOwnProperty("positionInfoGrid") +
+						"\n";
+					if (primaryData.positionInfoGrid) {
+						output +=
+							"- positionInfoGrid Wert: " + primaryData.positionInfoGrid + "\n";
+					}
+
+					output += "\nSekundäre Kachel (ID: 101):\n";
+					output +=
+						"- Hat positionInfoGrid: " +
+						secondaryData.hasOwnProperty("positionInfoGrid") +
+						"\n";
+					if (secondaryData.positionInfoGrid) {
+						output +=
+							"- positionInfoGrid Wert: " +
+							secondaryData.positionInfoGrid +
+							"\n";
+					}
+
+					// Bestimme Testergebnis
+					const primaryHasPositionInfo =
+						primaryData.hasOwnProperty("positionInfoGrid");
+					const secondaryHasPositionInfo =
+						secondaryData.hasOwnProperty("positionInfoGrid");
+
+					output += "\n" + "=".repeat(50) + "\n";
+
+					if (primaryHasPositionInfo && !secondaryHasPositionInfo) {
+						output += "✅ TEST ERFOLGREICH: Fix funktioniert korrekt!\n";
+						output += "- Primäre Kachel hat positionInfoGrid ✓\n";
+						output += "- Sekundäre Kachel hat KEIN positionInfoGrid ✓\n";
+						results.className = "test-results success";
+					} else {
+						output += "❌ TEST FEHLGESCHLAGEN:\n";
+						if (!primaryHasPositionInfo) {
+							output +=
+								"- Primäre Kachel hat KEIN positionInfoGrid (sollte haben) ✗\n";
+						}
+						if (secondaryHasPositionInfo) {
+							output +=
+								"- Sekundäre Kachel hat positionInfoGrid (sollte nicht haben) ✗\n";
+						}
+						results.className = "test-results error";
+					}
+
+					results.textContent = output;
+				} catch (error) {
+					const results = document.getElementById("comparison-results");
+					results.textContent = "ERROR: " + error.message;
+					results.className = "test-results error";
+				}
+			}
+
+			// Automatischer Test beim Laden der Seite
+			window.addEventListener("load", function () {
+				setTimeout(() => {
+					console.log("Starte automatische Tests...");
+					testPrimaryTile();
+					setTimeout(() => testSecondaryTile(), 100);
+					setTimeout(() => runComparisonTest(), 200);
+				}, 500);
+			});
+		</script>
+	</body>
+</html>

@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="de">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Hangarplanner - Tile Data Fix Validation</title>
+		<link rel="stylesheet" href="css/hangarplanner-ui.css" />
+		<style>
+			body {
+				font-family: Arial, sans-serif;
+				margin: 20px;
+				background-color: #f5f5f5;
+			}
+			.validation-container {
+				max-width: 1000px;
+				margin: 0 auto;
+				background: white;
+				padding: 20px;
+				border-radius: 8px;
+				box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+			}
+			.test-section {
+				margin: 20px 0;
+				padding: 15px;
+				border: 1px solid #ddd;
+				border-radius: 5px;
+			}
+			.success {
+				background-color: #d4edda;
+				border-color: #c3e6cb;
+			}
+			.error {
+				background-color: #f8d7da;
+				border-color: #f5c6cb;
+			}
+			.info {
+				background-color: #d1ecf1;
+				border-color: #bee5eb;
+			}
+			.results {
+				background-color: #f8f9fa;
+				padding: 10px;
+				margin-top: 10px;
+				border-radius: 3px;
+				font-family: monospace;
+				white-space: pre-wrap;
+				border: 1px solid #e9ecef;
+			}
+			.tile-demo {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+				gap: 20px;
+				margin: 20px 0;
+			}
+			.demo-tile {
+				border: 2px solid #ccc;
+				padding: 15px;
+				border-radius: 5px;
+				background: white;
+			}
+			.primary-demo {
+				border-color: #007bff;
+			}
+			.secondary-demo {
+				border-color: #ffc107;
+			}
+			button {
+				background-color: #007bff;
+				color: white;
+				border: none;
+				padding: 10px 20px;
+				border-radius: 4px;
+				cursor: pointer;
+				margin: 5px;
+			}
+			button:hover {
+				background-color: #0056b3;
+			}
+			.status-indicator {
+				display: inline-block;
+				width: 12px;
+				height: 12px;
+				border-radius: 50%;
+				margin-right: 8px;
+			}
+			.status-pass {
+				background-color: #28a745;
+			}
+			.status-fail {
+				background-color: #dc3545;
+			}
+			.status-unknown {
+				background-color: #6c757d;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="validation-container">
+			<h1>🛠️ Hangarplanner - Tile Data Fix Validation</h1>
+			<p>
+				Diese Seite validiert die Behebung des Problems, bei dem
+				<code>positionInfoGrid</code>-Werte fälschlicherweise von primären zu
+				sekundären Kacheln übertragen wurden.
+			</p>
+
+			<div class="test-section info">
+				<h2>📋 Test-Übersicht</h2>
+				<p>
+					<strong>Problem:</strong> Sekundäre Kacheln (IDs 101+) erhielten
+					fälschlicherweise <code>positionInfoGrid</code>-Werte von primären
+					Kacheln (IDs 1-8).
+				</p>
+				<p>
+					<strong>Lösung:</strong> Die <code>collectTileData</code> Funktion
+					wurde modifiziert, um <code>positionInfoGrid</code> nur für primäre
+					Kacheln zu sammeln.
+				</p>
+				<p><strong>Erwartetes Ergebnis:</strong></p>
+				<ul>
+					<li>
+						✅ Primäre Kacheln (IDs 1-8): <code>positionInfoGrid</code> wird
+						korrekt gesammelt
+					</li>
+					<li>
+						✅ Sekundäre Kacheln (IDs 101+): <code>positionInfoGrid</code> wird
+						NICHT gesammelt
+					</li>
+				</ul>
+			</div>
+
+			<div class="test-section">
+				<h2>🔧 Demo-Kacheln</h2>
+				<div class="tile-demo">
+					<div class="demo-tile primary-demo">
+						<h3>Primäre Kachel (ID: 1)</h3>
+						<div class="hangar-tile" id="tile-1">
+							<div class="position-info-grid">
+								<input
+									type="text"
+									placeholder="Position Info"
+									value="A1-Haupthangar" />
+							</div>
+							<div class="aircraft-type">
+								<input
+									type="text"
+									placeholder="Flugzeugtyp"
+									value="Boeing 737-800" />
+							</div>
+							<div class="tail-number">
+								<input type="text" placeholder="Kennzeichen" value="D-ABCD" />
+							</div>
+						</div>
+					</div>
+
+					<div class="demo-tile secondary-demo">
+						<h3>Sekundäre Kachel (ID: 101)</h3>
+						<div class="hangar-tile" id="tile-101">
+							<div class="position-info-grid">
+								<input
+									type="text"
+									placeholder="Position Info"
+									value="Sollte ignoriert werden" />
+							</div>
+							<div class="aircraft-type">
+								<input
+									type="text"
+									placeholder="Flugzeugtyp"
+									value="Airbus A320" />
+							</div>
+							<div class="tail-number">
+								<input type="text" placeholder="Kennzeichen" value="D-EFGH" />
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="test-section">
+				<h2>🧪 Automatische Tests</h2>
+				<button onclick="runAllTests()">Alle Tests ausführen</button>
+				<button onclick="runPrimaryTests()">Nur primäre Kacheln testen</button>
+				<button onclick="runSecondaryTests()">
+					Nur sekundäre Kacheln testen
+				</button>
+				<button onclick="clearResults()">Ergebnisse löschen</button>
+
+				<div id="test-status" class="results"></div>
+			</div>
+
+			<div class="test-section">
+				<h2>📊 Detaillierte Ergebnisse</h2>
+				<div id="detailed-results" class="results"></div>
+			</div>
+
+			<div class="test-section">
+				<h2>🔍 Debug-Informationen</h2>
+				<button onclick="showDebugInfo()">Debug-Info anzeigen</button>
+				<div id="debug-info" class="results"></div>
+			</div>
+		</div>
+
+		<script src="js/hangar-ui.js"></script>
+		<script>
+			let testResults = {
+				primary: {},
+				secondary: {},
+				overall: null,
+			};
+
+			function runAllTests() {
+				console.log("=== STARTE VOLLSTÄNDIGE VALIDATION ===");
+				clearResults();
+
+				const statusDiv = document.getElementById("test-status");
+				statusDiv.textContent = "Tests werden ausgeführt...";
+
+				setTimeout(() => {
+					runPrimaryTests(false);
+					runSecondaryTests(false);
+					evaluateOverallResult();
+					displayResults();
+				}, 100);
+			}
+
+			function runPrimaryTests(displayImmediately = true) {
+				console.log("--- Teste primäre Kacheln ---");
+
+				for (let i = 1; i <= 8; i++) {
+					try {
+						const tileData = collectTileData(i);
+						const hasPositionInfo = tileData.hasOwnProperty("positionInfoGrid");
+
+						testResults.primary[i] = {
+							success: hasPositionInfo,
+							data: tileData,
+							expected: "positionInfoGrid sollte vorhanden sein",
+							actual: hasPositionInfo
+								? "positionInfoGrid vorhanden"
+								: "positionInfoGrid fehlt",
+						};
+
+						console.log(
+							`Primäre Kachel ${i}: ${hasPositionInfo ? "PASS" : "FAIL"}`
+						);
+					} catch (error) {
+						testResults.primary[i] = {
+							success: false,
+							error: error.message,
+							expected: "positionInfoGrid sollte vorhanden sein",
+							actual: `Fehler: ${error.message}`,
+						};
+						console.log(`Primäre Kachel ${i}: ERROR - ${error.message}`);
+					}
+				}
+
+				if (displayImmediately) {
+					displayResults();
+				}
+			}
+
+			function runSecondaryTests(displayImmediately = true) {
+				console.log("--- Teste sekundäre Kacheln ---");
+
+				for (let i = 101; i <= 104; i++) {
+					try {
+						const tileData = collectTileData(i);
+						const hasPositionInfo = tileData.hasOwnProperty("positionInfoGrid");
+
+						testResults.secondary[i] = {
+							success: !hasPositionInfo, // Erfolg wenn NICHT vorhanden
+							data: tileData,
+							expected: "positionInfoGrid sollte NICHT vorhanden sein",
+							actual: hasPositionInfo
+								? "positionInfoGrid fälschlicherweise vorhanden"
+								: "positionInfoGrid korrekt nicht vorhanden",
+						};
+
+						console.log(
+							`Sekundäre Kachel ${i}: ${!hasPositionInfo ? "PASS" : "FAIL"}`
+						);
+					} catch (error) {
+						testResults.secondary[i] = {
+							success: false,
+							error: error.message,
+							expected: "positionInfoGrid sollte NICHT vorhanden sein",
+							actual: `Fehler: ${error.message}`,
+						};
+						console.log(`Sekundäre Kachel ${i}: ERROR - ${error.message}`);
+					}
+				}
+
+				if (displayImmediately) {
+					displayResults();
+				}
+			}
+
+			function evaluateOverallResult() {
+				const primarySuccess = Object.values(testResults.primary).every(
+					(result) => result.success
+				);
+				const secondarySuccess = Object.values(testResults.secondary).every(
+					(result) => result.success
+				);
+
+				testResults.overall = {
+					success: primarySuccess && secondarySuccess,
+					primarySuccess: primarySuccess,
+					secondarySuccess: secondarySuccess,
+					totalTests:
+						Object.keys(testResults.primary).length +
+						Object.keys(testResults.secondary).length,
+					passedTests:
+						Object.values(testResults.primary).filter((r) => r.success).length +
+						Object.values(testResults.secondary).filter((r) => r.success)
+							.length,
+				};
+			}
+
+			function displayResults() {
+				const statusDiv = document.getElementById("test-status");
+				const detailsDiv = document.getElementById("detailed-results");
+
+				let statusText = "";
+				let detailsText = "";
+
+				if (testResults.overall) {
+					const {
+						success,
+						primarySuccess,
+						secondarySuccess,
+						totalTests,
+						passedTests,
+					} = testResults.overall;
+
+					statusText += `=== GESAMTERGEBNIS ===\n`;
+					statusText += `Status: ${
+						success ? "✅ ALLE TESTS BESTANDEN" : "❌ TESTS FEHLGESCHLAGEN"
+					}\n`;
+					statusText += `Erfolgreich: ${passedTests}/${totalTests} Tests\n\n`;
+					statusText += `Primäre Kacheln: ${
+						primarySuccess ? "✅ BESTANDEN" : "❌ FEHLGESCHLAGEN"
+					}\n`;
+					statusText += `Sekundäre Kacheln: ${
+						secondarySuccess ? "✅ BESTANDEN" : "❌ FEHLGESCHLAGEN"
+					}\n`;
+
+					if (success) {
+						statusDiv.className = "results success";
+						statusText += `\n🎉 FIX ERFOLGREICH IMPLEMENTIERT!\n`;
+						statusText += `Das Problem mit dem positionInfoGrid wurde behoben.`;
+					} else {
+						statusDiv.className = "results error";
+						statusText += `\n⚠️ FIX BENÖTIGT WEITERE AUFMERKSAMKEIT`;
+					}
+				}
+
+				// Detaillierte Ergebnisse
+				detailsText += "=== DETAILLIERTE TESTERGEBNISSE ===\n\n";
+
+				detailsText += "PRIMÄRE KACHELN (IDs 1-8):\n";
+				for (const [id, result] of Object.entries(testResults.primary)) {
+					const status = result.success ? "✅" : "❌";
+					detailsText += `${status} Kachel ${id}: ${result.actual}\n`;
+					if (result.error) {
+						detailsText += `   Fehler: ${result.error}\n`;
+					}
+				}
+
+				detailsText += "\nSEKUNDÄRE KACHELN (IDs 101-104):\n";
+				for (const [id, result] of Object.entries(testResults.secondary)) {
+					const status = result.success ? "✅" : "❌";
+					detailsText += `${status} Kachel ${id}: ${result.actual}\n`;
+					if (result.error) {
+						detailsText += `   Fehler: ${result.error}\n`;
+					}
+				}
+
+				statusDiv.textContent = statusText;
+				detailsDiv.textContent = detailsText;
+			}
+
+			function showDebugInfo() {
+				const debugDiv = document.getElementById("debug-info");
+
+				let debugText = "=== DEBUG-INFORMATIONEN ===\n\n";
+
+				// Zeige Beispieldaten
+				debugText += "BEISPIEL-DATENSTRUKTUR:\n\n";
+
+				try {
+					debugText += "Primäre Kachel (ID: 1):\n";
+					const primaryData = collectTileData(1);
+					debugText += JSON.stringify(primaryData, null, 2) + "\n\n";
+
+					debugText += "Sekundäre Kachel (ID: 101):\n";
+					const secondaryData = collectTileData(101);
+					debugText += JSON.stringify(secondaryData, null, 2) + "\n\n";
+
+					debugText += "UNTERSCHIEDE:\n";
+					const primaryKeys = Object.keys(primaryData);
+					const secondaryKeys = Object.keys(secondaryData);
+
+					const onlyInPrimary = primaryKeys.filter(
+						(key) => !secondaryKeys.includes(key)
+					);
+					const onlyInSecondary = secondaryKeys.filter(
+						(key) => !primaryKeys.includes(key)
+					);
+
+					if (onlyInPrimary.length > 0) {
+						debugText += `Nur in primären Kacheln: ${onlyInPrimary.join(
+							", "
+						)}\n`;
+					}
+					if (onlyInSecondary.length > 0) {
+						debugText += `Nur in sekundären Kacheln: ${onlyInSecondary.join(
+							", "
+						)}\n`;
+					}
+					if (onlyInPrimary.length === 0 && onlyInSecondary.length === 0) {
+						debugText += "Keine strukturellen Unterschiede gefunden.\n";
+					}
+				} catch (error) {
+					debugText += `Fehler beim Sammeln der Debug-Daten: ${error.message}\n`;
+				}
+
+				debugDiv.textContent = debugText;
+			}
+
+			function clearResults() {
+				testResults = { primary: {}, secondary: {}, overall: null };
+				document.getElementById("test-status").textContent = "";
+				document.getElementById("detailed-results").textContent = "";
+				document.getElementById("debug-info").textContent = "";
+			}
+
+			// Automatische Tests beim Laden der Seite
+			window.addEventListener("load", function () {
+				setTimeout(() => {
+					console.log("Starte automatische Validation...");
+					runAllTests();
+				}, 1000);
+			});
+		</script>
+	</body>
+</html>
