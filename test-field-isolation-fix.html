@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="de">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Test: Feld-Isolation zwischen primären und sekundären Kacheln</title>
+		<link rel="stylesheet" href="css/hangarplanner-ui.css" />
+		<style>
+			body {
+				font-family: Arial, sans-serif;
+				margin: 20px;
+				background-color: #f5f5f5;
+			}
+			.test-section {
+				background: white;
+				margin: 20px 0;
+				padding: 20px;
+				border-radius: 8px;
+				box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+			}
+			.test-button {
+				background: #007acc;
+				color: white;
+				border: none;
+				padding: 10px 20px;
+				border-radius: 4px;
+				cursor: pointer;
+				margin: 5px;
+			}
+			.test-button:hover {
+				background: #005a9e;
+			}
+			.test-results {
+				background: #f8f8f8;
+				border: 1px solid #ddd;
+				padding: 15px;
+				margin: 10px 0;
+				border-radius: 4px;
+				font-family: monospace;
+				white-space: pre-wrap;
+			}
+			.success {
+				color: #28a745;
+				font-weight: bold;
+			}
+			.error {
+				color: #dc3545;
+				font-weight: bold;
+			}
+			.info {
+				color: #007acc;
+			}
+			.hangar-container {
+				max-width: 800px;
+			}
+			.grid {
+				display: grid;
+				gap: 15px;
+				grid-template-columns: repeat(2, 1fr);
+			}
+			#secondaryHangarGrid {
+				margin-top: 20px;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>Test: Feld-Isolation zwischen primären und sekundären Kacheln</h1>
+
+		<div class="test-section">
+			<h2>Test-Steuerung</h2>
+			<button class="test-button" onclick="createSecondaryTiles()">
+				Sekundäre Kacheln erstellen (2 Stück)
+			</button>
+			<button class="test-button" onclick="testFieldIsolation()">
+				Feld-Isolation testen
+			</button>
+			<button class="test-button" onclick="validateTimeFields()">
+				Zeit-Feld-Typen validieren
+			</button>
+			<button class="test-button" onclick="clearAllFields()">
+				Alle Felder leeren
+			</button>
+			<button class="test-button" onclick="runFullTest()">
+				Vollständiger Test
+			</button>
+
+			<div id="testResults" class="test-results"></div>
+		</div>
+
+		<div class="test-section">
+			<h2>Primäre Kacheln (Inner Section)</h2>
+			<div class="hangar-container">
+				<div id="hangarGrid" class="grid">
+					<!-- Primäre Kachel 1 -->
+					<div class="hangar-cell" data-cell-id="1">
+						<div class="bg-industrial-medium p-3 rounded-lg">
+							<div class="flex items-center justify-between mb-3">
+								<div class="flex items-center">
+									<input
+										type="text"
+										id="hangar-position-1"
+										class="w-16 position-field"
+										placeholder="Pos"
+										title="Position" />
+								</div>
+								<select id="status-1" class="bg-white border rounded px-2 py-1">
+									<option value="neutral">Neutral</option>
+									<option value="ready">Ready</option>
+									<option value="occupied">Occupied</option>
+								</select>
+							</div>
+
+							<!-- Zeit-Felder -->
+							<div class="info-grid mb-3">
+								<div class="info-label">Arr:</div>
+								<input
+									type="time"
+									id="arrival-time-1"
+									class="info-input"
+									title="Arrival Time" />
+
+								<div class="info-label">Dep:</div>
+								<input
+									type="time"
+									id="departure-time-1"
+									class="info-input"
+									title="Departure Time" />
+							</div>
+
+							<!-- Aircraft ID -->
+							<input
+								type="text"
+								id="aircraft-1"
+								class="aircraft-id w-full mb-2"
+								placeholder="Aircraft ID" />
+
+							<!-- Manual Input -->
+							<input
+								type="text"
+								id="manual-input-1"
+								class="w-16"
+								placeholder="Manual Input" />
+						</div>
+					</div>
+
+					<!-- Primäre Kachel 2 -->
+					<div class="hangar-cell" data-cell-id="2">
+						<div class="bg-industrial-medium p-3 rounded-lg">
+							<div class="flex items-center justify-between mb-3">
+								<div class="flex items-center">
+									<input
+										type="text"
+										id="hangar-position-2"
+										class="w-16 position-field"
+										placeholder="Pos"
+										title="Position" />
+								</div>
+								<select id="status-2" class="bg-white border rounded px-2 py-1">
+									<option value="neutral">Neutral</option>
+									<option value="ready">Ready</option>
+									<option value="occupied">Occupied</option>
+								</select>
+							</div>
+
+							<!-- Zeit-Felder -->
+							<div class="info-grid mb-3">
+								<div class="info-label">Arr:</div>
+								<input
+									type="time"
+									id="arrival-time-2"
+									class="info-input"
+									title="Arrival Time" />
+
+								<div class="info-label">Dep:</div>
+								<input
+									type="time"
+									id="departure-time-2"
+									class="info-input"
+									title="Departure Time" />
+							</div>
+
+							<!-- Aircraft ID -->
+							<input
+								type="text"
+								id="aircraft-2"
+								class="aircraft-id w-full mb-2"
+								placeholder="Aircraft ID" />
+
+							<!-- Manual Input -->
+							<input
+								type="text"
+								id="manual-input-2"
+								class="w-16"
+								placeholder="Manual Input" />
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="test-section">
+			<h2>Sekundäre Kacheln (Outer Section)</h2>
+			<div class="hangar-container">
+				<div id="secondaryHangarGrid" class="grid">
+					<!-- Sekundäre Kacheln werden hier dynamisch eingefügt -->
+				</div>
+			</div>
+		</div>
+
+		<script src="js/hangar-ui.js"></script>
+		<script>
+			// Test-Funktionen
+			function log(message, type = "info") {
+				const results = document.getElementById("testResults");
+				const timestamp = new Date().toLocaleTimeString();
+				const className =
+					type === "success" ? "success" : type === "error" ? "error" : "info";
+				results.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+				results.scrollTop = results.scrollHeight;
+			}
+
+			function createSecondaryTiles() {
+				log("Erstelle 2 sekundäre Kacheln...");
+				try {
+					// Verwende die Funktion aus hangar-ui.js
+					if (typeof updateSecondaryTiles === "function") {
+						updateSecondaryTiles(2, 2);
+						log("Sekundäre Kacheln erfolgreich erstellt", "success");
+					} else {
+						log("updateSecondaryTiles Funktion nicht gefunden", "error");
+					}
+				} catch (error) {
+					log(
+						`Fehler beim Erstellen sekundärer Kacheln: ${error.message}`,
+						"error"
+					);
+				}
+			}
+
+			function testFieldIsolation() {
+				log("Teste Feld-Isolation...");
+
+				// Setze Werte in primären Kacheln
+				const primaryValues = {
+					"hangar-position-1": "A1",
+					"arrival-time-1": "10:30",
+					"departure-time-1": "15:45",
+					"aircraft-1": "D-ABCD",
+					"manual-input-1": "Test1",
+				};
+
+				Object.entries(primaryValues).forEach(([id, value]) => {
+					const element = document.getElementById(id);
+					if (element) {
+						element.value = value;
+						log(`Primär: ${id} = ${value}`);
+					} else {
+						log(`Element nicht gefunden: ${id}`, "error");
+					}
+				});
+
+				// Prüfe, ob sekundäre Kacheln existieren
+				const secondaryIds = [
+					"hangar-position-101",
+					"arrival-time-101",
+					"departure-time-101",
+					"aircraft-101",
+					"manual-input-101",
+				];
+
+				let isolationPassed = true;
+				secondaryIds.forEach((id) => {
+					const element = document.getElementById(id);
+					if (element) {
+						if (element.value && element.value.trim() !== "") {
+							log(
+								`FEHLER: Sekundäres Feld ${id} hat Wert "${element.value}" (sollte leer sein)`,
+								"error"
+							);
+							isolationPassed = false;
+						} else {
+							log(`OK: Sekundäres Feld ${id} ist leer`);
+						}
+					} else {
+						log(`Sekundäres Feld nicht gefunden: ${id}`, "error");
+						isolationPassed = false;
+					}
+				});
+
+				if (isolationPassed) {
+					log(
+						"✅ ISOLATION-TEST BESTANDEN: Keine Werte-Übertragung zwischen Sektionen",
+						"success"
+					);
+				} else {
+					log(
+						"❌ ISOLATION-TEST FEHLGESCHLAGEN: Werte werden zwischen Sektionen geteilt",
+						"error"
+					);
+				}
+			}
+
+			function validateTimeFields() {
+				log("Validiere Zeit-Feld-Typen...");
+
+				const timeFieldIds = [
+					"arrival-time-1",
+					"departure-time-1",
+					"arrival-time-2",
+					"departure-time-2",
+					"arrival-time-101",
+					"departure-time-101",
+					"arrival-time-102",
+					"departure-time-102",
+				];
+
+				let allTimeFieldsValid = true;
+				timeFieldIds.forEach((id) => {
+					const element = document.getElementById(id);
+					if (element) {
+						if (element.type === "time") {
+							log(`OK: ${id} hat korrekten Typ "time"`);
+						} else {
+							log(
+								`FEHLER: ${id} hat falschen Typ "${element.type}" (sollte "time" sein)`,
+								"error"
+							);
+							allTimeFieldsValid = false;
+						}
+					} else {
+						log(`Zeit-Feld nicht gefunden: ${id}`, "error");
+					}
+				});
+
+				if (allTimeFieldsValid) {
+					log(
+						"✅ ZEIT-FELD-TEST BESTANDEN: Alle Zeit-Felder haben korrekten Typ",
+						"success"
+					);
+				} else {
+					log(
+						"❌ ZEIT-FELD-TEST FEHLGESCHLAGEN: Nicht alle Zeit-Felder haben korrekten Typ",
+						"error"
+					);
+				}
+			}
+
+			function clearAllFields() {
+				log("Leere alle Felder...");
+
+				const allInputs = document.querySelectorAll(
+					'input[type="text"], input[type="time"]'
+				);
+				allInputs.forEach((input) => {
+					input.value = "";
+				});
+
+				log(`${allInputs.length} Felder geleert`, "success");
+			}
+
+			function runFullTest() {
+				log("=== VOLLSTÄNDIGER TEST GESTARTET ===");
+				clearAllFields();
+
+				setTimeout(() => {
+					createSecondaryTiles();
+					setTimeout(() => {
+						validateTimeFields();
+						setTimeout(() => {
+							testFieldIsolation();
+							log("=== VOLLSTÄNDIGER TEST ABGESCHLOSSEN ===", "success");
+						}, 500);
+					}, 500);
+				}, 500);
+			}
+
+			// Initial die Test-Umgebung vorbereiten
+			document.addEventListener("DOMContentLoaded", function () {
+				log("Test-Umgebung geladen");
+			});
+		</script>
+	</body>
+</html>

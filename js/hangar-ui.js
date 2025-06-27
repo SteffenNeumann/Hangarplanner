@@ -487,6 +487,13 @@ function updateSecondaryTiles(count, layout) {
 		cellClone.setAttribute("data-cell-id", cellId.toString());
 		cellClone.id = `secondary-cell-${cellId}`;
 
+		// Alle Event-Listener aus dem Clone entfernen, um Duplikate zu vermeiden
+		const allInputs = cellClone.querySelectorAll("input, select, textarea");
+		allInputs.forEach((input) => {
+			const newInput = input.cloneNode(true);
+			input.parentNode.replaceChild(newInput, input);
+		});
+
 		// Spezifische Anpassungen für sekundäre Kacheln
 		// Position-Input finden oder ggf. erstellen
 		const posInput = cellClone.querySelector('input[id^="hangar-position-"]');
@@ -690,12 +697,47 @@ function updateCellAttributes(cell, cellId) {
 	const elements = cell.querySelectorAll("[id]");
 	elements.forEach((element) => {
 		const oldId = element.id;
-		const base = oldId.split("-")[0]; // z.B. 'aircraft', 'status'
-		element.id = `${base}-${cellId}`;
+		const parts = oldId.split("-");
+		const base = parts[0]; // z.B. 'aircraft', 'status', 'arrival', 'departure'
+
+		// Spezielle Behandlung für Zeit-Felder (arrival-time-X, departure-time-X)
+		if (
+			parts.length >= 3 &&
+			(base === "arrival" || base === "departure") &&
+			parts[1] === "time"
+		) {
+			element.id = `${base}-time-${cellId}`;
+			// Werte für sekundäre Kacheln zurücksetzen
+			element.value = "";
+			// Event-Listener für automatisches Speichern hinzufügen
+			element.removeEventListener("change", element._timeChangeHandler);
+			element._timeChangeHandler = function () {
+				console.log(
+					`Zeit in Kachel ${cellId} geändert: ${this.id} = ${this.value}`
+				);
+				if (typeof window.hangarUI.uiSettings.save === "function") {
+					setTimeout(
+						() =>
+							window.hangarUI.uiSettings.save.call(window.hangarUI.uiSettings),
+						100
+					);
+				}
+			};
+			element.addEventListener("change", element._timeChangeHandler);
+		}
+		// Normale ID-Aktualisierung für andere Elemente
+		else {
+			element.id = `${base}-${cellId}`;
+
+			// Werte für sekundäre Kacheln zurücksetzen (außer Position, die separat behandelt wird)
+			if (cellId >= 101 && element.tagName === "INPUT" && base !== "hangar") {
+				element.value = "";
+			}
+		}
 
 		// Wenn es ein Status-Select ist, setzen wir die Eventhandler neu
 		if (base === "status") {
-			// Sicherstellen, dass der neutrale Status ausgewählt ist
+			// Sicherstellen, dass der neutrale Status ausgewählt ist für sekundäre Kacheln
 			element.value = "neutral";
 			// Status-Licht aktualisieren
 			element.onchange = function () {
