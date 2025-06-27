@@ -498,6 +498,7 @@ function setupAircraftIdFormatting() {
 }
 
 // Placeholder für restliche Funktionen - diese werden aus der originalen Datei übernommen
+
 /**
  * Aktualisiert die sekundären Kacheln basierend auf der eingestellten Anzahl
  * @param {number} count - Anzahl der sekundären Kacheln
@@ -616,6 +617,80 @@ function updateSecondaryTiles(count, layout) {
 	});
 
 	console.log(`${count} sekundäre Kacheln erstellt/aktualisiert`);
+}
+
+/**
+ * Erstellt leere sekundäre Kacheln speziell für die Synchronisation
+ * WICHTIG: Diese Funktion klont KEINE Daten von primären Kacheln - sie erstellt komplett leere Kacheln
+ * @param {number} count - Anzahl der zu erstellenden sekundären Kacheln
+ * @param {number} layout - Anzahl der Spalten (optional, Standard basiert auf aktueller Einstellung)
+ */
+function createEmptySecondaryTiles(count, layout = null) {
+	console.log(`=== ERSTELLE ${count} LEERE SEKUNDÄRE KACHELN FÜR SYNC ===`);
+
+	const secondaryGrid = document.getElementById("secondaryHangarGrid");
+	if (!secondaryGrid) {
+		console.error("Sekundärer Grid-Container nicht gefunden");
+		return;
+	}
+
+	// Aktuelles Layout verwenden falls nicht angegeben
+	if (layout === null) {
+		layout = uiSettings.layout || 4;
+	}
+
+	// Leere den Container
+	secondaryGrid.innerHTML = "";
+
+	// Sichtbarkeit der sekundären Sektion steuern
+	toggleSecondarySection(count > 0);
+
+	// Wenn keine sekundären Kacheln, früh beenden
+	if (count <= 0) return;
+
+	// Template für sekundäre Kacheln basierend auf der ersten primären Kachel erstellen
+	const templateCell = document.querySelector("#hangarGrid .hangar-cell");
+	if (!templateCell) {
+		console.error("Keine Vorlage für sekundäre Kacheln gefunden");
+		return;
+	}
+
+	// Erstelle die gewünschte Anzahl an KOMPLETT LEEREN sekundären Kacheln
+	for (let i = 0; i < count; i++) {
+		const cellId = 101 + i; // Start bei 101 für sekundäre Kacheln
+
+		// Klone die Vorlage-Kachel (nur Struktur, nicht Daten)
+		const cellClone = templateCell.cloneNode(true);
+
+		// WICHTIG: Setze explizit das data-cell-id Attribut für korrekte Identifizierung
+		cellClone.setAttribute("data-cell-id", cellId.toString());
+		cellClone.id = `secondary-cell-${cellId}`;
+
+		// KRITISCH: Alle Input-Felder komplett leeren - keine Datenübernahme aus der Vorlage
+		const allInputs = cellClone.querySelectorAll("input, select, textarea");
+		allInputs.forEach((input) => {
+			input.value = "";
+			// Spezielle Behandlung für Select-Elemente
+			if (input.type === "select-one") {
+				input.selectedIndex = 0;
+			}
+		});
+
+		// IDs korrekt aktualisieren
+		updateCellAttributes(cellClone, cellId);
+
+		// Zur sekundären Sektion hinzufügen
+		secondaryGrid.appendChild(cellClone);
+
+		console.log(`✅ Leere sekundäre Kachel ${cellId} erstellt`);
+	}
+
+	// Layout-Klasse setzen
+	secondaryGrid.className = `hangar-grid grid-cols-${layout}`;
+
+	console.log(`=== ${count} LEERE SEKUNDÄRE KACHELN FÜR SYNC ERSTELLT ===`);
+
+	// KEINE Datenwiederherstellung - Kacheln sollen komplett leer bleiben für Sync!
 }
 
 /**
@@ -939,4 +1014,5 @@ window.hangarUI = {
 	applyTileValues,
 	loadSecondaryTileValues,
 	saveCollectedData,
+	createEmptySecondaryTiles,
 };

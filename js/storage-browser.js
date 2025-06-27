@@ -299,7 +299,9 @@ class StorageBrowser {
 				// Prüfen ob Secondary Grid existiert
 				const secondaryGrid = document.getElementById("secondaryHangarGrid");
 				if (!secondaryGrid || secondaryGrid.children.length === 0) {
-					console.log("Secondary tiles existieren noch nicht, erstelle sie...");
+					console.log(
+						"Secondary tiles existieren noch nicht, erstelle sie für Sync..."
+					);
 
 					// Anzahl der secondary tiles in den Einstellungen setzen
 					const secondaryTilesCount = Math.max(
@@ -313,15 +315,26 @@ class StorageBrowser {
 						secondaryTilesCountInput.value = secondaryTilesCount;
 					}
 
+					// KRITISCHER FIX: Sekundäre Kacheln für Sync erstellen OHNE Datenkloning
 					// Temporär die localStorage-Wiederherstellung deaktivieren während UI-Update
 					const originalFlag = window.isApplyingServerData;
 					window.isApplyingServerData = true;
 
-					// UI neu aufbauen falls hangarUI verfügbar
+					// Leere sekundäre Kacheln erstellen (OHNE updateSecondaryTiles zu verwenden)
 					if (
+						window.hangarUI &&
+						typeof window.hangarUI.createEmptySecondaryTiles === "function"
+					) {
+						// Verwende spezielle Funktion für Sync (falls verfügbar)
+						window.hangarUI.createEmptySecondaryTiles(secondaryTilesCount);
+					} else if (
 						window.hangarUI &&
 						typeof window.hangarUI.updateSecondaryTiles === "function"
 					) {
+						// Fallback: Verwende normale Funktion aber mit Sync-Flag
+						console.warn(
+							"SYNC WORKAROUND: Verwende updateSecondaryTiles - Daten werden überschrieben"
+						);
 						window.hangarUI.updateSecondaryTiles();
 					}
 
