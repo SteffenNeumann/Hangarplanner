@@ -505,6 +505,8 @@ function setupAircraftIdFormatting() {
  * @param {number} layout - Anzahl der Spalten
  */
 function updateSecondaryTiles(count, layout) {
+	console.log(`=== AKTUALISIERE SEKUNDÄRE KACHELN: ${count} Kacheln ===`);
+
 	const secondaryGrid = document.getElementById("secondaryHangarGrid");
 	if (!secondaryGrid) {
 		console.error("Sekundärer Grid-Container nicht gefunden");
@@ -529,94 +531,24 @@ function updateSecondaryTiles(count, layout) {
 		console.log(`${existingData.length} bestehende Kacheldaten gesichert`);
 	}
 
-	// Leere den Container
-	secondaryGrid.innerHTML = "";
-
-	// Sichtbarkeit der sekundären Sektion steuern
-	toggleSecondarySection(count > 0);
-
-	// Wenn keine sekundären Kacheln, früh beenden
-	if (count <= 0) return;
-
-	// Template für sekundäre Kacheln basierend auf der ersten primären Kachel erstellen
-	const templateCell = document.querySelector("#hangarGrid .hangar-cell");
-	if (!templateCell) {
-		console.error("Keine Vorlage für sekundäre Kacheln gefunden");
-		return;
-	}
-
-	// Erstelle die gewünschte Anzahl an sekundären Kacheln
-	for (let i = 0; i < count; i++) {
-		const cellId = 101 + i; // Start bei 101 für sekundäre Kacheln
-
-		// Klone die Vorlage-Kachel
-		const cellClone = templateCell.cloneNode(true);
-
-		// WICHTIG: Setze explizit das data-cell-id Attribut für korrekte Identifizierung
-		cellClone.setAttribute("data-cell-id", cellId.toString());
-		cellClone.id = `secondary-cell-${cellId}`;
-
-		// Position-Input leeren und korrekt benennen
-		const posInput = cellClone.querySelector('input[id^="hangar-position-"]');
-		if (posInput) {
-			posInput.id = `hangar-position-${cellId}`;
-			posInput.value = ""; // Explizit leeres Feld für neue sekundäre Kacheln
-		}
-
-		// Aircraft-ID Feld leeren
-		const aircraftInput = cellClone.querySelector(
-			".aircraft-id, input[id^='aircraft-']"
-		);
-		if (aircraftInput) {
-			aircraftInput.value = "";
-			aircraftInput.id = `aircraft-${cellId}`;
-		}
-
-		// Zeit-Felder explizit leeren
-		const arrivalTimeInput = cellClone.querySelector(
-			'input[id^="arrival-time-"]'
-		);
-		if (arrivalTimeInput) {
-			arrivalTimeInput.value = "";
-			arrivalTimeInput.id = `arrival-time-${cellId}`;
-		}
-
-		const departureTimeInput = cellClone.querySelector(
-			'input[id^="departure-time-"]'
-		);
-		if (departureTimeInput) {
-			departureTimeInput.value = "";
-			departureTimeInput.id = `departure-time-${cellId}`;
-		}
-
-		// Manual Input leeren
-		const manualInput = cellClone.querySelector(
-			'input[placeholder*="Manual"], input[id^="manual-input-"]'
-		);
-		if (manualInput) {
-			manualInput.value = "";
-			manualInput.id = `manual-input-${cellId}`;
-		}
-
-		// Alle weiteren Input-Felder mit spezifischen IDs aktualisieren
-		updateCellAttributes(cellClone, cellId);
-
-		// Zur sekundären Sektion hinzufügen
-		secondaryGrid.appendChild(cellClone);
-	}
-
-	// Layout-Klasse setzen
-	secondaryGrid.className = `hangar-grid grid-cols-${layout}`;
+	// KRITISCHER FIX: Verwende createEmptySecondaryTiles anstatt cloneNode um Position-Kloning zu verhindern
+	createEmptySecondaryTiles(count, layout);
 
 	// Wiederherstellung der gesicherten Daten in neue Kacheln
 	existingData.forEach((savedData) => {
 		if (savedData.index < count) {
 			const newCellId = 101 + savedData.index;
+			console.log(
+				`Lade gesicherte Daten für Kachel ${newCellId}:`,
+				savedData.data
+			);
 			applyTileData(newCellId, savedData.data);
 		}
 	});
 
-	console.log(`${count} sekundäre Kacheln erstellt/aktualisiert`);
+	console.log(
+		`✅ ${count} sekundäre Kacheln ohne Position-Kloning aktualisiert`
+	);
 }
 
 /**
