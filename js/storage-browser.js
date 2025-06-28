@@ -294,140 +294,24 @@ class StorageBrowser {
 				);
 			}
 
-			// Secondary Tiles - prüfen und sicherstellen, dass die richtige Anzahl angezeigt wird
+			// Secondary Tiles - EINFACH behandeln wie Primary Tiles
 			if (secondaryTiles.length > 0) {
 				console.log("=== ANWENDEN DER SEKUNDÄREN KACHELN ===");
-
-				// Ermittle die erforderliche Anzahl sekundärer Kacheln aus den Sync-Daten
-				const requiredSecondaryTiles = secondaryTiles.length;
-				console.log(
-					`Sync-Daten enthalten ${requiredSecondaryTiles} sekundäre Kacheln`
-				);
-
-				// Prüfen ob Secondary Grid existiert und richtige Anzahl hat
-				const secondaryGrid = document.getElementById("secondaryHangarGrid");
-				const currentSecondaryCount = secondaryGrid
-					? secondaryGrid.children.length
-					: 0;
-
-				console.log(
-					`Aktuell vorhanden: ${currentSecondaryCount} sekundäre Kacheln`
-				);
-				console.log(
-					`Benötigt für Sync: ${requiredSecondaryTiles} sekundäre Kacheln`
-				);
-
-				if (!secondaryGrid || currentSecondaryCount === 0) {
+				secondaryTiles.forEach((tileData, index) => {
 					console.log(
-						"🔧 Secondary tiles existieren noch nicht - erstelle sie für Sync"
+						`Wende sekundäre Kachel ${index + 1}/${secondaryTiles.length} an:`,
+						tileData
 					);
 
-					// Anzahl in den Einstellungen setzen
-					const secondaryTilesCountInput = document.getElementById(
-						"secondaryTilesCount"
-					);
-					if (secondaryTilesCountInput) {
-						secondaryTilesCountInput.value = requiredSecondaryTiles;
-						console.log(
-							`Einstellung aktualisiert: ${requiredSecondaryTiles} sekundäre Kacheln`
+					// Zusätzliche Validierung - sicherstellen, dass die Tile ID im sekundären Bereich liegt
+					if (tileData.tileId >= 101) {
+						this.applySingleTileData(tileData);
+					} else {
+						console.error(
+							`❌ FEHLER: Sekundäre Kachel mit ungültiger ID ${tileData.tileId} wird übersprungen`
 						);
 					}
-
-					// Erstelle die sekundären Kacheln über die normale UI-Funktion
-					if (
-						window.hangarUI &&
-						typeof window.hangarUI.updateSecondaryTiles === "function"
-					) {
-						const currentLayout = window.uiSettings
-							? window.uiSettings.layout
-							: 4;
-						console.log(
-							`Erstelle ${requiredSecondaryTiles} sekundäre Kacheln (Layout: ${currentLayout})`
-						);
-						window.hangarUI.updateSecondaryTiles(
-							requiredSecondaryTiles,
-							currentLayout
-						);
-					}
-
-					// Kurz warten, dann Sync-Daten anwenden
-					setTimeout(() => {
-						console.log(
-							"Wende Sync-Daten auf neu erstellte sekundäre Kacheln an"
-						);
-						secondaryTiles.forEach((tileData, index) => {
-							if (tileData.tileId >= 101) {
-								this.applySingleTileData(tileData);
-							} else {
-								console.error(
-									`❌ FEHLER: Sekundäre Kachel mit ungültiger ID ${tileData.tileId} wird übersprungen`
-								);
-							}
-						});
-					}, 100);
-				} else if (currentSecondaryCount !== requiredSecondaryTiles) {
-					console.log(
-						`🔧 Anzahl sekundärer Kacheln anpassen: ${currentSecondaryCount} → ${requiredSecondaryTiles}`
-					);
-
-					// Anzahl in den Einstellungen anpassen
-					const secondaryTilesCountInput = document.getElementById(
-						"secondaryTilesCount"
-					);
-					if (secondaryTilesCountInput) {
-						secondaryTilesCountInput.value = requiredSecondaryTiles;
-					}
-
-					// Kacheln anpassen über die normale UI-Funktion
-					if (
-						window.hangarUI &&
-						typeof window.hangarUI.updateSecondaryTiles === "function"
-					) {
-						const currentLayout = window.uiSettings
-							? window.uiSettings.layout
-							: 4;
-						window.hangarUI.updateSecondaryTiles(
-							requiredSecondaryTiles,
-							currentLayout
-						);
-					}
-
-					// Kurz warten, dann Sync-Daten anwenden
-					setTimeout(() => {
-						console.log("Wende Sync-Daten auf angepasste sekundäre Kacheln an");
-						secondaryTiles.forEach((tileData, index) => {
-							if (tileData.tileId >= 101) {
-								this.applySingleTileData(tileData);
-							} else {
-								console.error(
-									`❌ FEHLER: Sekundäre Kachel mit ungültiger ID ${tileData.tileId} wird übersprungen`
-								);
-							}
-						});
-					}, 100);
-				} else {
-					// Anzahl stimmt überein - direkt Daten anwenden
-					console.log(
-						`✅ Korrekte Anzahl sekundärer Kacheln vorhanden - wende Sync-Daten direkt an`
-					);
-					secondaryTiles.forEach((tileData, index) => {
-						console.log(
-							`Wende sekundäre Kachel ${index + 1}/${
-								secondaryTiles.length
-							} an:`,
-							tileData
-						);
-
-						// Zusätzliche Validierung - sicherstellen, dass die Tile ID im sekundären Bereich liegt
-						if (tileData.tileId >= 101) {
-							this.applySingleTileData(tileData);
-						} else {
-							console.error(
-								`❌ FEHLER: Sekundäre Kachel mit ungültiger ID ${tileData.tileId} wird übersprungen`
-							);
-						}
-					});
-				}
+				});
 			}
 
 			console.log("=== KACHELDATEN ERFOLGREICH ANGEWENDET ===");
