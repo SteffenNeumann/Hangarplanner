@@ -45,8 +45,8 @@ function collectAllHangarData() {
 		};
 
 		// Kacheldaten sammeln
-		const primaryTiles = collectTileData("#hangarGrid");
-		const secondaryTiles = collectTileData("#secondaryHangarGrid");
+		const primaryTiles = collectContainerTileData("#hangarGrid");
+		const secondaryTiles = collectContainerTileData("#secondaryHangarGrid");
 
 		// Gesamtdaten zusammenstellen
 		const finalData = {
@@ -297,7 +297,7 @@ function applyLoadedHangarPlan(data) {
  * @param {string} containerSelector - CSS-Selektor für den Container
  * @returns {Array} - Array mit Kacheldaten
  */
-function collectTileData(containerSelector) {
+function collectContainerTileData(containerSelector) {
 	try {
 		const container = document.querySelector(containerSelector);
 		if (!container) {
@@ -462,7 +462,7 @@ function applyLoadedTileData(data) {
 		console.log(`Wende ${data.primaryTiles.length} primäre Kacheln an:`);
 		data.primaryTiles.forEach((tile, index) => {
 			console.log(`Primäre Kachel ${index + 1}:`, tile);
-			applyTileData(tile, false);
+			applySingleTileData(tile, false);
 		});
 	} else {
 		console.log("Keine primären Kacheln in den Daten gefunden");
@@ -485,7 +485,7 @@ function applyLoadedTileData(data) {
 		// Dann Daten zuweisen
 		data.secondaryTiles.forEach((tile, index) => {
 			console.log(`Sekundäre Kachel ${index + 1}:`, tile);
-			applyTileData(tile, true);
+			applySingleTileData(tile, true);
 		});
 	} else {
 		console.log("Keine sekundären Kacheln in den Daten gefunden");
@@ -495,7 +495,7 @@ function applyLoadedTileData(data) {
 /**
  * Wendet die Daten einer Kachel auf die entsprechende UI-Kachel an
  */
-function applyTileData(tileData, isSecondary = false) {
+function applySingleTileData(tileData, isSecondary = false) {
 	try {
 		const tileId = tileData.tileId;
 		console.log(`=== ANWENDEN DER DATEN FÜR TILE ${tileId} ===`);

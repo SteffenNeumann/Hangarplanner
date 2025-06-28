@@ -88,3 +88,52 @@ window.quickSyncTest.compareWithAircraft();
 - Aircraft-Erfolgsrate: ~100%
 - Zeit/Position-Erfolgsrate: ~100% (gleich wie Aircraft)
 - Empfehlung: "Alle Tests erfolgreich! Synchronisation funktioniert korrekt."
+
+## 🔧 KRITISCHE BUGFIXES - 28.06.2025
+
+### ❌ Problem: Funktionsnamen-Konflikte
+
+**Identifizierte Konflikte:**
+
+1. `collectTileData()` - Zwei verschiedene Funktionen:
+
+   - `hangar-ui.js`: `collectTileData(cellId)` - Sammelt Daten einer einzelnen Kachel
+   - `hangar-data.js`: `collectTileData(containerSelector)` - Sammelt Daten aller Kacheln in einem Container
+
+2. `applyTileData()` - Zwei verschiedene Funktionen:
+   - `hangar-ui.js`: `applyTileData(cellId, data)` - Wendet Daten auf eine einzelne Kachel an
+   - `hangar-data.js`: `applyTileData(tileData, isSecondary)` - Wendet Kacheldaten mit Container-Validierung an
+
+### ✅ Lösung: Funktionsumbenennung
+
+**In hangar-data.js:**
+
+```javascript
+// ALT: function collectTileData(containerSelector)
+// NEU: function collectContainerTileData(containerSelector)
+
+// ALT: function applyTileData(tileData, isSecondary = false)
+// NEU: function applySingleTileData(tileData, isSecondary = false)
+```
+
+### 🎯 Auswirkungen der Konfliktlösung
+
+**VORHER:** Fehler `Document.querySelector: '101' is not a valid selector`
+
+- `collectContainerTileData("#secondaryHangarGrid")` wurde fälschlicherweise an `collectTileData(cellId)` weitergeleitet
+- Ungültige Selektor-Parameter führten zu DOM-Fehlern
+
+**NACHHER:** Korrekte Funktionsaufteilung
+
+- Container-basierte Sammlung: `collectContainerTileData(containerSelector)`
+- Einzelkachel-basierte Sammlung: `collectTileData(cellId)`
+- Container-bewusste Anwendung: `applySingleTileData(tileData, isSecondary)`
+- UI-basierte Anwendung: `applyTileData(cellId, data)`
+
+### 📊 Fehlerreduktion
+
+| Fehlertyp           | Vorher                                           | Nachher      |
+| ------------------- | ------------------------------------------------ | ------------ |
+| CSS Selector Fehler | ❌ `'101' is not a valid selector`               | ✅ Behoben   |
+| Mapping Fehler      | ❌ `isSecondary=, aber ID deutet auf primär hin` | ✅ Behoben   |
+| Position-Kloning    | ✅ Bereits behoben                               | ✅ Bestätigt |
